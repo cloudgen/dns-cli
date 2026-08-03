@@ -94,6 +94,9 @@ __pycache__/
 # --- Agent contract (local workspace) ---
 AGENTS.md
 
+# --- Local harness backup dumps (never product surface) ---
+.h1-backup-*/
+
 # --- Docs layer: ignore all docs, re-include requirements only ---
 # Includes docs/policies/ (policy-*.md), skills, terminologies, templates, etc.
 # Policies must NOT be public product surface.

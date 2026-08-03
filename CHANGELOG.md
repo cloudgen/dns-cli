@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-08-03
+
+### Added
+
+- Config repository identity: `REPO_USER=cloudgen`, `REPO_NAME=folder-backup` (project-repository alignment; `SCRIPT_URL` remains empty for local-only install).
+- `about` / `--json about` report `repository` / `repo_user` / `repo_name` / `script_url`.
+- Product README documents source repository and `REPO_*` env vars.
+
 ## [1.2.0] - 2026-08-03
 
 ### Added

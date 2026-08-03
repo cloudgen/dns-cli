@@ -1,6 +1,6 @@
 # folder-backup - Local folder archive backup and restore with narrow sudo deposit
 
-![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.2.1-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/folder-backup?style=flat-square)](https://github.com/cloudgen/folder-backup)
@@ -42,6 +42,9 @@ sudo mkdir -p /var/backup/folder-backup
 
 This product is **local-only** (no default `SCRIPT_URL` online install channel).
 
+**Source repository:** [cloudgen/folder-backup](https://github.com/cloudgen/folder-backup)  
+Config identity: `REPO_USER=cloudgen`, `REPO_NAME=folder-backup` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
+
 ## Usage
 
 ```sh
@@ -64,6 +67,9 @@ folder-backup uninstall --force
 
 | Variable | Role |
 |----------|------|
+| `REPO_USER` | Git host owner (default `cloudgen`) |
+| `REPO_NAME` | Git repository name (default `folder-backup`) |
+| `SCRIPT_URL` | Online install channel (default **empty** — local only) |
 | `BACKUP_ROOT` | Durable root (default `/var/backup`) |
 | `BACKUP_NOTATION` | Subdir (default `folder-backup`) |
 | `PROJECTS_ROOT` | Hard-disk projects tree for restore default |
@@ -94,8 +100,10 @@ folder-backup restore genesis-template-20260803-3.tar.gz /tmp/genesis-restore
 
 ## Related Projects
 
+- [folder-backup](https://github.com/cloudgen/folder-backup) — this product
 - [CIAO Defensive Programming](https://github.com/cloudgen/ciao)
 - [CIAO-Lite](https://github.com/cloudgen/ciao-lite)
+- [selfmanaged](https://github.com/cloudgen/selfmanaged) — bootstrap parent architecture
 
 ## Contributing
 
@@ -107,4 +115,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-08-03 — version **1.2.0** (backup verify + restore with hard-disk default dest SSOT).
+2026-08-03 — version **1.2.1** (repository identity SSOT `REPO_USER`/`REPO_NAME` for cloudgen/folder-backup).

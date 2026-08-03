@@ -29,7 +29,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="folder-backup"
-# VERSION: hard-assign VERSION="1.2.0"
+# VERSION: hard-assign VERSION="1.2.1"
 #
 # =============================================================================
 
@@ -46,8 +46,13 @@ APP_NAME="folder-backup"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.2.0"
-: "${VERSION:=1.2.0}"
+VERSION="1.2.1"
+: "${VERSION:=1.2.1}"
+# Repository identity SSOT (git host owner/repo for project-repository alignment).
+# Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
+: "${REPO_USER:=cloudgen}"
+: "${REPO_NAME:=folder-backup}"
+: "${SCRIPT_URL:=}"
 
 # Runtime flags (safe defaults)
 : "${QUIET:=0}"
@@ -2295,7 +2300,10 @@ app_about() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.2.0}"
+    : "${VERSION:=1.2.1}"
+    : "${REPO_USER:=cloudgen}"
+    : "${REPO_NAME:=folder-backup}"
+    : "${SCRIPT_URL:=}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -2346,6 +2354,10 @@ app_about() {
         out_json "about" "" \
             "app" "${APP_NAME}" \
             "version" "${VERSION}" \
+            "repo_user" "${REPO_USER}" \
+            "repo_name" "${REPO_NAME}" \
+            "repository" "${REPO_USER}/${REPO_NAME}" \
+            "script_url" "${SCRIPT_URL}" \
             "installed" "${_installed}" \
             "global_version" "${_global_ver}" \
             "local_version" "${_local_ver}" \
@@ -2377,6 +2389,13 @@ app_about() {
     out_empty_line
     out_info "Global install  (${GLOBAL_BIN}/${APP_NAME}):   ${_global_ver}"
     out_info "Local install   (${USER_BIN}/${APP_NAME}):    ${_local_ver}"
+    out_empty_line
+    out_info "Repository:        ${REPO_USER}/${REPO_NAME}"
+    if [ -n "${SCRIPT_URL}" ]; then
+        out_info "Install channel:   ${SCRIPT_URL}"
+    else
+        out_info "Install channel:   (empty — local install only)"
+    fi
     out_empty_line
     out_info "Current user:      ${_user}"
     if [ "$(id -u)" -eq 0 ]; then
