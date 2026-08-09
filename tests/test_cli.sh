@@ -45,6 +45,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help backup" "$_out" "backup"
     assert_contains "TP-CLI-04 help restore" "$_out" "restore"
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
+    assert_contains "TP-CLI-04 help install-script" "$_out" "print-sudoers-install-script"
+    assert_contains "TP-CLI-04 help remove-project-sudoers" "$_out" "remove-project-sudoers"
     assert_contains "TP-CLI-04 help hard-disk default" "$_out" "hard-disk"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
     assert_not_contains "TP-CLI-04 no self-update" "$_out" "self-update"

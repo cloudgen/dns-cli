@@ -3,7 +3,9 @@
 **Date:** 2026-08-03  
 **Target user:** grok-agent (source: **current user**)  
 **Procedure:** SK-CREATE-SUDOERS-FILE · CL-CREATE-SUDOERS-SECURITY  
-**Verdict:** **Pass**
+**Verdict:** **Pass** (historical)
+
+> **Superseded for production claims (2026-08-09):** Local-only managed binary is **test mode only** under updated law. See `reviews/reports/2026-08-09-sudoers-security-folder-backup.md` (**Pass (test only)**). Do not treat this 2026-08-03 Pass as production-secure elevation.
 
 ## Managed binary
 

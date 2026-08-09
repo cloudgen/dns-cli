@@ -82,13 +82,18 @@ _trunc() {
     printf '%s' "$1" | tr '\n' ' ' | cut -c1-160
 }
 
-# Isolated HOME + USER_BIN for install tests. Sets CI_HOME, CI_USER_BIN.
+# Isolated HOME + USER_BIN + GLOBAL_BIN for install tests.
+# GLOBAL_BIN is redirected so a host /usr/local/bin install cannot pollute
+# uninstall target selection or trust-tier detection (TP-LC / print-sudoers).
+# Sets CI_HOME, CI_USER_BIN, CI_GLOBAL_BIN.
 ci_isolated_env() {
     CI_HOME=$(mktemp -d "${TMPDIR:-/tmp}/fb-home.XXXXXX")
     CI_USER_BIN="${CI_HOME}/.local/bin"
-    mkdir -p "${CI_USER_BIN}"
+    CI_GLOBAL_BIN="${CI_HOME}/.global-bin"
+    mkdir -p "${CI_USER_BIN}" "${CI_GLOBAL_BIN}"
     export HOME="${CI_HOME}"
     export USER_BIN="${CI_USER_BIN}"
+    export GLOBAL_BIN="${CI_GLOBAL_BIN}"
     # Local-only product: ensure no channel env is required
     unset SCRIPT_URL 2>/dev/null || true
     unset CHECKSUM 2>/dev/null || true
@@ -99,7 +104,9 @@ ci_cleanup_env() {
         rm -rf "${CI_HOME}"
         CI_HOME=
         CI_USER_BIN=
+        CI_GLOBAL_BIN=
     fi
+    unset GLOBAL_BIN 2>/dev/null || true
 }
 
 ci_run() {

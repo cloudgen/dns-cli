@@ -23,7 +23,9 @@ This file remains the sole Active **`requirement-domain-*`** (four pillars).
 |---------|------------------|----------------|------------------|---------------|
 | `backup` | `<source-folder>` required | `fb_*` | Folder archive backup end-to-end | **`requirement-folder-archive-backup`** |
 | `restore` | `<archive\|prefix> [dest]`; flags `--force` `--disk` `--ram` | `fb_*` | Restore archive (default dest: hard-disk host) | **`requirement-folder-archive-backup`** |
-| `print-sudoers` | optional output path | `fb_*` | Emit narrow sudoers draft (no `/etc` write) | **`requirement-three-layer-privilege-model`** |
+| `print-sudoers` | optional output path; `--allow-test-local` when test_local | `fb_*` | Emit **project-sudoers-file** (draft; no `/etc` write) | **`requirement-three-layer-privilege-model`** |
+| `print-sudoers-install-script` | optional script path; same trust gate | `fb_*` | Admin handoff script under `/dev/shm` or temp (`install`/`uninstall`/`replace`/`status`) | **`requirement-three-layer-privilege-model`** §2.3.3a |
+| `remove-project-sudoers` | optional path; `--force` | `fb_*` | Remove **project-sudoers-file** draft only (not `/etc`) | **`requirement-three-layer-privilege-model`** §2.3.3b |
 
 **Routing:** Dispatcher in `app_main` (CLI interface) **MUST** route these verbs; unknown operands fail closed.
 
@@ -36,6 +38,8 @@ This file remains the sole Active **`requirement-domain-*`** (four pillars).
 | Folder archive backup | Expose `backup` verb | `requirement-folder-archive-backup` |
 | Elevated deposit / verify elev | Product uses Type 1 sub-steps | `requirement-three-layer-privilege-model` + backup REQ |
 | Sudoers draft print | Expose `print-sudoers` | `requirement-three-layer-privilege-model` |
+| Admin sudoers install script | Expose `print-sudoers-install-script` | `requirement-three-layer-privilege-model` §2.3.3a · term `project-sudoers-file` |
+| Remove project-sudoers draft | Expose `remove-project-sudoers` | `requirement-three-layer-privilege-model` §2.3.3b |
 
 Domain **MUST NOT** restate full operational backup rules in a second competing SSOT. Pointers and verb catalog only.
 
@@ -47,7 +51,9 @@ Domain **MUST NOT** restate full operational backup rules in a second competing 
 |----------|-------------|
 | `backup <source-folder>` | Create tar.gz, deposit under backup notation, verify counts |
 | `restore <archive\|prefix> [dest]` | Restore archive; default dest **hard-disk** host (reverse ram-drive-first) |
-| `print-sudoers` | Print sudoers fragment for admin install to `/etc/sudoers.d` |
+| `print-sudoers` | Emit **project-sudoers-file** (draft) for admin install |
+| `print-sudoers-install-script` | Write admin script (`/dev/shm` or temp) for sudo install/uninstall/replace of project-sudoers-file |
+| `remove-project-sudoers [path]` | Delete project-sudoers-file draft only (list/choose if multiple; confirm / `--force`; not `/etc`) |
 | Env note | `BACKUP_*`, `PROJECTS_ROOT`, `RAM_ROOT`, `RESTORE_HOST_DEFAULT` |
 | Privilege note | Archive as user; deposit/restore-stage need allowlisted sudo after admin installs fragment |
 
@@ -55,8 +61,9 @@ Examples in help **SHOULD** include:
 
 ```text
 folder-backup install
-folder-backup print-sudoers
-# admin installs fragment to /etc/sudoers.d
+folder-backup print-sudoers-install-script
+# admin (sudo): sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh install
+# leave test elev: sudo sh …/…-sudoers-admin.sh uninstall
 folder-backup backup /path/to/project
 ```
 
@@ -81,7 +88,7 @@ folder-backup backup /path/to/project
 | **Product / APP_NAME** | `folder-backup` |
 | **Domain prefix** | `fb_` |
 | **Ship unit** | `src/folder-backup` |
-| **VERSION** | `1.2.0` |
+| **VERSION** | ship unit SSOT (see `src/folder-backup`) |
 | **Primary user install** | `~/.local/bin/folder-backup` |
 | **Backup operations SSOT** | `requirement-folder-archive-backup` |
 | **Privilege / sudoers SSOT** | `requirement-three-layer-privilege-model` |
@@ -123,8 +130,8 @@ folder-backup backup /path/to/project
 | ID | Criterion |
 |----|-----------|
 | AC-1 | Four pillars present (subcommands, feature map, help, about) |
-| AC-2 | `backup` and `print-sudoers` listed with peer SSOT pointers |
-| AC-3 | Help lists backup + print-sudoers |
+| AC-2 | `backup`, `print-sudoers`, `print-sudoers-install-script`, and `remove-project-sudoers` listed with peer SSOT pointers |
+| AC-3 | Help lists backup + print-sudoers + install-script + remove-project-sudoers |
 | AC-4 | About lists backup root / notation / deposit dir |
 | AC-5 | Registered as sole Active domain SSOT |
 | AC-6 | No competing full backup ops body (defers to folder-archive-backup) |

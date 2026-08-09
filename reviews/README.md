@@ -11,6 +11,8 @@ Public product review surface (peer of `tests/`).
 | `index.md` | Report index |
 | `reports/` | Dated review run reports |
 
-**Ship unit:** `src/folder-backup`  
+**Ship unit:** `src/folder-backup` (**VERSION 1.4.1**)  
 **Suite:** `./tests/run.sh`  
-**Last suite baseline:** see latest report under `reports/`
+**Last suite baseline:** PASS=131 FAIL=0 SKIP=0 (2026-08-09) — see `test-plan.md` and `reports/`  
+
+**Privilege review focus (1.3+):** trust tier **S13**, project-sudoers-file, `print-sudoers-install-script`, `remove-project-sudoers` (draft only).

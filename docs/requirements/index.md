@@ -9,11 +9,11 @@
 | requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only) | class | Active | `requirement-class-software-dev.md` | 2026-08-03 |
 | requirement-bootstrap-chain | Bootstrap chain A=selfmanaged → B=folder-backup (trim online) | architecture | Active | `requirement-bootstrap-chain.md` | 2026-08-03 |
 | requirement-project-folder | Project layout (`src/`), install bins, `/var/backup` deposit | architecture | Active | `requirement-project-folder.md` | 2026-08-03 |
-| requirement-three-layer-privilege-model | Type 0 + narrow Type 1 deposit; **sudoers fragment files** (emit, content, example, admin install, fail-closed) | architecture | Active (1.1.1) | `requirement-three-layer-privilege-model.md` | 2026-08-03 |
+| requirement-three-layer-privilege-model | Type 0 + narrow Type 1 deposit; sudoers emit + **install-script** handoff; **per-user** fragment names; **trust tiers** (S13); elev tables S11–S12 when claimed | architecture | Active (1.3.0) | `requirement-three-layer-privilege-model.md` | 2026-08-09 |
 | requirement-folder-archive-backup | **Backup/restore ops SSOT**: backup + verify + **restore** (default dest hard-disk) | backup | Active (1.1.0) | `requirement-folder-archive-backup.md` | 2026-08-03 |
 | requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes) | shell | Active | `requirement-shell-cli-interface.md` | 2026-08-03 |
 | requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only) | shell | Active | `requirement-shell-cli-zero-arguments.md` | 2026-08-03 |
-| requirement-shell-local-self-management | Local install / uninstall / where-is-me (+ local version package) | shell | Active | `requirement-shell-local-self-management.md` | 2026-08-03 |
+| requirement-shell-local-self-management | Local install / uninstall / where-is-me; **mode 0755** multi-user | shell | Active (1.2.0) | `requirement-shell-local-self-management.md` | 2026-08-09 |
 | requirement-shell-output-requirements | Central `out_*` output SSOT | shell | Active | `requirement-shell-output-requirements.md` | 2026-08-03 |
 | requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`fb_`) | shell | Active | `requirement-shell-modular-function-design.md` | 2026-08-03 |
 | requirement-shell-idempotency | Re-run safety; archive next-N no overwrite | shell | Active | `requirement-shell-idempotency.md` | 2026-08-03 |

@@ -1,6 +1,6 @@
 # folder-backup - Local folder archive backup and restore with narrow sudo deposit
 
-![Version](https://img.shields.io/badge/Version-1.2.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/folder-backup?style=flat-square)](https://github.com/cloudgen/folder-backup)
@@ -18,7 +18,7 @@ POSIX `/bin/sh` local CLI that archives a folder to gzip tar, deposits it under 
 
 ## Quick Installation
 
-**Local (recommended):**
+**Local (Type 0 day-to-day):**
 
 ```sh
 # From this repository checkout
@@ -30,17 +30,38 @@ sh src/folder-backup install --force
 folder-backup version
 ```
 
+**Global (preferred before durable sudoers / production elevation):**
+
+```sh
+sudo sh src/folder-backup install
+# or: folder-backup install --global   # needs write access to /usr/local/bin
+# Managed binary mode is always 0755 so every user can run the shell ship unit.
+# If an older install left 0711 (rwx--x--x), re-run: sudo sh src/folder-backup install
+```
+
 **Sudoers (required for non-root deposit / restore of root-owned archives):**
 
 ```sh
-folder-backup print-sudoers ~/.config/folder-backup/sudoers.fragment
-# Admin:
-sudo visudo -c -f ~/.config/folder-backup/sudoers.fragment
-sudo install -m 0440 ~/.config/folder-backup/sudoers.fragment /etc/sudoers.d/folder-backup
-sudo mkdir -p /var/backup/folder-backup
+# Prefer: refresh project-sudoers-file + write admin script under /dev/shm
+# Production (global install present):
+folder-backup print-sudoers-install-script
+# Test mode only (local/unmanaged):
+folder-backup print-sudoers-install-script --allow-test-local
+
+# Admin (account with sudo rights) — handoff script (path printed by CLI):
+sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh install   # visudo + install 0440
+sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh replace   # remove old then install
+sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh uninstall # leave test elevation
+sudo sh /dev/shm/folder-backup-<user>-sudoers-admin.sh status
+
+# Manual equivalent still valid (paths are per-user — multi-user safe):
+# sudo visudo -c -f ~/.config/folder-backup/sudoers.fragment-<user>
+# sudo install -m 0440 ~/.config/folder-backup/sudoers.fragment-<user> /etc/sudoers.d/folder-backup-<user>
 ```
 
-This product is **local-only** (no default `SCRIPT_URL` online install channel).
+**Security note:** Local `~/.local/bin` install is **not** production-secure for host elevation — the user can change the binary and stage trees. Prefer global install for any host that keeps `/etc/sudoers.d/folder-backup-<user>`. Multi-user hosts get **one fragment file per user** (no shared overwrite). See [`SECURITY.md`](./SECURITY.md).
+
+This product is **local-only** for its install *channel* (no default `SCRIPT_URL` online install). Global vs local here means install *location*, not an online channel.
 
 **Source repository:** [cloudgen/folder-backup](https://github.com/cloudgen/folder-backup)  
 Config identity: `REPO_USER=cloudgen`, `REPO_NAME=folder-backup` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
@@ -75,6 +96,7 @@ folder-backup uninstall --force
 | `PROJECTS_ROOT` | Hard-disk projects tree for restore default |
 | `RAM_ROOT` | RAM projects root (default `/dev/shm`) |
 | `RESTORE_HOST_DEFAULT` | `hard-disk` (default) or `ram-drive` |
+| `ALLOW_TEST_LOCAL_SUDOERS` | `1` = allow test-mode `print-sudoers` without `--allow-test-local` |
 
 ## Examples
 

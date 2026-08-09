@@ -37,13 +37,15 @@ run_test_domain_folder_backup() {
     ci_isolated_env
 
     # TP-FOLDER-BACKUP-01 print-sudoers human emits fragment; Type 0 must not install /etc
-    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers 2>&1)
+    # Suite has no global install → trust tier test_local/unmanaged → require --allow-test-local
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers --allow-test-local 2>&1)
     _ec=$?
     assert_eq "TP-FOLDER-BACKUP-01 print-sudoers exit 0" 0 "$_ec"
     assert_contains "TP-FOLDER-BACKUP-01 NOPASSWD" "$_out" "NOPASSWD"
     assert_contains "TP-FOLDER-BACKUP-01 dest path" "$_out" "/var/backup/folder-backup"
     assert_contains "TP-FOLDER-BACKUP-01 admin install hint" "$_out" "/etc/sudoers.d/"
     assert_contains "TP-FOLDER-BACKUP-01 tar verify allowlist" "$_out" "tar -tzf"
+    assert_contains "TP-FOLDER-BACKUP-01 test mode banner" "$_out" "TEST MODE ONLY"
     # print-sudoers never writes /etc itself. Host may already have admin-installed fragment.
     if [ -e /etc/sudoers.d/folder-backup ]; then
         t_pass "TP-FOLDER-BACKUP-01 host has admin sudoers (print-sudoers is Type 0 only; no /etc write attempted)"
@@ -51,14 +53,25 @@ run_test_domain_folder_backup() {
         assert_file_missing "TP-FOLDER-BACKUP-01 no /etc write" "/etc/sudoers.d/folder-backup"
     fi
 
-    # TP-FOLDER-BACKUP-02 print-sudoers to path
-    _frag="${CI_HOME}/.config/folder-backup/sudoers.fragment"
-    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers "${_frag}" 2>&1)
+    # TP-FOLDER-BACKUP-01b refuse test_local emit without allow flag
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-FOLDER-BACKUP-01b refuse without allow-test-local exit 1" 1 "$_ec"
+    assert_contains "TP-FOLDER-BACKUP-01b hint allow-test-local" "$_err" "allow-test-local"
+
+    # TP-FOLDER-BACKUP-02 print-sudoers to path (explicit path still supported;
+    # keep outside config sudoers.fragment* so multi-draft discovery is not polluted)
+    _frag="${CI_HOME}/out/sudoers-draft.txt"
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers --allow-test-local "${_frag}" 2>&1)
     _ec=$?
     assert_eq "TP-FOLDER-BACKUP-02 write fragment exit 0" 0 "$_ec"
     assert_file_exists "TP-FOLDER-BACKUP-02 fragment file" "${_frag}"
     assert_contains "TP-FOLDER-BACKUP-02 file has mkdir" "$(cat "${_frag}")" "mkdir -p /var/backup/folder-backup"
     assert_not_contains "TP-FOLDER-BACKUP-02 no ALL ALL" "$(cat "${_frag}")" "NOPASSWD: ALL"
+    assert_contains "TP-FOLDER-BACKUP-02 test mode in file" "$(cat "${_frag}")" "TEST MODE ONLY"
+    # Per-user stage roots (not broad APP_NAME-* across users)
+    _ci_user=$(id -un 2>/dev/null || echo "unknown")
+    assert_contains "TP-FOLDER-BACKUP-02 per-user stage" "$(cat "${_frag}")" "folder-backup-${_ci_user}"
 
     # TP-FOLDER-BACKUP-03 backup without source fails
     _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" backup 2>&1 >/dev/null)
@@ -226,8 +239,81 @@ run_test_domain_folder_backup() {
     assert_eq "TP-FOLDER-BACKUP-13 non-empty without force exit 1" 1 "$?"
 
     # print-sudoers includes restore stage cp reverse
-    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers 2>&1)
-    assert_contains "TP-FOLDER-BACKUP-01b restore stage cp allowlist" "$_out" "Restore: copy deposit"
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers --allow-test-local 2>&1)
+    assert_contains "TP-FOLDER-BACKUP-01c restore stage cp allowlist" "$_out" "Restore: copy deposit"
+
+    # TP-FOLDER-BACKUP-14 admin install script (project-sudoers-file handoff; per-user names)
+    _script="${CI_HOME}/sudoers-admin.sh"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _draft_default="${CI_HOME}/.config/folder-backup/sudoers.fragment-${_user}"
+    _installed_default="/etc/sudoers.d/folder-backup-${_user}"
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers-install-script --allow-test-local "${_script}" 2>&1)
+    _ec=$?
+    assert_eq "TP-FOLDER-BACKUP-14 install-script exit 0" 0 "$_ec"
+    assert_file_exists "TP-FOLDER-BACKUP-14 admin script file" "${_script}"
+    assert_file_exists "TP-FOLDER-BACKUP-14 project-sudoers-file draft per-user" "${_draft_default}"
+    assert_contains "TP-FOLDER-BACKUP-14 script has install" "$(cat "${_script}")" "cmd_install"
+    assert_contains "TP-FOLDER-BACKUP-14 script has uninstall" "$(cat "${_script}")" "cmd_uninstall"
+    assert_contains "TP-FOLDER-BACKUP-14 per-user installed path" "$(cat "${_script}")" "${_installed_default}"
+    assert_contains "TP-FOLDER-BACKUP-14 no etc write by type0" "$_out" "Handoff"
+    # generated script is valid sh; status without root
+    sh -n "${_script}"
+    assert_eq "TP-FOLDER-BACKUP-14 admin script sh -n" 0 "$?"
+    _st=$(sh "${_script}" status 2>&1)
+    assert_contains "TP-FOLDER-BACKUP-14 status draft path" "$_st" "sudoers.fragment-${_user}"
+    # Type 0 must not have written /etc (host may already have fragment)
+    assert_contains "TP-FOLDER-BACKUP-14 require root for install" "$(sh "${_script}" install 2>&1 || true)" "root"
+
+    # TP-FOLDER-BACKUP-15 remove-project-sudoers (draft only; probe host elev; multi-draft choose)
+    _draft="${_draft_default}"
+    assert_file_exists "TP-FOLDER-BACKUP-15 draft exists before remove" "${_draft}"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers 2>&1 >/dev/null)
+    assert_eq "TP-FOLDER-BACKUP-15 remove without force fail-closed" 1 "$?"
+    assert_file_exists "TP-FOLDER-BACKUP-15 draft remains without force" "${_draft}"
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force 2>&1)
+    assert_eq "TP-FOLDER-BACKUP-15 remove --force exit 0" 0 "$?"
+    assert_file_missing "TP-FOLDER-BACKUP-15 draft removed" "${_draft}"
+    assert_contains "TP-FOLDER-BACKUP-15 mentions host path" "$_out" "/etc/sudoers.d/"
+    # Probe honesty: if any host elev exists warn STILL ACTIVE; else report host also absent
+    if [ -e "${_installed_default}" ] || [ -e /etc/sudoers.d/folder-backup ] || ls /etc/sudoers.d/folder-backup-* >/dev/null 2>&1; then
+        assert_contains "TP-FOLDER-BACKUP-15 host elev still active warn" "$_out" "STILL ACTIVE"
+    else
+        assert_contains "TP-FOLDER-BACKUP-15 host fragment also absent" "$_out" "also absent"
+    fi
+    # refuse /etc path (legacy or per-user)
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force /etc/sudoers.d/folder-backup 2>&1 >/dev/null)
+    assert_eq "TP-FOLDER-BACKUP-15 refuse /etc exit 1" 1 "$?"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${_installed_default}" 2>&1 >/dev/null)
+    assert_eq "TP-FOLDER-BACKUP-15 refuse per-user /etc exit 1" 1 "$?"
+    # already absent is success; still honest about host elev
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force 2>&1)
+    assert_eq "TP-FOLDER-BACKUP-15 already absent exit 0" 0 "$?"
+    assert_contains "TP-FOLDER-BACKUP-15 already absent text" "$_out" "not present"
+    if [ -e "${_installed_default}" ] || [ -e /etc/sudoers.d/folder-backup ] || ls /etc/sudoers.d/folder-backup-* >/dev/null 2>&1; then
+        assert_contains "TP-FOLDER-BACKUP-15 already-absent still warns host elev" "$_out" "STILL ACTIVE"
+    else
+        assert_contains "TP-FOLDER-BACKUP-15 already-absent host clean" "$_out" "also absent"
+    fi
+    _json=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force --json 2>/dev/null)
+    assert_contains "TP-FOLDER-BACKUP-15 json host_fragment_present" "$_json" "host_fragment_present"
+
+    # TP-FOLDER-BACKUP-15b multi-draft: non-interactive must require path when multiple exist
+    mkdir -p "${CI_HOME}/.config/folder-backup"
+    printf '# legacy draft\n' > "${CI_HOME}/.config/folder-backup/sudoers.fragment"
+    printf '# user draft\n' > "${_draft_default}"
+    printf '# other draft\n' > "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser"
+    _err=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force 2>&1 >/dev/null)
+    assert_eq "TP-FOLDER-BACKUP-15b multi-draft noninteractive needs path" 1 "$?"
+    assert_contains "TP-FOLDER-BACKUP-15b multi-draft message" "$_err" "multiple drafts"
+    # explicit path removes only that draft
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${_draft_default}" 2>&1)
+    assert_eq "TP-FOLDER-BACKUP-15b remove explicit path exit 0" 0 "$?"
+    assert_file_missing "TP-FOLDER-BACKUP-15b explicit draft removed" "${_draft_default}"
+    assert_file_exists "TP-FOLDER-BACKUP-15b legacy draft remains" "${CI_HOME}/.config/folder-backup/sudoers.fragment"
+    assert_file_exists "TP-FOLDER-BACKUP-15b other draft remains" "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser"
+    # cleanup remaining drafts
+    HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment" >/dev/null 2>&1 || true
+    HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser" >/dev/null 2>&1 || true
 
     ci_cleanup_env
 }

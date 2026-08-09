@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.2.0 (current) | Yes |
+| 1.4.0 (current) | Yes |
+| 1.3.x | Best-effort |
+| 1.2.x | Best-effort |
 | Older releases | Best-effort only |
 
 ## Reporting a Vulnerability
@@ -36,4 +38,13 @@ This section is **design posture**, not a third-party certification claim.
 
 - Elevation is limited to allowlisted deposit and restore-stage operations under product law.  
 - Operators must admin-install sudoers fragments after review (`visudo -c`, mode `0440`).  
-- Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md).
+- **Install trust tiers for elevation:**
+  - **Production:** global managed binary (`/usr/local/bin/folder-backup`, typically root-owned). Prefer `sudo folder-backup install` before durable sudoers.  
+  - **Test mode only:** local `~/.local/bin/folder-backup` is **user-rewritable**. A local user can change the CLI and stage content after a review; do **not** treat local-only sudoers as production-secure.  
+  - `print-sudoers` refuses non-production tiers unless `--allow-test-local` / `ALLOW_TEST_LOCAL_SUDOERS=1`, and embeds **TEST MODE / uninstall soon** warnings.  
+  - **`print-sudoers-install-script`** writes a **Type 0 admin handoff script** under `/dev/shm` (or temp) that a sudo-capable account runs for `install` / `uninstall` / `replace` of the **project-sudoers-file** — the CLI never writes `/etc` itself.  
+  - **Per-user host paths:** draft `~/.config/folder-backup/sudoers.fragment-<user>` installs to `/etc/sudoers.d/folder-backup-<user>` so multi-user admin installs do not overwrite each other.  
+  - Uninstall of the binary does **not** remove `/etc/sudoers.d/folder-backup-<user>` — use `sudo sh <admin-script> uninstall` (or admin `rm`) when leaving test elevation.  
+  - **`remove-project-sudoers`** deletes drafts only; when multiple drafts exist it lists them for interactive choice (non-interactive needs an explicit path).  
+- Residual: even with OS-tool-only Cmnds, **stage trees are user-writable**; deposit grants write of staged archives into `/var/backup/folder-backup/` only (not a root shell).  
+- Related docs: [`README.md`](./README.md), [`LICENSE.md`](./LICENSE.md), `docs/requirements/requirement-three-layer-privilege-model.md`, `reviews/reports/2026-08-09-sudoers-security-folder-backup.md`.

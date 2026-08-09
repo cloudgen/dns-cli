@@ -29,7 +29,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="folder-backup"
-# VERSION: hard-assign VERSION="1.2.1"
+# VERSION: hard-assign VERSION="1.4.4"
 #
 # =============================================================================
 
@@ -44,10 +44,10 @@ APP_NAME="folder-backup"
 : "${APP_NAME:=folder-backup}"
 : "${APP_DESC:=Local folder archive backup/restore with narrow sudo deposit}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers, print-sudoers-install-script, remove-project-sudoers.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.2.1"
-: "${VERSION:=1.2.1}"
+VERSION="1.4.4"
+: "${VERSION:=1.4.4}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -61,6 +61,8 @@ VERSION="1.2.1"
 : "${FORCE_REINSTALL:=0}"
 : "${DEBUG:=0}"
 : "${TTY:=0}"
+# Sudoers trust: local-only emit requires explicit test-mode allow (see three-layer privilege).
+: "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
 # ----------------------------- Safe Variable Defaults ------------------------
 : "${GLOBAL_BIN:=/usr/local/bin}"
@@ -1192,9 +1194,11 @@ util_resolve_running_path() {
 # - requirement-shell-local-self-management.md
 # - requirement-shell-idempotency.md
 #
-# !!! DO NOT MODIFY OR SIMPLIFY THIS FUNCTION !!!
-#
-# Last reviewed: 2026-08-03
+# Mode SSOT for managed binary (shell ship unit needs world-read for non-owners).
+# Do NOT use chmod +x alone after mktemp (0600|0111 → 0711 breaks multi-user exec).
+INST_MANAGED_MODE="0755"
+
+# Last reviewed: 2026-08-09 — mode 0755 multi-user (requirement-shell-local-self-management §2.3.1)
 # =============================================================================
 inst_local_install() {
     : "${APP_NAME:=folder-backup}"
@@ -1203,28 +1207,41 @@ inst_local_install() {
     : "${USER_BIN:=${HOME}/.local/bin}"
     : "${FORCE:=0}"
     : "${FORCE_REINSTALL:=0}"
+    : "${FORCE_GLOBAL:=0}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
+    : "${INST_MANAGED_MODE:=0755}"
 
     if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
         IS_ROOT=1
-        _target_dir="${GLOBAL_BIN}"
     else
         IS_ROOT=0
-        _target_dir="${USER_BIN}"
     fi
     : "${IS_ROOT:=0}"
+
+    # Root or --global / FORCE_GLOBAL → system-wide path (production elevation story).
+    if [ "${FORCE_GLOBAL}" -eq 1 ] || [ "${IS_ROOT}" -eq 1 ]; then
+        _target_dir="${GLOBAL_BIN}"
+    else
+        _target_dir="${USER_BIN}"
+    fi
     _target="${_target_dir}/${APP_NAME}"
     INSTALL_PATH="${_target}"
 
-    if [ -x "${_target}" ]; then
+    if [ -x "${_target}" ] || [ -f "${_target}" ]; then
         if [ "${FORCE}" -eq 0 ] && [ "${FORCE_REINSTALL}" -eq 0 ]; then
+            # Mode heal: prior chmod +x after mktemp left 0711/0700; keep multi-user runnable.
+            chmod "${INST_MANAGED_MODE}" "${_target}" 2>/dev/null || true
             out_success "${APP_NAME} already installed at ${_target}"
+            if [ "${_target_dir}" = "${USER_BIN}" ] && [ "${JSON}" -eq 0 ]; then
+                out_warn "Local install is fine for Type 0 use. For durable sudoers, prefer: sudo ${APP_NAME} install  (global ${GLOBAL_BIN})"
+            fi
             if [ "${JSON}" -eq 1 ]; then
                 out_json "install" "already installed" \
                     "app" "${APP_NAME}" \
                     "path" "${_target}" \
-                    "status" "already_installed"
+                    "status" "already_installed" \
+                    "mode" "${INST_MANAGED_MODE}"
             fi
             return 0
         fi
@@ -1237,8 +1254,18 @@ inst_local_install() {
 
     if [ ! -d "${_target_dir}" ]; then
         if ! mkdir -p "${_target_dir}" 2>/dev/null; then
+            if [ "${_target_dir}" = "${GLOBAL_BIN}" ]; then
+                out_die "Cannot create ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} install   or: sudo sh <ship-unit> install"
+            fi
             out_die "Cannot create install directory ${_target_dir}"
         fi
+    fi
+
+    if [ ! -w "${_target_dir}" ] 2>/dev/null; then
+        if [ "${_target_dir}" = "${GLOBAL_BIN}" ]; then
+            out_die "Cannot write ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} install   or: sudo sh <ship-unit> install --global"
+        fi
+        out_die "Install directory not writable: ${_target_dir}"
     fi
 
     _stage=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}.install.XXXXXX" 2>/dev/null || mktemp)
@@ -1246,25 +1273,38 @@ inst_local_install() {
         rm -f "${_stage}" 2>/dev/null || true
         out_die "Failed to stage ship unit for install"
     fi
-    if ! chmod +x "${_stage}"; then
+    # Absolute 0755 required: shell scripts need group/other *read* for non-owner exec.
+    # chmod +x on a mktemp file (often 0600) yields 0711 — look executable, fail for others.
+    if ! chmod "${INST_MANAGED_MODE}" "${_stage}"; then
         rm -f "${_stage}" 2>/dev/null || true
-        out_die "Failed to chmod +x staged ship unit"
+        out_die "Failed to chmod ${INST_MANAGED_MODE} staged ship unit"
     fi
     if ! mv -f "${_stage}" "${_target}"; then
         rm -f "${_stage}" 2>/dev/null || true
         out_die "Failed to install to ${_target}"
     fi
+    # Re-assert mode after mv (some filesystems / policies may alter bits).
+    if ! chmod "${INST_MANAGED_MODE}" "${_target}"; then
+        out_die "Installed ${_target} but failed to set mode ${INST_MANAGED_MODE}"
+    fi
+    if [ ! -r "${_target}" ] || [ ! -x "${_target}" ]; then
+        out_die "Installed ${_target} is not readable+executable (mode heal failed)"
+    fi
 
     out_success "Installed ${APP_NAME} to ${_target}"
-    if [ "${IS_ROOT}" -eq 0 ]; then
+    if [ "${_target_dir}" = "${USER_BIN}" ]; then
         # Best-effort PATH integration for user bin (function, not external)
         path_add_shell 2>/dev/null || true
+        if [ "${JSON}" -eq 0 ]; then
+            out_warn "Local install is user-rewritable. Durable sudoers should use global install (root → ${GLOBAL_BIN})."
+        fi
     fi
     if [ "${JSON}" -eq 1 ]; then
         out_json "install" "installed" \
             "app" "${APP_NAME}" \
             "path" "${_target}" \
-            "status" "installed"
+            "status" "installed" \
+            "mode" "${INST_MANAGED_MODE}"
     fi
     return 0
 }
@@ -1321,11 +1361,18 @@ inst_local_uninstall() {
         out_die "Failed to remove ${_target}"
     fi
     out_success "Removed ${APP_NAME} from ${_target}"
+    _installed=$(fb_default_installed_sudoers_path)
+    if [ "${JSON}" -eq 0 ]; then
+        out_warn "Uninstall does not remove host sudoers fragments under /etc/sudoers.d/."
+        out_info "If elevation was test-mode only, admin should uninstall soon: sudo rm ${_installed}"
+        out_info "Multi-user: other users keep their own /etc/sudoers.d/${APP_NAME}-<user> fragments."
+    fi
     if [ "${JSON}" -eq 1 ]; then
         out_json "uninstall" "removed" \
             "app" "${APP_NAME}" \
             "path" "${_target}" \
-            "status" "uninstalled"
+            "status" "uninstalled" \
+            "sudoers_note" "does not remove /etc/sudoers.d/${APP_NAME}-<user>"
     fi
     return 0
 }
@@ -2188,6 +2235,37 @@ fb_restore() {
 }
 
 # =============================================================================
+# fb_sudoers_trust_tier() - Classify managed-install trust for print-sudoers
+# =============================================================================
+#
+# Prints one of: production | test_local | unmanaged
+# production = executable global managed binary present
+# test_local = only local user-bin managed binary
+# unmanaged  = neither path executable
+#
+# ALIGNMENT: requirement-three-layer-privilege-model.md §2.3.1a
+# =============================================================================
+fb_sudoers_trust_tier() {
+    : "${APP_NAME:=folder-backup}"
+    : "${HOME:=/tmp}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+
+    # Shell ship unit needs read+execute for the classifying process. Mode 0711
+    # is -x but not -r for non-owners → not a usable multi-user production install.
+    if [ -r "${GLOBAL_BIN}/${APP_NAME}" ] && [ -x "${GLOBAL_BIN}/${APP_NAME}" ]; then
+        printf '%s' "production"
+        return 0
+    fi
+    if [ -r "${USER_BIN}/${APP_NAME}" ] && [ -x "${USER_BIN}/${APP_NAME}" ]; then
+        printf '%s' "test_local"
+        return 0
+    fi
+    printf '%s' "unmanaged"
+    return 0
+}
+
+# =============================================================================
 # fb_print_sudoers() - Emit narrow sudoers fragment (does NOT write /etc)
 # =============================================================================
 #
@@ -2196,7 +2274,7 @@ fb_restore() {
 # - requirement-three-layer-privilege-model.md
 # - requirement-folder-archive-backup.md (deposit + restore stage fetch)
 #
-# Last reviewed: 2026-08-03
+# Last reviewed: 2026-08-09
 # =============================================================================
 fb_print_sudoers() {
     : "${APP_NAME:=folder-backup}"
@@ -2205,34 +2283,80 @@ fb_print_sudoers() {
     : "${BACKUP_ROOT:=/var/backup}"
     : "${BACKUP_NOTATION:=folder-backup}"
     : "${HOME:=/tmp}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
 
     _user=$(id -un 2>/dev/null || echo "unknown")
     _dest="${BACKUP_ROOT}/${BACKUP_NOTATION}"
     _out_path="${1:-}"
+    _tier=$(fb_sudoers_trust_tier)
+    _test_mode="false"
+    _global_path="${GLOBAL_BIN}/${APP_NAME}"
+    _local_path="${USER_BIN}/${APP_NAME}"
+    # Per-user stage roots only (must match util_resolve_storage / EFFECTIVE_STORAGE_DIR)
+    _stage_shm="/dev/shm/${APP_NAME}-${_user}"
+    _stage_tmp="/tmp/${APP_NAME}-${_user}"
+    _stage_cache="${HOME}/.cache/${APP_NAME}-${_user}"
 
-    # Narrow Cmnd_Alias: deposit + verify list + restore stage fetch (cp reverse).
+    if [ "${_tier}" != "production" ]; then
+        _test_mode="true"
+        if [ "${ALLOW_TEST_LOCAL_SUDOERS}" -ne 1 ]; then
+            out_die "print-sudoers trust tier is ${_tier} (not production). Local/user-rewritable install is TEST MODE ONLY. Prefer: sudo ${APP_NAME} install  (global ${_global_path}). To emit a test fragment anyway: ${APP_NAME} print-sudoers --allow-test-local [path]  or ALLOW_TEST_LOCAL_SUDOERS=1"
+        fi
+    fi
+
+    _installed=$(fb_default_installed_sudoers_path)
+    _draft_default=$(fb_default_project_sudoers_path)
+
+    if [ "${_test_mode}" = "true" ]; then
+        _trust_banner="# =============================================================================
+# WARNING: TEST MODE ONLY — NOT PRODUCTION-SECURE
+# Local/unmanaged install: user can rewrite ${_local_path} and stage trees.
+# Uninstall this fragment soon:
+#   sudo rm ${_installed}
+# Production path: sudo ${APP_NAME} install  → re-emit print-sudoers → re-review → reinstall
+# Multi-user: installed name is per-user (${APP_NAME}-<user>) so users do not overwrite each other.
+# ============================================================================="
+    else
+        _trust_banner="# Trust tier: production (global managed binary: ${_global_path})
+# Residual risk: stage trees below are still user-writable content sources.
+# Multi-user: install as ${_installed} (per-user suffix; do not overwrite other users)."
+    fi
+
+    # Narrow allowlist: deposit + verify list + restore stage fetch (cp reverse).
     # Admin must review; install with mode 0440 under /etc/sudoers.d/
+    # Stage paths are per-user only (no ${APP_NAME}-* broad wildcards).
+    # Installed filename includes user suffix so multi-user hosts keep separate fragments.
     _fragment=$(cat <<EOF
 # ${APP_NAME} — narrow deposit / verify / restore-stage allowlist (review before install)
-# Install: sudo install -m 0440 <this-file> /etc/sudoers.d/${APP_NAME}
-# Validate: sudo visudo -c -f /etc/sudoers.d/${APP_NAME}
+# Target user: ${_user}
+# Install: sudo install -m 0440 <this-file> ${_installed}
+# Validate: sudo visudo -c -f ${_installed}
+# Trust tier: ${_tier}
+${_trust_banner}
 #
 # Allow ${_user} to create notation dir, deposit archives, list for verify,
 # and copy archives back to user stage for restore extract.
+# Does NOT elevate ${_local_path} (user-rewritable).
 ${_user} ALL=(root) NOPASSWD: /bin/mkdir -p ${_dest}, /usr/bin/mkdir -p ${_dest}
-${_user} ALL=(root) NOPASSWD: /bin/cp ${HOME}/.cache/${APP_NAME}-*/* ${_dest}/, /usr/bin/cp ${HOME}/.cache/${APP_NAME}-*/* ${_dest}/
-${_user} ALL=(root) NOPASSWD: /bin/cp /tmp/${APP_NAME}-*/* ${_dest}/, /usr/bin/cp /tmp/${APP_NAME}-*/* ${_dest}/
-${_user} ALL=(root) NOPASSWD: /bin/cp /dev/shm/${APP_NAME}-*/* ${_dest}/, /usr/bin/cp /dev/shm/${APP_NAME}-*/* ${_dest}/
-${_user} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 ${HOME}/.cache/${APP_NAME}-*/* ${_dest}/*, /usr/bin/install -m 0640 /tmp/${APP_NAME}-*/* ${_dest}/*, /usr/bin/install -m 0640 /dev/shm/${APP_NAME}-*/* ${_dest}/*
+${_user} ALL=(root) NOPASSWD: /bin/cp ${_stage_cache}/* ${_dest}/, /usr/bin/cp ${_stage_cache}/* ${_dest}/
+${_user} ALL=(root) NOPASSWD: /bin/cp ${_stage_tmp}/* ${_dest}/, /usr/bin/cp ${_stage_tmp}/* ${_dest}/
+${_user} ALL=(root) NOPASSWD: /bin/cp ${_stage_shm}/* ${_dest}/, /usr/bin/cp ${_stage_shm}/* ${_dest}/
+${_user} ALL=(root) NOPASSWD: /usr/bin/install -m 0640 ${_stage_cache}/* ${_dest}/*, /usr/bin/install -m 0640 ${_stage_tmp}/* ${_dest}/*, /usr/bin/install -m 0640 ${_stage_shm}/* ${_dest}/*
 ${_user} ALL=(root) NOPASSWD: /bin/chmod 0640 ${_dest}/*, /usr/bin/chmod 0640 ${_dest}/*
 # Post-deposit verification (list members only; no extract)
 ${_user} ALL=(root) NOPASSWD: /usr/bin/tar -tzf ${_dest}/*, /bin/tar -tzf ${_dest}/*
 # Restore: copy deposit archive into per-user stage (Type 0 tar -xzf after)
-${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* /dev/shm/${APP_NAME}-${_user}/, /bin/cp ${_dest}/* /dev/shm/${APP_NAME}-${_user}/
-${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* /tmp/${APP_NAME}-${_user}/, /bin/cp ${_dest}/* /tmp/${APP_NAME}-${_user}/
-${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${HOME}/.cache/${APP_NAME}-${_user}/, /bin/cp ${_dest}/* ${HOME}/.cache/${APP_NAME}-${_user}/
+${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_shm}/, /bin/cp ${_dest}/* ${_stage_shm}/
+${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_tmp}/, /bin/cp ${_dest}/* ${_stage_tmp}/
+${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_cache}/, /bin/cp ${_dest}/* ${_stage_cache}/
 EOF
 )
+
+    if [ "${_test_mode}" = "true" ] && [ "${JSON}" -eq 0 ]; then
+        out_warn "TEST MODE ONLY: trust tier=${_tier}. Uninstall ${_installed} soon. Prefer global install for production."
+    fi
 
     if [ -n "${_out_path}" ]; then
         _dir=$(dirname -- "${_out_path}")
@@ -2242,12 +2366,18 @@ EOF
         printf '%s\n' "${_fragment}" > "${_out_path}" || out_die "Cannot write ${_out_path}"
         out_success "Wrote sudoers fragment to ${_out_path}"
         out_info "Admin: sudo visudo -c -f ${_out_path}"
-        out_info "Admin: sudo install -m 0440 ${_out_path} /etc/sudoers.d/${APP_NAME}"
+        out_info "Admin: sudo install -m 0440 ${_out_path} ${_installed}"
+        if [ "${_test_mode}" = "true" ]; then
+            out_warn "Admin (test mode): plan uninstall soon → sudo rm ${_installed}"
+        fi
         if [ "${JSON}" -eq 1 ]; then
             out_json "print-sudoers" "written" \
                 "path" "${_out_path}" \
                 "user" "${_user}" \
-                "dest" "${_dest}"
+                "installed_path" "${_installed}" \
+                "dest" "${_dest}" \
+                "trust_tier" "${_tier}" \
+                "test_mode" "${_test_mode}"
         fi
         return 0
     fi
@@ -2257,26 +2387,518 @@ EOF
         out_json "print-sudoers" "use human mode or path arg to capture fragment" \
             "user" "${_user}" \
             "dest" "${_dest}" \
-            "hint" "${APP_NAME} print-sudoers ${HOME}/.config/${APP_NAME}/sudoers.fragment"
+            "installed_path" "${_installed}" \
+            "trust_tier" "${_tier}" \
+            "test_mode" "${_test_mode}" \
+            "hint" "${APP_NAME} print-sudoers --allow-test-local ${_draft_default}"
         return 0
     fi
 
-    out_info "Sudoers fragment for user ${_user} → deposit ${_dest}/"
-    out_info "Admin steps: review → visudo -c -f FILE → install -m 0440 FILE /etc/sudoers.d/${APP_NAME}"
+    out_info "Sudoers fragment for user ${_user} → deposit ${_dest}/ (trust_tier=${_tier})"
+    out_info "Admin steps: review → visudo -c -f FILE → install -m 0440 FILE ${_installed}"
     out_empty_line
     out_plain "${_fragment}"
     out_empty_line
-    out_info "Tip: ${APP_NAME} print-sudoers ${HOME}/.config/${APP_NAME}/sudoers.fragment"
+    out_info "Tip: ${APP_NAME} print-sudoers ${_draft_default}"
+    out_info "Admin script: ${APP_NAME} print-sudoers-install-script"
 }
 
+# =============================================================================
+# fb_current_login_user() - Class B: invoking login name for path suffixes
+# =============================================================================
+fb_current_login_user() {
+    id -un 2>/dev/null || echo "unknown"
+}
 
+# =============================================================================
+# fb_default_project_sudoers_path() - Class B: default project-sudoers-file path
+# =============================================================================
+# Per-user draft: ${HOME}/.config/${APP_NAME}/sudoers.fragment-<user>
+# Multi-user: each login keeps a distinct draft filename (not a shared basename).
+# =============================================================================
+fb_default_project_sudoers_path() {
+    : "${APP_NAME:=folder-backup}"
+    : "${HOME:=/tmp}"
+    _user=$(fb_current_login_user)
+    printf '%s' "${HOME}/.config/${APP_NAME}/sudoers.fragment-${_user}"
+}
+
+# =============================================================================
+# fb_default_installed_sudoers_path() - Class B: host /etc/sudoers.d path
+# =============================================================================
+# Per-user installed name: /etc/sudoers.d/${APP_NAME}-<user>
+# Prevents multi-user admin installs from overwriting another user's fragment.
+# =============================================================================
+fb_default_installed_sudoers_path() {
+    : "${APP_NAME:=folder-backup}"
+    _user=$(fb_current_login_user)
+    printf '%s' "/etc/sudoers.d/${APP_NAME}-${_user}"
+}
+
+# =============================================================================
+# fb_legacy_installed_sudoers_path() - Class B: pre-user-suffix host path
+# =============================================================================
+fb_legacy_installed_sudoers_path() {
+    : "${APP_NAME:=folder-backup}"
+    printf '%s' "/etc/sudoers.d/${APP_NAME}"
+}
+
+# =============================================================================
+# fb_list_project_sudoers_drafts() - Class B: list draft paths under config
+# =============================================================================
+# Emits one absolute path per line: legacy sudoers.fragment then sudoers.fragment-*.
+# ALIGNMENT: term project-sudoers-file · multi-user remove-project-sudoers
+# =============================================================================
+fb_list_project_sudoers_drafts() {
+    : "${APP_NAME:=folder-backup}"
+    : "${HOME:=/tmp}"
+    _dir="${HOME}/.config/${APP_NAME}"
+    if [ ! -d "${_dir}" ]; then
+        return 0
+    fi
+    # Legacy un-suffixed draft (pre multi-user naming)
+    if [ -f "${_dir}/sudoers.fragment" ]; then
+        printf '%s\n' "${_dir}/sudoers.fragment"
+    fi
+    for _f in "${_dir}"/sudoers.fragment-*; do
+        if [ -f "${_f}" ]; then
+            printf '%s\n' "${_f}"
+        fi
+    done
+    return 0
+}
+
+# =============================================================================
+# fb_list_host_sudoers_fragments() - Class B: list readable host elev paths
+# =============================================================================
+# Lists /etc/sudoers.d/${APP_NAME} (legacy) and /etc/sudoers.d/${APP_NAME}-*
+# when present (probe-only; Type 0 never deletes them).
+# =============================================================================
+fb_list_host_sudoers_fragments() {
+    : "${APP_NAME:=folder-backup}"
+    _legacy=$(fb_legacy_installed_sudoers_path)
+    if [ -e "${_legacy}" ]; then
+        printf '%s\n' "${_legacy}"
+    fi
+    for _f in /etc/sudoers.d/"${APP_NAME}"-*; do
+        if [ -e "${_f}" ]; then
+            printf '%s\n' "${_f}"
+        fi
+    done
+    return 0
+}
+
+# =============================================================================
+# fb_default_sudoers_admin_script_path() - Class B: admin install script path
+# =============================================================================
+#
+# Prefer /dev/shm (volatile, multi-user handoff); else EFFECTIVE_STORAGE_DIR /tmp.
+# ALIGNMENT: term project-sudoers-file · requirement-three-layer-privilege-model
+# =============================================================================
+fb_default_sudoers_admin_script_path() {
+    : "${APP_NAME:=folder-backup}"
+    _user=$(fb_current_login_user)
+    _name="${APP_NAME}-${_user}-sudoers-admin.sh"
+    if [ -d "/dev/shm" ] && [ -w "/dev/shm" ]; then
+        printf '%s' "/dev/shm/${_name}"
+        return 0
+    fi
+    if [ -n "${EFFECTIVE_STORAGE_DIR:-}" ] && [ -d "${EFFECTIVE_STORAGE_DIR}" ] && [ -w "${EFFECTIVE_STORAGE_DIR}" ]; then
+        printf '%s' "${EFFECTIVE_STORAGE_DIR}/${_name}"
+        return 0
+    fi
+    printf '%s' "/tmp/${_name}"
+    return 0
+}
+
+# =============================================================================
+# fb_print_sudoers_install_script() - Type 0: emit admin install/uninstall script
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# 1) Refresh project-sudoers-file (draft) via fb_print_sudoers
+# 2) Write a shell script under /dev/shm (or temp) for an account WITH sudo
+#    to install | uninstall | replace the fragment under /etc/sudoers.d/
+# Does NOT write /etc itself.
+#
+# ALIGNMENT:
+# - term project-sudoers-file
+# - requirement-three-layer-privilege-model.md
+#
+# Last reviewed: 2026-08-09
+# =============================================================================
+fb_print_sudoers_install_script() {
+    : "${APP_NAME:=folder-backup}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${HOME:=/tmp}"
+    : "${BACKUP_ROOT:=/var/backup}"
+    : "${BACKUP_NOTATION:=folder-backup}"
+    : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
+
+    _user=$(fb_current_login_user)
+    _draft=$(fb_default_project_sudoers_path)
+    _script_out="${1:-}"
+    if [ -z "${_script_out}" ]; then
+        _script_out=$(fb_default_sudoers_admin_script_path)
+    fi
+    _installed=$(fb_default_installed_sudoers_path)
+    _legacy=$(fb_legacy_installed_sudoers_path)
+    _deposit="${BACKUP_ROOT}/${BACKUP_NOTATION}"
+    _tier=$(fb_sudoers_trust_tier)
+
+    # Refresh project-sudoers-file first (same trust gate as print-sudoers)
+    fb_print_sudoers "${_draft}" || return $?
+
+    _script_dir=$(dirname -- "${_script_out}")
+    if [ ! -d "${_script_dir}" ]; then
+        mkdir -p "${_script_dir}" || out_die "Cannot create ${_script_dir}"
+    fi
+
+    # Refuse writing admin script under /etc
+    case "${_script_out}" in
+        /etc/*|/etc)
+            out_die "Refusing to write admin script under /etc (Type 0). Use /dev/shm or temp path."
+            ;;
+    esac
+
+    cat > "${_script_out}" <<EOF
+#!/bin/sh
+# =============================================================================
+# ${APP_NAME} — admin sudoers install / uninstall script
+# Generated by: ${APP_NAME} print-sudoers-install-script
+# Target user (fragment User lines): ${_user}
+# Trust tier at generation: ${_tier}
+# Project sudoers file (draft): ${_draft}
+# Installed path (per-user): ${_installed}
+# Legacy shared path (pre multi-user naming): ${_legacy}
+#
+# RUN AS ROOT (or via sudo), after switching to an account with sudo rights:
+#   sudo sh ${_script_out} install     # visudo-check draft → install 0440
+#   sudo sh ${_script_out} uninstall   # remove THIS user's installed fragment
+#   sudo sh ${_script_out} replace     # uninstall then install (refresh host fragment)
+#
+# Multi-user: installed path includes the user suffix so install for user A
+# does not overwrite /etc/sudoers.d/${APP_NAME}-B for user B.
+# This script NEVER embeds passwords. Review draft before install.
+# Type 0 CLI must not run this with residual agent power as a silent /etc write.
+# =============================================================================
+set -u
+
+APP_NAME="${APP_NAME}"
+PROJECT_SUDOERS_FILE="${_draft}"
+INSTALLED_SUDOERS="${_installed}"
+LEGACY_INSTALLED_SUDOERS="${_legacy}"
+DEPOSIT_DIR="${_deposit}"
+GEN_USER="${_user}"
+GEN_TIER="${_tier}"
+
+die() { printf '%s\\n' "ERROR: \$*" >&2; exit 1; }
+info() { printf '%s\\n' "\$*"; }
+
+require_root() {
+    if [ "\$(id -u 2>/dev/null || echo 1)" -ne 0 ]; then
+        die "Must run as root (e.g. sudo sh \$0 install). Current uid=\$(id -u)."
+    fi
+}
+
+cmd_install() {
+    require_root
+    [ -f "\${PROJECT_SUDOERS_FILE}" ] || die "Missing project sudoers file: \${PROJECT_SUDOERS_FILE} — regenerate with: ${APP_NAME} print-sudoers \${PROJECT_SUDOERS_FILE}"
+    if command -v visudo >/dev/null 2>&1; then
+        visudo -c -f "\${PROJECT_SUDOERS_FILE}" || die "visudo -c failed on draft"
+    else
+        info "WARN: visudo not found; skipping syntax check (install carefully)"
+    fi
+    install -m 0440 -o root -g root "\${PROJECT_SUDOERS_FILE}" "\${INSTALLED_SUDOERS}" \\
+        || die "install to \${INSTALLED_SUDOERS} failed"
+    if command -v visudo >/dev/null 2>&1; then
+        visudo -c -f "\${INSTALLED_SUDOERS}" || die "visudo -c failed on installed file — removing"
+    fi
+    mkdir -p "\${DEPOSIT_DIR}" 2>/dev/null || true
+    chmod 0755 "\${DEPOSIT_DIR}" 2>/dev/null || true
+    info "OK: installed \${INSTALLED_SUDOERS} (mode 0440) from \${PROJECT_SUDOERS_FILE}"
+    info "Fragment target user at generation: \${GEN_USER} (trust_tier=\${GEN_TIER})"
+    info "Multi-user note: other users install to /etc/sudoers.d/\${APP_NAME}-<their-user> (no overwrite)"
+    if [ -e "\${LEGACY_INSTALLED_SUDOERS}" ] && [ "\${LEGACY_INSTALLED_SUDOERS}" != "\${INSTALLED_SUDOERS}" ]; then
+        info "WARN: legacy shared fragment still present: \${LEGACY_INSTALLED_SUDOERS}"
+        info "      Consider admin review/remove if migrating to per-user names."
+    fi
+    if [ "\${GEN_TIER}" != "production" ]; then
+        info "WARN: TEST MODE trust tier — plan uninstall soon: sudo sh \$0 uninstall"
+    fi
+}
+
+cmd_uninstall() {
+    require_root
+    if [ ! -e "\${INSTALLED_SUDOERS}" ]; then
+        info "OK: \${INSTALLED_SUDOERS} already absent (nothing to uninstall)"
+    else
+        rm -f "\${INSTALLED_SUDOERS}" || die "Failed to remove \${INSTALLED_SUDOERS}"
+        info "OK: removed \${INSTALLED_SUDOERS}"
+    fi
+    if [ -e "\${LEGACY_INSTALLED_SUDOERS}" ] && [ "\${LEGACY_INSTALLED_SUDOERS}" != "\${INSTALLED_SUDOERS}" ]; then
+        info "NOTE: legacy shared fragment still present: \${LEGACY_INSTALLED_SUDOERS}"
+        info "      This script only removes the per-user path for \${GEN_USER}."
+        info "      To remove legacy: sudo rm \${LEGACY_INSTALLED_SUDOERS}"
+    fi
+    if command -v visudo >/dev/null 2>&1; then
+        visudo -c >/dev/null 2>&1 || info "WARN: visudo -c reported issues after remove (check other fragments)"
+    fi
+    info "Note: does not remove ${APP_NAME} binaries, other users' fragments, or /var/backup archives"
+}
+
+cmd_replace() {
+    cmd_uninstall
+    cmd_install
+}
+
+cmd_status() {
+    if [ -f "\${INSTALLED_SUDOERS}" ]; then
+        info "installed: \${INSTALLED_SUDOERS}"
+        ls -la "\${INSTALLED_SUDOERS}" 2>/dev/null || true
+    else
+        info "installed: (absent) \${INSTALLED_SUDOERS}"
+    fi
+    if [ -e "\${LEGACY_INSTALLED_SUDOERS}" ] && [ "\${LEGACY_INSTALLED_SUDOERS}" != "\${INSTALLED_SUDOERS}" ]; then
+        info "legacy_installed: \${LEGACY_INSTALLED_SUDOERS}"
+        ls -la "\${LEGACY_INSTALLED_SUDOERS}" 2>/dev/null || true
+    fi
+    # Sibling per-user fragments (multi-user host)
+    for _sib in /etc/sudoers.d/\${APP_NAME}-*; do
+        if [ -e "\${_sib}" ] && [ "\${_sib}" != "\${INSTALLED_SUDOERS}" ]; then
+            info "other_user_fragment: \${_sib}"
+        fi
+    done
+    if [ -f "\${PROJECT_SUDOERS_FILE}" ]; then
+        info "draft: \${PROJECT_SUDOERS_FILE}"
+        ls -la "\${PROJECT_SUDOERS_FILE}" 2>/dev/null || true
+    else
+        info "draft: (absent) \${PROJECT_SUDOERS_FILE}"
+    fi
+    info "generated_for_user=\${GEN_USER} trust_tier=\${GEN_TIER}"
+}
+
+usage() {
+    cat <<U
+Usage: sudo sh \$0 {install|uninstall|replace|status}
+  install    visudo-check project sudoers file → install -m 0440 → per-user /etc/sudoers.d/
+  uninstall  remove /etc/sudoers.d/${APP_NAME}-<user> for this script's user (leave elev)
+  replace    uninstall then install (refresh host fragment from draft)
+  status     show draft + installed presence (incl. legacy / other users if present)
+Project sudoers file: \${PROJECT_SUDOERS_FILE}
+Installed path:       \${INSTALLED_SUDOERS}
+U
+}
+
+_action="\${1:-}"
+case "\${_action}" in
+    install)   cmd_install ;;
+    uninstall) cmd_uninstall ;;
+    replace)   cmd_replace ;;
+    status)    cmd_status ;;
+    -h|--help|help|"") usage; [ -n "\${_action}" ] || exit 1 ;;
+    *) die "Unknown action: \${_action}"; usage; exit 1 ;;
+esac
+exit 0
+EOF
+
+    chmod 0750 "${_script_out}" 2>/dev/null || chmod +x "${_script_out}" 2>/dev/null || true
+
+    out_success "Wrote admin sudoers script: ${_script_out}"
+    out_info "Project sudoers file (draft): ${_draft}"
+    out_info "Installed path (admin only, per-user): ${_installed}"
+    out_empty_line
+    out_info "Handoff — login as account with sudo, then:"
+    out_plain "  sudo sh ${_script_out} install     # install/refresh THIS user's host fragment"
+    out_plain "  sudo sh ${_script_out} uninstall   # remove THIS user's host fragment"
+    out_plain "  sudo sh ${_script_out} replace     # uninstall then install"
+    out_plain "  sudo sh ${_script_out} status"
+    if [ "${_tier}" != "production" ]; then
+        out_warn "TEST MODE trust_tier=${_tier}: after testing, admin should uninstall fragment soon."
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "print-sudoers-install-script" "written" \
+            "script_path" "${_script_out}" \
+            "project_sudoers_file" "${_draft}" \
+            "installed_path" "${_installed}" \
+            "user" "${_user}" \
+            "trust_tier" "${_tier}"
+    fi
+    return 0
+}
+
+# =============================================================================
+# fb_remove_project_sudoers() - Type 0: remove project-sudoers-file (draft only)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Delete the product-owned project-sudoers-file draft(s). Default discovery lists
+# drafts under ${HOME}/.config/${APP_NAME}/ (legacy sudoers.fragment +
+# sudoers.fragment-<user>). When multiple drafts exist and no path arg is given,
+# interactive mode lists them and lets the user choose; non-interactive requires
+# an explicit path (or --force only when a single draft / current default).
+# Never touches /etc/sudoers.d/. Confirm unless --force.
+# Probes host installed path(s) and warns when elev is still active (honesty).
+#
+# ALIGNMENT:
+# - term project-sudoers-file
+# - requirement-three-layer-privilege-model.md §2.3.3b
+#
+# Last reviewed: 2026-08-09
+# =============================================================================
+fb_remove_project_sudoers() {
+    : "${APP_NAME:=folder-backup}"
+    : "${HOME:=/tmp}"
+    : "${FORCE:=0}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${TTY:=0}"
+
+    _path="${1:-}"
+    _installed=$(fb_default_installed_sudoers_path)
+    _legacy=$(fb_legacy_installed_sudoers_path)
+    _default_draft=$(fb_default_project_sudoers_path)
+    _host_present=0
+    _host_list=""
+    _host_list=$(fb_list_host_sudoers_fragments 2>/dev/null || true)
+    if [ -n "${_host_list}" ]; then
+        _host_present=1
+    fi
+
+    # --- Resolve which draft path to remove ---
+    if [ -z "${_path}" ]; then
+        _draft_list=$(fb_list_project_sudoers_drafts 2>/dev/null || true)
+        _count=0
+        if [ -n "${_draft_list}" ]; then
+            _count=$(printf '%s\n' "${_draft_list}" | grep -c . 2>/dev/null || echo 0)
+        fi
+        # normalize count (grep -c may leave trailing newline issues)
+        _count=$(printf '%s' "${_count}" | tr -d '[:space:]')
+        : "${_count:=0}"
+
+        if [ "${_count}" -eq 0 ]; then
+            _path="${_default_draft}"
+        elif [ "${_count}" -eq 1 ]; then
+            _path=$(printf '%s\n' "${_draft_list}" | head -n 1)
+        else
+            # Multiple drafts: list and choose (interactive) or fail closed with list
+            out_info "Multiple project-sudoers-file drafts found under ${HOME}/.config/${APP_NAME}/:"
+            _i=0
+            # shellcheck disable=SC2039
+            _indexed=""
+            while IFS= read -r _line; do
+                [ -n "${_line}" ] || continue
+                _i=$((_i + 1))
+                out_plain "  ${_i}) ${_line}"
+                _indexed="${_indexed}${_i}|${_line}
+"
+            done <<EOF
+${_draft_list}
+EOF
+            out_plain "  0) cancel"
+            out_info "Pass an explicit path to remove one non-interactively, e.g.:"
+            out_plain "  ${APP_NAME} remove-project-sudoers --force <path>"
+
+            if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY}" -eq 0 ]; then
+                out_die "remove-project-sudoers: multiple drafts present; specify path argument (non-interactive)."
+            fi
+
+            _choice=$(prompt_ask "Choose draft number to remove" "0")
+            case "${_choice}" in
+                ''|0|[Cc][Aa][Nn][Cc][Ee][Ll]*)
+                    out_info "Remove cancelled"
+                    return 0
+                    ;;
+                *[!0-9]*)
+                    out_die "Invalid choice: ${_choice}"
+                    ;;
+            esac
+            if [ "${_choice}" -lt 1 ] || [ "${_choice}" -gt "${_i}" ]; then
+                out_die "Choice out of range: ${_choice} (1-${_i}, or 0 to cancel)"
+            fi
+            _path=$(printf '%s\n' "${_indexed}" | while IFS='|' read -r _n _p; do
+                if [ "${_n}" = "${_choice}" ]; then
+                    printf '%s' "${_p}"
+                    break
+                fi
+            done)
+            if [ -z "${_path}" ]; then
+                out_die "Could not resolve choice ${_choice}"
+            fi
+        fi
+    fi
+
+    # Refuse removing under /etc as Type 0 (host elev is admin-only)
+    case "${_path}" in
+        /etc/*|/etc)
+            out_die "Refusing to remove paths under /etc as Type 0. This command only deletes the user draft (project-sudoers-file). Host elev is admin-only: sudo rm ${_installed}  OR  ${APP_NAME} print-sudoers-install-script && sudo sh <script> uninstall"
+            ;;
+    esac
+
+    _status=""
+    if [ ! -e "${_path}" ]; then
+        _status="already_absent"
+        out_success "Project sudoers draft not present (nothing to remove): ${_path}"
+    else
+        if [ "${FORCE}" -eq 0 ]; then
+            if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY}" -eq 0 ]; then
+                out_die "remove-project-sudoers requires confirmation. Re-run with --force in non-interactive mode."
+            fi
+            if ! prompt_yes_no "Remove project-sudoers-file draft ${_path}?"; then
+                out_info "Remove cancelled"
+                return 0
+            fi
+        fi
+        if ! rm -f "${_path}"; then
+            out_die "Failed to remove ${_path}"
+        fi
+        _status="removed"
+        out_success "Removed project-sudoers-file draft: ${_path}"
+    fi
+
+    # Honesty: draft and host elev are two layers (L-SUDOERS-03). Multi-user: list all present.
+    if [ "${JSON}" -eq 0 ]; then
+        if [ "${_host_present}" -eq 1 ]; then
+            out_warn "Host elevation STILL ACTIVE (separate from draft):"
+            printf '%s\n' "${_host_list}" | while IFS= read -r _hp; do
+                [ -n "${_hp}" ] || continue
+                out_plain "  ${_hp}"
+            done
+            out_info "remove-project-sudoers only deletes the user draft — never /etc/sudoers.d/."
+            out_info "Admin leave elev (this user): sudo rm ${_installed}"
+            if [ -e "${_legacy}" ] && [ "${_legacy}" != "${_installed}" ]; then
+                out_info "Admin leave elev (legacy shared): sudo rm ${_legacy}"
+            fi
+            out_info "Or handoff script: ${APP_NAME} print-sudoers-install-script && sudo sh <script> uninstall"
+        else
+            out_info "Host fragment also absent (no elev at ${_installed}; no legacy ${_legacy})."
+        fi
+    else
+        if [ "${_status}" = "removed" ]; then
+            out_json "remove-project-sudoers" "removed" \
+                "path" "${_path}" \
+                "status" "removed" \
+                "installed_path" "${_installed}" \
+                "host_fragment_present" "${_host_present}" \
+                "note" "does not remove /etc/sudoers.d fragment"
+        else
+            out_json "remove-project-sudoers" "already absent" \
+                "path" "${_path}" \
+                "status" "already_absent" \
+                "installed_path" "${_installed}" \
+                "host_fragment_present" "${_host_present}"
+        fi
+    fi
+    return 0
+}
 
 # =============================================================================
 # app_version() - Local version only (no network)
 # =============================================================================
 app_version() {
     : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.2.0}"
+    : "${VERSION:=1.4.3}"
     : "${JSON:=0}"
     if [ "${JSON}" -eq 1 ]; then
         out_json "version" "" "app" "${APP_NAME}" "version" "${VERSION}"
@@ -2370,6 +2992,7 @@ app_about() {
             "backup_notation" "${BACKUP_NOTATION}" \
             "deposit_dir" "${BACKUP_ROOT}/${BACKUP_NOTATION}" \
             "sudo_deposit" "${_sudo_deposit}" \
+            "sudoers_trust_tier" "$(fb_sudoers_trust_tier)" \
             "restore_host_default" "${RESTORE_HOST_DEFAULT}" \
             "projects_root" "$(util_resolve_projects_root 2>/dev/null || echo "")" \
             "ram_root" "${RAM_ROOT}"
@@ -2389,6 +3012,8 @@ app_about() {
     out_empty_line
     out_info "Global install  (${GLOBAL_BIN}/${APP_NAME}):   ${_global_ver}"
     out_info "Local install   (${USER_BIN}/${APP_NAME}):    ${_local_ver}"
+    _tier=$(fb_sudoers_trust_tier)
+    out_info "Sudoers trust tier: ${_tier}  (production requires global; local-only = test mode)"
     out_empty_line
     out_info "Repository:        ${REPO_USER}/${REPO_NAME}"
     if [ -n "${SCRIPT_URL}" ]; then
@@ -2437,7 +3062,7 @@ app_about() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Local folder archive backup/restore with narrow sudo deposit}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers.}"
+    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers, print-sudoers-install-script, remove-project-sudoers.}"
     : "${BACKUP_ROOT:=/var/backup}"
     : "${BACKUP_NOTATION:=folder-backup}"
     : "${RESTORE_HOST_DEFAULT:=hard-disk}"
@@ -2461,21 +3086,33 @@ app_help() {
     out_empty_line
     out_info "Lifecycle (Type 0 — local self-managed):"
     out_plain "  install              Install ${APP_NAME} (root→global, user→~/.local/bin)"
-    out_plain "  uninstall            Remove managed binary (confirm or --force)"
+    out_plain "  install --global     Force global path (${GLOBAL_BIN}; needs write/root)"
+    out_plain "  uninstall            Remove managed binary (confirm or --force); not sudoers"
     out_plain "  where-is-me          Show running and install paths"
     out_plain "  version              Show local version"
-    out_plain "  about                Show diagnostics"
+    out_plain "  about                Show diagnostics (incl. sudoers trust tier)"
     out_plain "  help                 Show this help"
     out_empty_line
     out_info "Domain (Type 0 archive + Type 1 deposit/restore-stage):"
     out_plain "  backup <folder>      tar.gz folder → ${BACKUP_ROOT}/${BACKUP_NOTATION}/NAME-YYYYMMDD-N.tar.gz"
     out_plain "  restore <archive|prefix> [dest]  Extract archive (default dest: hard-disk SSOT)"
-    out_plain "  print-sudoers [path] Emit sudoers fragment for admin → /etc/sudoers.d/"
+    out_plain "  print-sudoers [path] Emit project-sudoers-file (draft) for admin"
+    out_plain "                       (test_local/unmanaged needs --allow-test-local);"
+    out_plain "                       default: ~/.config/${APP_NAME}/sudoers.fragment-<user>"
+    out_plain "  print-sudoers-install-script [path]"
+    out_plain "                       Write admin script (/dev/shm or temp) to install|uninstall|replace"
+    out_plain "                       per-user fragment /etc/sudoers.d/${APP_NAME}-<user> (run with sudo)"
+    out_plain "  remove-project-sudoers [path]"
+    out_plain "                       Remove project-sudoers-file draft only (not host elev;"
+    out_plain "                       lists drafts and lets you choose when multiple;"
+    out_plain "                       confirm or --force; probes /etc/sudoers.d/ and warns if active)"
     out_empty_line
     out_info "Global Options:"
     out_plain "  --quiet, -q          Suppress info/success (errors still shown)"
     out_plain "  --json               Machine-readable JSON (implies --quiet)"
     out_plain "  --force              Force reinstall / skip uninstall confirm / restore into non-empty dest"
+    out_plain "  --global             Install to GLOBAL_BIN (production elevation path)"
+    out_plain "  --allow-test-local   Allow print-sudoers when only local/unmanaged (TEST MODE)"
     out_plain "  --disk               Restore host: hard-disk (default; reverse of ram-drive-first)"
     out_plain "  --ram                Restore host: RAM-drive (/dev/shm/<project>)"
     out_plain "  --debug              Debug diagnostics on stderr"
@@ -2487,11 +3124,16 @@ app_help() {
     out_plain "  RAM_ROOT             ${RAM_ROOT}"
     out_plain "  RESTORE_HOST_DEFAULT ${RESTORE_HOST_DEFAULT}  (hard-disk|ram-drive)"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
+    out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode print-sudoers"
     out_empty_line
     out_info "Examples:"
     out_plain "  ${APP_NAME} install"
-    out_plain "  ${APP_NAME} print-sudoers ${HOME}/.config/${APP_NAME}/sudoers.fragment"
-    out_plain "  # admin installs fragment to /etc/sudoers.d"
+    out_plain "  sudo ${APP_NAME} install          # global (production sudoers trust)"
+    out_plain "  ${APP_NAME} print-sudoers --allow-test-local  # → sudoers.fragment-<user>"
+    out_plain "  ${APP_NAME} print-sudoers-install-script   # → /dev/shm/…-sudoers-admin.sh"
+    out_plain "  # admin (sudo rights): sudo sh /dev/shm/…-sudoers-admin.sh install|uninstall|replace"
+    out_plain "  # host path is /etc/sudoers.d/${APP_NAME}-<user> (multi-user safe)"
+    out_plain "  ${APP_NAME} remove-project-sudoers --force  # delete draft only (not /etc elev)"
     out_plain "  ${APP_NAME} backup /path/to/project"
     out_plain "  ${APP_NAME} restore genesis-template"
     out_plain "  ${APP_NAME} restore genesis-template --ram"
@@ -2499,6 +3141,7 @@ app_help() {
     out_empty_line
     out_info "Empty argv shows help (Type N — local-only; no curl|sh install-ensure)."
     out_info "Restore default destination is hard-disk (not RAM) unless --ram or dest is set."
+    out_info "Local install + sudoers is TEST MODE ONLY; prefer global for durable elevation."
 }
 
 # =============================================================================
@@ -2524,6 +3167,8 @@ app_main() {
     : "${DEBUG:=0}"
     : "${FORCE:=0}"
     : "${FORCE_REINSTALL:=0}"
+    : "${FORCE_GLOBAL:=0}"
+    : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
     : "${USERNAME:=unknown}"
     : "${HOME:=/tmp}"
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
@@ -2549,6 +3194,11 @@ app_main() {
             --json)     JSON=1; QUIET=1 ;;
             --debug)    DEBUG=1 ;;
             --force)    FORCE=1; FORCE_REINSTALL=1 ;;
+            --global)   FORCE_GLOBAL=1; export FORCE_GLOBAL ;;
+            --allow-test-local)
+                ALLOW_TEST_LOCAL_SUDOERS=1
+                export ALLOW_TEST_LOCAL_SUDOERS
+                ;;
             --disk|--hard-disk)
                 RESTORE_HOST="hard-disk"
                 export RESTORE_HOST
@@ -2557,12 +3207,14 @@ app_main() {
                 RESTORE_HOST="ram-drive"
                 export RESTORE_HOST
                 ;;
-            version|about|help|install|uninstall|where-is-me|backup|restore|print-sudoers)
+            version|about|help|install|uninstall|where-is-me|backup|restore|print-sudoers|print-sudoers-install-script|remove-project-sudoers)
                 COMMAND="$1"
                 ;;
             *)
                 # Positional operands for domain verbs
-                if [ "${COMMAND}" = "backup" ] || [ "${COMMAND}" = "print-sudoers" ]; then
+                if [ "${COMMAND}" = "backup" ] || [ "${COMMAND}" = "print-sudoers" ] \
+                    || [ "${COMMAND}" = "print-sudoers-install-script" ] \
+                    || [ "${COMMAND}" = "remove-project-sudoers" ]; then
                     if [ -z "${_domain_arg}" ]; then
                         _domain_arg="$1"
                     else
@@ -2584,7 +3236,7 @@ app_main() {
         shift
     done
 
-    out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} restore_host=${RESTORE_HOST:-}"
+    out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL} allow_test_local=${ALLOW_TEST_LOCAL_SUDOERS} restore_host=${RESTORE_HOST:-}"
 
     case "${COMMAND}" in
         version)      app_version ;;
@@ -2595,6 +3247,8 @@ app_main() {
         backup)       fb_backup "${_domain_arg}" ;;
         restore)      fb_restore "${_domain_arg}" "${_domain_arg2}" ;;
         print-sudoers) fb_print_sudoers "${_domain_arg}" ;;
+        print-sudoers-install-script) fb_print_sudoers_install_script "${_domain_arg}" ;;
+        remove-project-sudoers) fb_remove_project_sudoers "${_domain_arg}" ;;
         help|*)       app_help ;;
     esac
 }

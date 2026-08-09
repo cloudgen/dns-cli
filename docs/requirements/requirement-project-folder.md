@@ -37,9 +37,10 @@ Define **project folder structure** and path ownership for the folder-backup CLI
 Rules:
 
 1. Non-root **install** **MUST** target user bin.  
-2. Root **install** **MAY** target global bin.  
-3. **Primary product story** for this project: **user bin** (`~/.local/bin`).  
-4. Uninstall **MUST** remove only the managed binary path for the install mode used.
+2. Root **install** **MAY** (and for production elevation **SHOULD**) target global bin.  
+3. **Primary product story** for this project: **user bin** (`~/.local/bin`) for Type 0 day-to-day; **global bin** for multi-user / durable sudoers trust.  
+4. Uninstall **MUST** remove only the managed binary path for the install mode used.  
+5. Managed binary mode **MUST** be **`0755`** after install (shell ship unit: non-owners need **read+execute**; see `requirement-shell-local-self-management` §2.3.1). Global install **MUST** leave a path runnable by normal users and root, not owner-only (`0700`) or execute-without-read (`0711`).
 
 ### 2.3 Scratch / cache (CLI own volatile)
 
@@ -47,7 +48,7 @@ Rules:
 |---------|---------|
 | Effective storage root | From `util_resolve_storage` (see `requirement-shell-cli-storage`) |
 | Archive staging | `${EFFECTIVE_STORAGE_DIR}/stage/` (or `mktemp` under that root) |
-| Sudoers fragment draft | User-writable path under config or storage (never auto-write `/etc/sudoers.d`) |
+| Sudoers fragment draft | User-writable path under config: `…/sudoers.fragment-<user>` (legacy un-suffixed still discoverable; never auto-write `/etc/sudoers.d`) |
 
 Rules:
 

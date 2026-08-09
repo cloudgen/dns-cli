@@ -68,6 +68,31 @@ run_test_local_lifecycle() {
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" --json about 2>/dev/null)
     assert_contains "TP-LC-08 about installed true" "$_out" '"installed":"true"'
 
+    # TP-LC-09 managed binary mode must be 0755 (shell ship unit multi-user runnable)
+    _mode=$(stat -c '%a' "${CI_USER_BIN}/${APP_NAME}" 2>/dev/null || stat -f '%OLp' "${CI_USER_BIN}/${APP_NAME}" 2>/dev/null || echo "")
+    case "${_mode}" in
+        755|0755) assert_eq "TP-LC-09 install mode 0755" "0755" "0755" ;;
+        *) assert_eq "TP-LC-09 install mode 0755" "0755" "${_mode}" ;;
+    esac
+    # Must be readable+executable (not 0711 execute-without-read)
+    if [ -r "${CI_USER_BIN}/${APP_NAME}" ] && [ -x "${CI_USER_BIN}/${APP_NAME}" ]; then
+        assert_eq "TP-LC-09 readable+executable" "1" "1"
+    else
+        assert_eq "TP-LC-09 readable+executable" "1" "0"
+    fi
+
+    # TP-LC-10 re-install without --force heals broken mode (0711 trap)
+    chmod 0711 "${CI_USER_BIN}/${APP_NAME}" 2>/dev/null || chmod 711 "${CI_USER_BIN}/${APP_NAME}"
+    _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" install 2>&1)
+    _ec=$?
+    assert_eq "TP-LC-10 heal reinstall exit 0" 0 "$_ec"
+    assert_contains "TP-LC-10 already installed path" "$_out" "already installed"
+    _mode=$(stat -c '%a' "${CI_USER_BIN}/${APP_NAME}" 2>/dev/null || stat -f '%OLp' "${CI_USER_BIN}/${APP_NAME}" 2>/dev/null || echo "")
+    case "${_mode}" in
+        755|0755) assert_eq "TP-LC-10 healed mode 0755" "0755" "0755" ;;
+        *) assert_eq "TP-LC-10 healed mode 0755" "0755" "${_mode}" ;;
+    esac
+
     # cleanup remaining binary
     HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" uninstall --force >/dev/null 2>&1 || true
     ci_cleanup_env
