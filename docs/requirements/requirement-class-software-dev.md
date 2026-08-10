@@ -21,6 +21,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 3. **MUST NOT** register an Active `requirement-class-server-maintenance.md` while class is software-development.  
 4. **MUST** retain portable harness knowledge; specialized product knowledge lives in this and peer `requirement-*.md` files.  
 5. **MUST** apply software-development SSOT/gate posture when claimed (identity, ship unit, precommit when git is used — as applicable).  
+5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law — portable process lives in harness skills (`skill-commit-check`, `skill-ssh-user-profile`).  
 6. **MUST NOT** invent hollow product docs solely to look specialized; collect real values or defer explicitly.
 
 ### 2.1 Residual collection principle (SSOT hygiene)
