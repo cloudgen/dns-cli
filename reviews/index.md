@@ -2,6 +2,7 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-08-11 | **Housekeeping** (version surfaces + lessons residual) | README/SECURITY → 1.4.4; L-SUDOERS-05 renumber; L-PUSH-VAULT-01 | living | PASS=138 FAIL=0 SKIP=2 |
 | 2026-08-09 | **Review plans updated** (`what-to-review.md`, `test-plan.md`, `requirement-test-matrix.md`, `lessons.md`) | Plans for 1.4.4 multi-user project-sudoers-file | living | PASS=138 FAIL=0 SKIP=2 |
 | 2026-08-09 | `reports/2026-08-09-security-review-folder-backup.md` | Full security review (design + host) | **Pass (design) / Revise (host)** | F1–F8; host still test_local |
 | 2026-08-09 | `reports/2026-08-09-sudoers-security-folder-backup.md` | Sudoers security (trust tiers) | **Pass (test only)** | supersedes 2026-08-03 production claim for local-only |

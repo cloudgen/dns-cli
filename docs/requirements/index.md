@@ -2,11 +2,11 @@
 
 **Product:** folder-backup (POSIX `/bin/sh` local self-managed CLI — folder tar.gz backup with narrow sudo deposit)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap trim from **selfmanaged** (online install **intentionally absent**).  
-**Updated:** 2026-08-03
+**Updated:** 2026-08-11
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
-| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only) | class | Active | `requirement-class-software-dev.md` | 2026-08-03 |
+| requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only); multi-vault forge push identity §2.0.5a | class | Active | `requirement-class-software-dev.md` | 2026-08-11 |
 | requirement-bootstrap-chain | Bootstrap chain A=selfmanaged → B=folder-backup (trim online) | architecture | Active | `requirement-bootstrap-chain.md` | 2026-08-03 |
 | requirement-project-folder | Project layout (`src/`), install bins, `/var/backup` deposit | architecture | Active | `requirement-project-folder.md` | 2026-08-03 |
 | requirement-three-layer-privilege-model | Type 0 + narrow Type 1 deposit; sudoers emit + **install-script** handoff; **per-user** fragment names; **trust tiers** (S13); elev tables S11–S12 when claimed | architecture | Active (1.3.0) | `requirement-three-layer-privilege-model.md` | 2026-08-09 |

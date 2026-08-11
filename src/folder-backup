@@ -2898,7 +2898,7 @@ EOF
 # =============================================================================
 app_version() {
     : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.4.3}"
+    : "${VERSION:=1.4.4}"
     : "${JSON:=0}"
     if [ "${JSON}" -eq 1 ]; then
         out_json "version" "" "app" "${APP_NAME}" "version" "${VERSION}"

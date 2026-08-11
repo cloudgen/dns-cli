@@ -13,7 +13,8 @@ Durable failure modes. **Always re-check on product review.**
 | L-SUDOERS-02 | Local `~/.local/bin` treated as production-secure for sudoers (user rewrites binary/stage → jailbreak) | trust tier **S13**; `--allow-test-local`; global preferred; TP-FOLDER-BACKUP-01/01b | open watch |
 | L-SUDOERS-03 | Confuse draft removal with host elev removal (or Type 0 delete under `/etc`) | `remove-project-sudoers` draft-only + admin script uninstall; TP-FOLDER-BACKUP-15 | open watch |
 | L-SUDOERS-04 | Shared `/etc/sudoers.d/{{APP_NAME}}` basename overwrites another user’s fragment on multi-user host | Per-user draft + installed `{{APP_NAME}}-<user>`; multi-draft list/choose; TP-FOLDER-BACKUP-14/15/15b | open watch |
-| L-SUDOERS-04 | Generate fragment as wrong user (`id -un` mismatch with backup operator) | Generate as elevating login; User lines = invoking user; review fragment before install | open watch |
+| L-SUDOERS-05 | Generate fragment as wrong user (`id -un` mismatch with backup operator) | Generate as elevating login; User lines = invoking user; review fragment before install | open watch |
+| L-PUSH-VAULT-01 | Bare `git push` uses wrong active SSH vault when default face ≠ repository-user | Pre-git report + `GIT_SSH_COMMAND -i` / activate matching vault (SK-COMMIT-CHECK §3.3); incident 20260810-001 | open watch |
 | L-OVERWRITE-01 | Same-day archive overwrite without next-N | naming allocator; TP-FOLDER-BACKUP-08 when root | open watch |
 | L-SETU-01 | `set -u` crash with unset HOME | TP-CLI-11 | open watch |
 | L-STOR-01 | Shared world-writable storage / stage roots not matching sudoers wildcards | util_resolve_storage; per-user stage; TP-CLI-12 · TP-FOLDER-BACKUP-02 | open watch |
