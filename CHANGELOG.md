@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] - 2026-08-12
+
+### Fixed
+
+- **Restore dest gate (INC-20260812-001)** — pure ban on all `/etc/*` blocked legitimate homes such as `/etc/sudo-adm`. Gate is now **whitelist-oriented**:
+  - **W-ETC-USER:** allow `/etc/{{username}}` and children for the **invoking** user only
+  - **Hard deny:** exact `/etc`, **`/etc/passwd`**, deposit tree, other FHS under-prefixes not on whitelist
+  - **W-HOME:** invoking passwd home (and under) still allowed when not already covered
+
+### Changed
+
+- Version SSOT **1.5.0**
+- `requirement-folder-archive-backup` **1.2.0** §2.6b.2a (AC-15..18)
+- Mold **`LM-FOLDER-ARCHIVE-BACKUP`** **1.2.0** §2.8b
+- Suite **TP-FOLDER-BACKUP-16**
+
 ## [1.4.4] - 2026-08-09
 
 ### Fixed

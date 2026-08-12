@@ -311,6 +311,52 @@ run_test_domain_folder_backup() {
     assert_file_missing "TP-FOLDER-BACKUP-15b explicit draft removed" "${_draft_default}"
     assert_file_exists "TP-FOLDER-BACKUP-15b legacy draft remains" "${CI_HOME}/.config/folder-backup/sudoers.fragment"
     assert_file_exists "TP-FOLDER-BACKUP-15b other draft remains" "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser"
+
+    # TP-FOLDER-BACKUP-16 restore dest whitelist (W-ETC-USER / hard deny /etc/passwd)
+    _broot16="${CI_HOME}/backup-root16"
+    _dep16="${_broot16}/folder-backup"
+    mkdir -p "${_dep16}"
+    _rsrc16="${CI_HOME}/wl-src"
+    mkdir -p "${_rsrc16}"
+    printf 'wl\n' > "${_rsrc16}/f.txt"
+    _day16=$(date +%Y%m%d)
+    _aname16="wl-src-${_day16}-1.tar.gz"
+    tar -C "${CI_HOME}" -czf "${_dep16}/${_aname16}" "wl-src"
+    _user16=$(id -un 2>/dev/null || echo "unknown")
+    # AC-18: /etc/passwd always refuse
+    _err=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot16}" \
+        sh "${SCRIPT}" restore "${_aname16}" /etc/passwd 2>&1 >/dev/null)
+    _ec16=$?
+    assert_eq "TP-FOLDER-BACKUP-16 refuse /etc/passwd exit 1" 1 "${_ec16}"
+    assert_contains "TP-FOLDER-BACKUP-16 passwd message" "$_err" "/etc/passwd"
+    # Exact /etc refuse
+    _err=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot16}" \
+        sh "${SCRIPT}" restore "${_aname16}" /etc 2>&1 >/dev/null)
+    _ec16=$?
+    assert_eq "TP-FOLDER-BACKUP-16 refuse exact /etc exit 1" 1 "${_ec16}"
+    # /etc/<other-user> refuse (pick a name that is not invoker)
+    _other16="nginx-adm"
+    if [ "${_other16}" = "${_user16}" ]; then
+        _other16="not-${_user16}-x"
+    fi
+    _err=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot16}" \
+        sh "${SCRIPT}" restore "${_aname16}" "/etc/${_other16}" 2>&1 >/dev/null)
+    _ec16=$?
+    assert_eq "TP-FOLDER-BACKUP-16 refuse /etc/other-user exit 1" 1 "${_ec16}"
+    assert_contains "TP-FOLDER-BACKUP-16 other-user whitelist message" "$_err" "whitelist"
+    # W-ETC-USER: dest /etc/{{username}} must pass dest gate (not hard refuse messages).
+    # Extract may still fail later (permissions under /etc); that still proves gate allow.
+    _err=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot16}" \
+        sh "${SCRIPT}" restore "${_aname16}" "/etc/${_user16}" 2>&1 >/dev/null)
+    _ec16=$?
+    assert_not_contains "TP-FOLDER-BACKUP-16 W-ETC-USER not pure system refuse" "$_err" "Refusing restore under system path"
+    assert_not_contains "TP-FOLDER-BACKUP-16 W-ETC-USER not dangerous exact refuse" "$_err" "dangerous system path"
+    assert_not_contains "TP-FOLDER-BACKUP-16 W-ETC-USER not protected passwd refuse" "$_err" "protected system path"
+    if [ "${_ec16}" -eq 0 ]; then
+        t_pass "TP-FOLDER-BACKUP-16 W-ETC-USER full restore exit 0 (writable)"
+    else
+        t_pass "TP-FOLDER-BACKUP-16 W-ETC-USER dest gate allowed (later fail ec=${_ec16} OK)"
+    fi
     # cleanup remaining drafts
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment" >/dev/null 2>&1 || true
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser" >/dev/null 2>&1 || true

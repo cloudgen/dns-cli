@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.4.4 (current) | Yes |
+| 1.5.0 (current) | Yes |
+| 1.4.x | Best-effort |
 | 1.3.x | Best-effort |
 | 1.2.x | Best-effort |
 | Older releases | Best-effort only |
@@ -25,7 +26,7 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 
 | Letter | Principle | Security application |
 |--------|-----------|----------------------|
-| **C** | **Caution** | Fail closed without working allowlisted sudo for deposit; refuse dangerous restore destinations; validate sources and archives. |
+| **C** | **Caution** | Fail closed without working allowlisted sudo for deposit; restore dest **whitelist** (W-ETC-USER `/etc/{{username}}`; never `/etc/passwd`); validate sources and archives. |
 | **I** | **Intentional** | Type 0 archive create vs Type 1 deposit/restore-stage copy are separate; `print-sudoers` never writes `/etc`. |
 | **A** | **Anti-fragile** | Staging + traps; clear admin install path; hard-disk default restore dest avoids accidental RAM-only recovery assumptions. |
 | **O** | **Over-protect** | Narrow Cmnds only (no `NOPASSWD: ALL`); Protection Zones; count/size verification before success. |

@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — folder-backup
 
 **Updated:** 2026-08-09  
-**Product VERSION:** 1.4.4  
+**Product VERSION:** 1.5.0  
 **Suite:** `tests/run.sh` (PASS=138 FAIL=0 SKIP=2)
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -10,7 +10,7 @@
 | requirement-bootstrap-chain | architecture | TP-CLI-04, TP-CLI-10 | Online surface absent |
 | requirement-project-folder | architecture | TP-LC-01, TP-FOLDER-BACKUP-06 | src ship unit; deposit path naming |
 | requirement-three-layer-privilege-model | architecture | TP-FOLDER-BACKUP-01, **01b**, 01c, 02, 05, **14**, **15**, **15b** | Trust tiers **S13**; per-user draft/host paths **AC-14**; install-script §2.3.3a; multi-draft remove choose **AC-15**; deposit fail-closed |
-| requirement-folder-archive-backup | backup | TP-FOLDER-BACKUP-03..08, 10..13 | Source/name/deposit/verify/next-N/**restore** (ops SSOT) |
+| requirement-folder-archive-backup | backup | TP-FOLDER-BACKUP-03..08, 10..13, **16** | Source/name/deposit/verify/next-N/**restore** + dest whitelist W-ETC-USER (ops SSOT) |
 | requirement-shell-cli-interface | shell | TP-CLI-* | Commands, flags, dispatch (incl. new sudoers verbs) |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 | Type N help |
 | requirement-shell-local-self-management | shell | TP-LC-* (incl. **09/10** mode) | install/uninstall/where-is-me; **0755** multi-user; global preferred for elev |

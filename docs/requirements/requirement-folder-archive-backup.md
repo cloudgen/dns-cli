@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-folder-archive-backup.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: backup  
 **Key**: `requirement-folder-archive-backup`  
 **Optional RQ-ID**: `RQ-FOLDER-ARCHIVE-BACKUP`  
@@ -27,7 +27,7 @@ It is **not** a domain four-pillar file. Domain surface (CLI verbs, help/about) 
 | Durable host deposit under configured root/notation | Full disk imaging |
 | Default restore dest = **hard-disk** host version (reverse of ram-drive-first) | Dual-write RAM+disk on restore |
 | Count/size verification (backup and restore) | Silent “best effort” partial success |
-| Fail-closed errors with clear operator hints | Unrestricted extract to system roots |
+| Restore dest **whitelist** (incl. `/etc/{{username}}` for invoking user; never `/etc/passwd`) | Blanket allow of all `/etc/*`; restore into `/etc/passwd`; unrestricted extract to OS roots |
 
 ### 2.2 Source validation
 
@@ -152,17 +152,71 @@ Flags: `--force` (allow non-empty dest), `--disk` (hard-disk host), `--ram` (RAM
 2. **MUST** derive `${project}` from archive naming `NAME-YYYYMMDD-N.tar.gz` (strip date-N suffix).  
 3. **MUST** resolve `PROJECTS_ROOT` from env or documented detection; fail closed if hard-disk default needed and root unresolved.  
 4. **MUST NOT** dual-write RAM and hard-disk in one restore.  
-5. **MUST** refuse dangerous destinations (`/`, `/etc`, `/usr`, deposit tree, etc.).  
+5. **MUST** accept a restore destination only if it passes the **restore destination whitelist** (§2.6b.2a). Paths not on the whitelist **MUST** fail closed (including under `/etc` unless a whitelist row applies).  
 6. **MUST** fail closed if dest exists and is non-empty unless `--force`.
+
+#### 2.6b.2a Restore destination whitelist (mandatory — `/etc/{{username}}`)
+
+**Model:** restore destinations are **deny-by-default** for host-critical / FHS system prefixes. Allowed targets are only those that match a **whitelist** row below. Under `/etc`, the **only** product whitelist shape is **`/etc/{{username}}`** (invoking user), **except** the system account database path **`/etc/passwd`**, which is **never** allowed.
+
+**Tokens:**
+
+| Token | Definition |
+|-------|------------|
+| **`{{username}}`** | Invoking login name: `id -un` (single path segment; not empty, not `.` / `..`, no `/`) |
+| **`/etc/{{username}}`** | Exact path `/etc/<username>` (e.g. user `sudo-adm` → `/etc/sudo-adm`) |
+| **Under home** | Strict children: `/etc/<username>/…` |
+
+**Always refuse (hard deny — never whitelist):**
+
+| Class | Paths (resolved absolute) |
+|-------|---------------------------|
+| **OS roots (exact)** | `/`, `/bin`, `/boot`, `/dev`, `/etc`, `/lib`, `/lib64`, `/proc`, `/root`, `/run`, `/sbin`, `/sys`, `/usr`, `/var` (exact match only for these roots) |
+| **`/etc/passwd`** | **Always refuse** — system account database; **not** a restore dest, even if `{{username}}` were literally `passwd` |
+| **Deposit tree** | `${BACKUP_ROOT}`, `${BACKUP_ROOT}/${BACKUP_NOTATION}`, and extracts that would write *into* the durable deposit as dest |
+| **Other product-defined hard denies** | Any additional exact roots / critical files the ship unit documents as hard deny |
+
+**Whitelist (allow only if dest matches one row after resolve):**
+
+| ID | Allowed destination | Notes |
+|----|---------------------|-------|
+| **W-DISK** | `${PROJECTS_ROOT}/…` under resolved hard-disk projects root | Default host SSOT; project trees |
+| **W-RAM** | `${RAM_ROOT}/…` when restore host is ram-drive | Ephemeral host |
+| **W-ETC-USER** | **`/etc/{{username}}`** or a path **strictly under** `/etc/{{username}}/` | **Only** invoking `{{username}}`. Example: `sudo-adm` → `/etc/sudo-adm`. **MUST NOT** match `/etc/passwd` (hard deny above wins). **MUST NOT** allow `/etc/<other-user>` |
+| **W-HOME** | Exact **passwd home** of the **invoking user** (`getent passwd $(id -un)` field 6), **or strict child**, when that home is **not** already covered by W-ETC-USER | Covers non-`/etc` homes (e.g. `/var/www/…`, `/home/…`). If passwd home is `/etc/{{username}}`, W-ETC-USER is the `/etc` SSOT row |
+| **W-TMP / stage family** | Product-documented user-writable temp/stage trees (e.g. under `/tmp`, `/dev/shm` product prefixes) when used as explicit dest | Not a substitute for deposit tree |
+| **W-OTHER** | Only if a **future requirement revision** adds an explicit additional row | Do not invent rows in code without law |
+
+**`/etc` rules (normative):**
+
+1. **Exact `/etc` MUST always refuse.**  
+2. **`/etc/passwd` MUST always refuse** (hard deny; exception never applies).  
+3. **Paths under `/etc/…` MUST refuse by default.**  
+4. **Whitelist exception = W-ETC-USER only for `/etc`:** dest **MUST** be allowed by the dest gate when resolved dest is exactly **`/etc/{{username}}`** or a **strict child** of **`/etc/{{username}}/`**, where `{{username}}` is the **invoking** user — **unless** the path is hard-denied (`/etc/passwd`).  
+5. **MUST NOT** whitelist all of `/etc/*`, package dirs, or arbitrary siblings (e.g. `/etc/nginx-adm` when invoker is `sudo-adm`).  
+6. **MUST NOT** allow user **A** to restore into `/etc/<B>` for a different username **B**.  
+7. Evaluation order: **hard deny first** (including `/etc/passwd` and exact `/etc`), then whitelist match. Hard deny wins over any W-* row.  
+8. Other FHS prefixes (`/usr`, `/var`, …): exact roots refuse; under-prefix paths allow only via other W-* rows (W-DISK, W-HOME, …) — **not** via W-ETC-USER.
+
+**Must not confuse:**
+
+| Concern | Law |
+|---------|-----|
+| **`/etc/{{username}}` (W-ETC-USER)** | Restore dest path shape for accounts with home-style trees under `/etc/<user>` |
+| **`/etc/passwd`** | System file — **never** a whitelist hit |
+| **Restore dest whitelist** (this section) | Type 0 path gate before extract |
+| **Sudoers command allowlist** | Type 1 deposit / stage fetch only — does **not** authorize dest under `/etc` |
+| **Destructive-path denylist** (delete plane) | Orthogonal skill/term; do not merge into restore dest law |
 
 #### 2.6b.3 Extract and privilege
 
 1. Prefer Type 0 `tar -xzf` on a **user-readable** archive.  
 2. If deposit archive is unreadable (e.g. `root:root` `0640`), **MAY** use Type 1 allowlisted `sudo -n cp` from deposit → user stage, then Type 0 extract.  
-3. **MUST NOT** allowlisted unrestricted extract to arbitrary system paths.  
+3. **MUST NOT** allowlisted unrestricted extract to arbitrary system paths; Type 1 remains deposit→stage (and list) only — **not** extract-as-root into `/etc`.  
 4. Extract **SHOULD** use `tar -C parent` so the archive top-level folder name is preserved.  
 5. After extract, **MUST** verify tree entry/file counts against archive inventory when list is available; fail closed on mismatch.  
-6. Human success **MUST** report destination, host class, and verified file counts.
+6. Human success **MUST** report destination, host class, and verified file counts.  
+7. When dest is **W-ETC-USER** (e.g. `/etc/sudo-adm`), extract still runs as the **invoking user** (Type 0); if the tree is not writable by that user, fail closed with a clear permission error — **do not** widen sudoers to fix writability without a separate privilege redesign.
 
 #### 2.6b.4 List
 
@@ -213,6 +267,11 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 | Dest missing after deposit | Non-zero |
 | Dest size ≠ stage size | Non-zero |
 | Dest re-list count mismatch (when listed) | Non-zero |
+| Restore dest not on whitelist (§2.6b.2a) | Non-zero; refuse message names gate (not “sudoers missing”) |
+| Restore dest = exact `/etc` (or other hard-deny root) | Non-zero |
+| Restore dest = **`/etc/passwd`** | Non-zero always (hard deny) |
+| Restore dest = **`/etc/{{username}}`** (or under it) for **invoking** user (W-ETC-USER) | Allowed by dest gate (other restore rules still apply) |
+| Restore dest = `/etc/<other-user>` | Non-zero (not W-ETC-USER for invoker) |
 
 ### 2.10 Implementation Notes (this project)
 
@@ -220,7 +279,7 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 |------|--------|
 | **Product / APP_NAME** | `folder-backup` |
 | **Ship unit** | `src/folder-backup` |
-| **VERSION** | `1.2.0` |
+| **VERSION** | `1.5.0` |
 | **CLI verbs** | `backup` → `fb_backup`; `restore` → `fb_restore` |
 | **Handlers** | `fb_deposit_archive`, `fb_verify_archive_counts`, `fb_count_*`, `fb_tar_list_stream`, `fb_fetch_archive_readable` |
 | **BACKUP_ROOT** | `/var/backup` |
@@ -233,6 +292,9 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 | **Archive pattern** | `${SOURCE_FOLDER_NAME}-YYYYMMDD-N.tar.gz` |
 | **Verify modes implemented** | `dest_tar_list+size`, `stage_counts+dest_size` |
 | **Elevated Cmnds** | deposit cp/install; `tar -tzf` list; restore `cp` deposit→stage |
+| **Restore dest gate** | **Whitelist** §2.6b.2a (`fb_refuse_restore_dest` must align: W-ETC-USER `/etc/{{username}}`; never `/etc/passwd`) |
+| **W-ETC-USER example (host)** | Invoker `sudo-adm` → allow `/etc/sudo-adm` (+ children); refuse `/etc/passwd`, `/etc/nginx-adm` |
+| **Incident** | `docs/incidents/incident-20260812-001-restore-blocklist-refuses-home-under-etc.md` |
 | **Suite** | `tests/test_domain_folder_backup.sh` (TP-FOLDER-BACKUP-*) |
 | **Primary TP map** | `reviews/test-plan.md` · `reviews/requirement-test-matrix.md` |
 
@@ -252,7 +314,8 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 - **Caution:** Validate, verify, fail loud.  
 - **Intentional:** Naming, deposit, and verify modes are explicit.  
 - **Anti-fragile:** Stage first; elevation only for deposit/list; clear operator recovery.  
-- **Over-protect:** Never skip stage verify; never claim success without size match after deposit.
+- **Over-protect:** Never skip stage verify; never claim success without size match after deposit; restore dest whitelist is `/etc/{{username}}` only under `/etc` — never `/etc/passwd` or all of `/etc/*`.  
+- **Anti-fragile (restore):** Accounts with trees at `/etc/{{username}}` remain recoverable for the **invoking** owner via **W-ETC-USER**.
 
 ---
 
@@ -266,7 +329,10 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 4. Write unprivileged durable archives into root-owned `/var/backup` without elevation policy.  
 5. Extract archives during verify (list-only).  
 6. Move this operational backup law solely into a **domain** four-pillar file (domain may list verbs; this file owns behavior).  
-7. Cite templates/skills as product-source behavioral authority.
+7. Cite templates/skills as product-source behavioral authority.  
+8. Implement restore dest as a pure prefix ban on all `/etc/*` **without** whitelist **W-ETC-USER** (`/etc/{{username}}` for the invoking user).  
+9. Whitelist **all** of `/etc` or `/etc/*`, allow restore into **`/etc/passwd`**, or allow `/etc/<other-user>` for a different account.  
+10. “Fix” W-ETC-USER writability by adding Type 1 extract/`cp` into arbitrary `/etc` paths.
 
 **Violating this rule is a critical backup regression.**
 
@@ -290,6 +356,10 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 | AC-12 | Restore refuses non-empty dest without `--force` |
 | AC-13 | Restore verifies tree counts against archive when listable |
 | AC-14 | Missing archive fail-closed |
+| AC-15 | Restore dest gate is **whitelist** (§2.6b.2a): exact `/etc` and other hard-deny roots refuse; dest not on any W-* row refuses |
+| AC-16 | **W-ETC-USER:** dest `/etc/{{username}}` or strict child, with `{{username}}` = invoking `id -un`, dest gate **allows** (e.g. `sudo-adm` → `/etc/sudo-adm`) |
+| AC-17 | Dest `/etc/<other-user>` is **not** allowed for a different invoker |
+| AC-18 | Dest **`/etc/passwd` always refuses** (hard deny; not whitelisted even if username were `passwd`) |
 
 ---
 
@@ -320,6 +390,7 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 | **TP-FOLDER-BACKUP-08** | same | have when elev | Next-N |
 | **TP-FOLDER-BACKUP-10** | same | have | Leaf basename |
 | **TP-FOLDER-BACKUP-11..13** | same | have | Restore missing / explicit dest / hard-disk default |
+| **TP-FOLDER-BACKUP-16** | same | **have** | W-ETC-USER: allow `/etc/{{username}}`; refuse `/etc/passwd` and `/etc/<other>` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -330,9 +401,10 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | Split operational backup law out of domain; full create/name/deposit/verify coverage |
 | 2026-08-03 | Active 1.1.0 | **Restore** feature; default dest host = hard-disk (reverse of ram-drive-first) |
+| 2026-08-12 | Active 1.2.0 | Restore dest **whitelist** §2.6b.2a: **W-ETC-USER** = `/etc/{{username}}` (invoker); hard-deny `/etc` and **`/etc/passwd`** (INC-20260812-001) |
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-08-12  
 **Owner**: project maintainers  
-**Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
+**Alignment**: Registry `docs/requirements/index.md`; incident `docs/incidents/incident-20260812-001-restore-blocklist-refuses-home-under-etc.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
