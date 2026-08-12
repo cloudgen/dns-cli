@@ -92,6 +92,10 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-FOLDER-BACKUP-15 | remove-project-sudoers: force remove draft; refuse `/etc`; already absent; host elev probe | test_domain | three-layer §2.3.3b · project-sudoers-file | **have** |
 | TP-FOLDER-BACKUP-15b | multi-draft: list + non-interactive requires path; explicit path removes one only | test_domain | three-layer AC-15 · L-SUDOERS-04 | **have** |
 | TP-FOLDER-BACKUP-16 | restore dest whitelist: refuse `/etc/passwd` + exact `/etc` + `/etc/<other>`; W-ETC-USER `/etc/{{username}}` gate allow | test_domain | **folder-archive-backup** §2.6b.2a · INC-20260812-001 | **have** |
+| TP-FOLDER-BACKUP-17 | total retention: after deposit, prune oldest until ≤30 per basename | test_domain | **retention-total** | **have** |
+| TP-FOLDER-BACKUP-17b | total retention: no cross-basename delete | test_domain | **retention-total** | **have** |
+| TP-FOLDER-BACKUP-18 | daily retention: same-day prune lowest N until ≤5 | test_domain | **retention-daily** | **have** |
+| TP-FOLDER-BACKUP-18b | daily retention: does not delete other days / other basename | test_domain | **retention-daily** | **have** |
 
 ---
 

@@ -357,6 +357,73 @@ run_test_domain_folder_backup() {
     else
         t_pass "TP-FOLDER-BACKUP-16 W-ETC-USER dest gate allowed (later fail ec=${_ec16} OK)"
     fi
+
+    # TP-FOLDER-BACKUP-18 daily retention: max 5 same-day per basename (writable BACKUP_ROOT)
+    _broot18="${CI_HOME}/ret-daily-root"
+    _dep18="${_broot18}/folder-backup"
+    mkdir -p "${_dep18}"
+    _rsrc18="${CI_HOME}/ret-daily-src"
+    mkdir -p "${_rsrc18}"
+    printf 'd\n' > "${_rsrc18}/f.txt"
+    _day18=$(date +%Y%m%d)
+    # Pre-seed 5 same-day archives (N=1..5); next backup creates N=6 then prunes to 5
+    _i=1
+    while [ "${_i}" -le 5 ]; do
+        printf 'x' > "${_dep18}/ret-daily-src-${_day18}-${_i}.tar.gz"
+        _i=$((_i + 1))
+    done
+    # Other basename must not be pruned
+    printf 'y' > "${_dep18}/other-proj-${_day18}-1.tar.gz"
+    # Other day for same basename must not be pruned by daily rule
+    printf 'z' > "${_dep18}/ret-daily-src-20200101-1.tar.gz"
+    _out=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot18}" BACKUP_NOTATION="folder-backup" \
+        MAX_DAILY_BACKUPS=5 MAX_TOTAL_BACKUPS=30 \
+        sh "${SCRIPT}" backup "${_rsrc18}" 2>&1)
+    _ec18=$?
+    assert_eq "TP-FOLDER-BACKUP-18 daily retention backup exit 0" 0 "${_ec18}"
+    _cnt18=$(find "${_dep18}" -name "ret-daily-src-${_day18}-*.tar.gz" 2>/dev/null | wc -l | tr -d ' ')
+    assert_eq "TP-FOLDER-BACKUP-18 same-day count ≤5" 5 "${_cnt18}"
+    assert_file_missing "TP-FOLDER-BACKUP-18 pruned lowest N (1)" "${_dep18}/ret-daily-src-${_day18}-1.tar.gz"
+    assert_file_exists "TP-FOLDER-BACKUP-18 other day kept" "${_dep18}/ret-daily-src-20200101-1.tar.gz"
+    # TP-FOLDER-BACKUP-18b: other basename not deleted by daily prune
+    assert_file_exists "TP-FOLDER-BACKUP-18b other basename kept" "${_dep18}/other-proj-${_day18}-1.tar.gz"
+
+    # TP-FOLDER-BACKUP-17 total retention: max 30 per basename
+    _broot17="${CI_HOME}/ret-total-root"
+    _dep17="${_broot17}/folder-backup"
+    mkdir -p "${_dep17}"
+    _rsrc17="${CI_HOME}/ret-total-src"
+    mkdir -p "${_rsrc17}"
+    printf 't\n' > "${_rsrc17}/f.txt"
+    _day17=$(date +%Y%m%d)
+    # Seed 30 archives across older days + today will add 31st then prune to 30
+    _j=1
+    while [ "${_j}" -le 15 ]; do
+        printf 'o' > "${_dep17}/ret-total-src-20200101-${_j}.tar.gz"
+        _j=$((_j + 1))
+    done
+    _j=1
+    while [ "${_j}" -le 15 ]; do
+        printf 'o' > "${_dep17}/ret-total-src-20200102-${_j}.tar.gz"
+        _j=$((_j + 1))
+    done
+    # Foreign basename filler (must remain)
+    printf 'f' > "${_dep17}/foreign-name-20200101-1.tar.gz"
+    _out=$(HOME="${CI_HOME}" BACKUP_ROOT="${_broot17}" BACKUP_NOTATION="folder-backup" \
+        MAX_DAILY_BACKUPS=50 MAX_TOTAL_BACKUPS=30 \
+        sh "${SCRIPT}" backup "${_rsrc17}" 2>&1)
+    _ec17=$?
+    assert_eq "TP-FOLDER-BACKUP-17 total retention backup exit 0" 0 "${_ec17}"
+    _cnt17=$(find "${_dep17}" -name "ret-total-src-*.tar.gz" 2>/dev/null | wc -l | tr -d ' ')
+    assert_eq "TP-FOLDER-BACKUP-17 total count ≤30" 30 "${_cnt17}"
+    # Oldest day/N should go first (20200101-1)
+    assert_file_missing "TP-FOLDER-BACKUP-17 pruned oldest" "${_dep17}/ret-total-src-20200101-1.tar.gz"
+    # TP-FOLDER-BACKUP-17b cross-basename isolation
+    assert_file_exists "TP-FOLDER-BACKUP-17b foreign basename kept" "${_dep17}/foreign-name-20200101-1.tar.gz"
+
+    # print-sudoers includes retention rm allowlist
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" print-sudoers --allow-test-local 2>&1)
+    assert_contains "TP-FOLDER-BACKUP-01d retention rm allowlist" "$_out" "rm -f"
     # cleanup remaining drafts
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment" >/dev/null 2>&1 || true
     HOME="${CI_HOME}" sh "${SCRIPT}" remove-project-sudoers --force "${CI_HOME}/.config/folder-backup/sudoers.fragment-otheruser" >/dev/null 2>&1 || true

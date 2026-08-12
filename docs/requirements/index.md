@@ -2,7 +2,7 @@
 
 **Product:** folder-backup (POSIX `/bin/sh` local self-managed CLI — folder tar.gz backup with narrow sudo deposit)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; bootstrap trim from **selfmanaged** (online install **intentionally absent**).  
-**Updated:** 2026-08-11
+**Updated:** 2026-08-12
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
@@ -11,6 +11,8 @@
 | requirement-project-folder | Project layout (`src/`), install bins, `/var/backup` deposit | architecture | Active | `requirement-project-folder.md` | 2026-08-03 |
 | requirement-three-layer-privilege-model | Type 0 + narrow Type 1 deposit; sudoers emit + **install-script** handoff; **per-user** fragment names; **trust tiers** (S13); elev tables S11–S12 when claimed | architecture | Active (1.3.0) | `requirement-three-layer-privilege-model.md` | 2026-08-09 |
 | requirement-folder-archive-backup | **Backup/restore ops SSOT**: backup + verify + **restore**; dest whitelist **W-ETC-USER** `/etc/{{username}}` (never `/etc/passwd`) | backup | Active (1.2.0) | `requirement-folder-archive-backup.md` | 2026-08-12 |
+| requirement-folder-archive-backup-retention-total | **Total retention**: max **30** archives per project basename; prune oldest after successful deposit | backup | Active (1.0.0) | `requirement-folder-archive-backup-retention-total.md` | 2026-08-12 |
+| requirement-folder-archive-backup-retention-daily | **Daily retention**: max **5** archives per basename per calendar day; prune oldest same-day `N` | backup | Active (1.0.0) | `requirement-folder-archive-backup-retention-daily.md` | 2026-08-12 |
 | requirement-shell-cli-interface | Shell CLI interface (commands, flags, dispatch, modes) | shell | Active | `requirement-shell-cli-interface.md` | 2026-08-03 |
 | requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only) | shell | Active | `requirement-shell-cli-zero-arguments.md` | 2026-08-03 |
 | requirement-shell-local-self-management | Local install / uninstall / where-is-me; **mode 0755** multi-user | shell | Active (1.2.0) | `requirement-shell-local-self-management.md` | 2026-08-09 |

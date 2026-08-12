@@ -13,7 +13,9 @@ Authoritative specialized product law for **folder-backup** lives here.
 | Ship unit | `src/folder-backup` |
 | Default install | `~/.local/bin/folder-backup` |
 | Install mode | **Local-only** |
-| Backup ops | `requirement-folder-archive-backup` — create / name / deposit / verify |
+| Backup ops | `requirement-folder-archive-backup` — create / name / deposit / verify / restore |
+| Retention total | `requirement-folder-archive-backup-retention-total` — max **30** per basename |
+| Retention daily | `requirement-folder-archive-backup-retention-daily` — max **5** per basename per day |
 | Domain surface | `requirement-domain-folder-backup` — four pillars; ops deferred |
 
 ## Class requirement gate

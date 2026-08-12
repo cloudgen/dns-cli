@@ -29,7 +29,7 @@
 # Single-file ship unit under src/; local install to ~/.local/bin.
 #
 # APP NAME: hard-assign APP_NAME="folder-backup"
-# VERSION: hard-assign VERSION="1.5.0"
+# VERSION: hard-assign VERSION="1.6.0"
 #
 # =============================================================================
 
@@ -46,8 +46,8 @@ APP_NAME="folder-backup"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help, backup, restore, print-sudoers, print-sudoers-install-script, remove-project-sudoers.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.5.0"
-: "${VERSION:=1.5.0}"
+VERSION="1.6.0"
+: "${VERSION:=1.6.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -1683,7 +1683,23 @@ fb_deposit_archive() {
         return 0
     fi
 
-    # Non-root: require allowlisted sudo
+    # Non-root Type 0: writable custom/test deposit dir (BACKUP_ROOT override)
+    if [ ! -d "${_dest_dir}" ]; then
+        mkdir -p "${_dest_dir}" 2>/dev/null || true
+    fi
+    if [ -d "${_dest_dir}" ] && [ -w "${_dest_dir}" ]; then
+        if command -v install >/dev/null 2>&1; then
+            if install -m 0640 "${_stage_file}" "${_dest_file}" 2>/dev/null; then
+                return 0
+            fi
+        fi
+        if cp "${_stage_file}" "${_dest_file}" 2>/dev/null; then
+            chmod 0640 "${_dest_file}" 2>/dev/null || true
+            return 0
+        fi
+    fi
+
+    # Non-root: require allowlisted sudo for root-owned deposit
     if ! command -v sudo >/dev/null 2>&1; then
         out_die "sudo not found. Deposit requires elevated copy into ${BACKUP_ROOT}/${BACKUP_NOTATION}/. Run: ${APP_NAME} print-sudoers"
     fi
@@ -1709,6 +1725,227 @@ fb_deposit_archive() {
 }
 
 # =============================================================================
+# fb_positive_int_or_default() - Class B: validate positive integer env caps
+# =============================================================================
+fb_positive_int_or_default() {
+    _raw="${1:-}"
+    _def="${2:-1}"
+    case "${_raw}" in
+        ''|*[!0-9]*)
+            printf '%s' "${_def}"
+            return 0
+            ;;
+    esac
+    if [ "${_raw}" -le 0 ] 2>/dev/null; then
+        printf '%s' "${_def}"
+        return 0
+    fi
+    printf '%s' "${_raw}"
+}
+
+# =============================================================================
+# fb_match_product_archive_basename() - Class B: exit 0 if NAME-YYYYMMDD-N.tar.gz
+# Args: file_basename source_folder_name
+# =============================================================================
+fb_match_product_archive_basename() {
+    _bn="${1:-}"
+    _src="${2:-}"
+    [ -n "${_bn}" ] && [ -n "${_src}" ] || return 1
+    case "${_bn}" in
+        "${_src}"-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*.tar.gz) ;;
+        *) return 1 ;;
+    esac
+    _rest="${_bn#${_src}-}"
+    _daypart=$(printf '%s' "${_rest}" | cut -c1-8)
+    _npart="${_rest#????????-}"
+    _npart="${_npart%.tar.gz}"
+    case "${_daypart}" in
+        [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+        *) return 1 ;;
+    esac
+    case "${_npart}" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    return 0
+}
+
+# =============================================================================
+# fb_remove_deposit_archive() - Delete one durable archive (Type 0 or allowlisted)
+# =============================================================================
+#
+# ALIGNMENT: retention-total / retention-daily · three-layer narrow rm
+# =============================================================================
+fb_remove_deposit_archive() {
+    _path="${1:-}"
+    : "${BACKUP_ROOT:=/var/backup}"
+    : "${BACKUP_NOTATION:=folder-backup}"
+    _dep="${BACKUP_ROOT}/${BACKUP_NOTATION}"
+
+    [ -n "${_path}" ] || return 1
+    case "${_path}" in
+        "${_dep}"/*) ;;
+        *)
+            out_warn "Retention refuse delete outside deposit: ${_path}"
+            return 1
+            ;;
+    esac
+    case "${_path}" in
+        *.tar.gz) ;;
+        *)
+            out_warn "Retention refuse delete non-archive: ${_path}"
+            return 1
+            ;;
+    esac
+    if [ ! -e "${_path}" ]; then
+        return 0
+    fi
+
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        rm -f "${_path}" 2>/dev/null && return 0
+        return 1
+    fi
+    # Type 0 when writable (user-owned / test deposit)
+    if [ -w "${_path}" ] || { [ -d "${_dep}" ] && [ -w "${_dep}" ]; }; then
+        if rm -f "${_path}" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    if command -v sudo >/dev/null 2>&1; then
+        if sudo -n /bin/rm -f "${_path}" 2>/dev/null \
+            || sudo -n /usr/bin/rm -f "${_path}" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# =============================================================================
+# fb_apply_retention() - Daily then total prune after successful deposit
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Enforce MAX_DAILY_BACKUPS (default 5) for basename+day, then MAX_TOTAL_BACKUPS
+# (default 30) for basename across all days. Oldest first (day asc, N asc).
+#
+# ALIGNMENT:
+# - requirement-folder-archive-backup-retention-daily.md
+# - requirement-folder-archive-backup-retention-total.md
+#
+# Sets globals: FB_RETENTION_DAILY_REMOVED FB_RETENTION_TOTAL_REMOVED
+#               FB_RETENTION_DAILY_REMAINING FB_RETENTION_TOTAL_REMAINING
+# =============================================================================
+fb_apply_retention() {
+    _src_name="${1:-}"
+    _dest_dir="${2:-}"
+    _day="${3:-}"
+    : "${APP_NAME:=folder-backup}"
+    : "${MAX_DAILY_BACKUPS:=5}"
+    : "${MAX_TOTAL_BACKUPS:=30}"
+
+    FB_RETENTION_DAILY_REMOVED=0
+    FB_RETENTION_TOTAL_REMOVED=0
+    FB_RETENTION_DAILY_REMAINING=0
+    FB_RETENTION_TOTAL_REMAINING=0
+
+    [ -n "${_src_name}" ] && [ -n "${_dest_dir}" ] && [ -d "${_dest_dir}" ] || return 0
+    if [ -z "${_day}" ]; then
+        _day=$(date +%Y%m%d)
+    fi
+
+    _max_daily=$(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5)
+    _max_total=$(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30)
+    MAX_DAILY_BACKUPS="${_max_daily}"
+    MAX_TOTAL_BACKUPS="${_max_total}"
+
+    # --- Daily prune: rebuild sorted list each pass (lowest N first) ---
+    _guard=0
+    while [ "${_guard}" -lt 10000 ]; do
+        _guard=$((_guard + 1))
+        _daily_sorted=$(
+            for _f in "${_dest_dir}"/*; do
+                [ -f "${_f}" ] || continue
+                _bn=$(basename -- "${_f}")
+                fb_match_product_archive_basename "${_bn}" "${_src_name}" || continue
+                case "${_bn}" in
+                    "${_src_name}-${_day}-"*.tar.gz) ;;
+                    *) continue ;;
+                esac
+                _n="${_bn#${_src_name}-${_day}-}"
+                _n="${_n%.tar.gz}"
+                case "${_n}" in
+                    ''|*[!0-9]*) continue ;;
+                esac
+                printf '%s\t%s\n' "${_n}" "${_f}"
+            done | sort -n -k1,1
+        )
+        _daily_count=0
+        if [ -n "${_daily_sorted}" ]; then
+            _daily_count=$(printf '%s\n' "${_daily_sorted}" | grep -c . 2>/dev/null || echo 0)
+        fi
+        _daily_count=$(printf '%s' "${_daily_count}" | tr -d ' \t\r\n')
+        [ -n "${_daily_count}" ] || _daily_count=0
+        FB_RETENTION_DAILY_REMAINING="${_daily_count}"
+        if [ "${_daily_count}" -le "${_max_daily}" ]; then
+            break
+        fi
+        _oldpath=$(printf '%s\n' "${_daily_sorted}" | head -n1 | cut -f2-)
+        if [ -z "${_oldpath}" ] || [ ! -e "${_oldpath}" ]; then
+            break
+        fi
+        out_info "Retention daily: removing oldest same-day archive ${_oldpath} (cap=${_max_daily})"
+        if ! fb_remove_deposit_archive "${_oldpath}"; then
+            out_die "Retention daily prune failed (cannot remove ${_oldpath}). Run: ${APP_NAME} print-sudoers (need allowlisted rm under deposit) and admin-install fragment"
+        fi
+        FB_RETENTION_DAILY_REMOVED=$((FB_RETENTION_DAILY_REMOVED + 1))
+    done
+
+    # --- Total prune: oldest YYYYMMDD then N ---
+    _guard=0
+    while [ "${_guard}" -lt 10000 ]; do
+        _guard=$((_guard + 1))
+        _total_sorted=$(
+            for _f in "${_dest_dir}"/*; do
+                [ -f "${_f}" ] || continue
+                _bn=$(basename -- "${_f}")
+                fb_match_product_archive_basename "${_bn}" "${_src_name}" || continue
+                _rest="${_bn#${_src_name}-}"
+                _dpart=$(printf '%s' "${_rest}" | cut -c1-8)
+                _npart="${_rest#????????-}"
+                _npart="${_npart%.tar.gz}"
+                case "${_npart}" in
+                    ''|*[!0-9]*) continue ;;
+                esac
+                printf '%s\t%s\t%s\n' "${_dpart}" "${_npart}" "${_f}"
+            done | sort -k1,1 -k2,2n
+        )
+        _total_count=0
+        if [ -n "${_total_sorted}" ]; then
+            _total_count=$(printf '%s\n' "${_total_sorted}" | grep -c . 2>/dev/null || echo 0)
+        fi
+        _total_count=$(printf '%s' "${_total_count}" | tr -d ' \t\r\n')
+        [ -n "${_total_count}" ] || _total_count=0
+        FB_RETENTION_TOTAL_REMAINING="${_total_count}"
+        if [ "${_total_count}" -le "${_max_total}" ]; then
+            break
+        fi
+        _oldpath=$(printf '%s\n' "${_total_sorted}" | head -n1 | cut -f3-)
+        if [ -z "${_oldpath}" ] || [ ! -e "${_oldpath}" ]; then
+            break
+        fi
+        out_info "Retention total: removing oldest archive ${_oldpath} (cap=${_max_total})"
+        if ! fb_remove_deposit_archive "${_oldpath}"; then
+            out_die "Retention total prune failed (cannot remove ${_oldpath}). Run: ${APP_NAME} print-sudoers (need allowlisted rm under deposit) and admin-install fragment"
+        fi
+        FB_RETENTION_TOTAL_REMOVED=$((FB_RETENTION_TOTAL_REMOVED + 1))
+    done
+
+    if [ "${FB_RETENTION_DAILY_REMOVED}" -gt 0 ] || [ "${FB_RETENTION_TOTAL_REMOVED}" -gt 0 ]; then
+        out_info "Retention: daily_removed=${FB_RETENTION_DAILY_REMOVED} daily_remaining=${FB_RETENTION_DAILY_REMAINING}/${_max_daily} total_removed=${FB_RETENTION_TOTAL_REMOVED} total_remaining=${FB_RETENTION_TOTAL_REMAINING}/${_max_total}"
+    fi
+    return 0
+}
+
+# =============================================================================
 # fb_backup() - Domain: tar.gz source folder, elevated deposit, verify counts
 # =============================================================================
 #
@@ -1720,11 +1957,13 @@ fb_deposit_archive() {
 #
 # ALIGNMENT:
 # - requirement-folder-archive-backup.md  (ops SSOT)
+# - requirement-folder-archive-backup-retention-daily.md
+# - requirement-folder-archive-backup-retention-total.md
 # - requirement-three-layer-privilege-model.md
 # - requirement-shell-cli-storage.md
 # - requirement-domain-folder-backup.md    (verb surface only)
 #
-# Last reviewed: 2026-08-03
+# Last reviewed: 2026-08-12
 # =============================================================================
 fb_backup() {
     : "${APP_NAME:=folder-backup}"
@@ -1734,7 +1973,9 @@ fb_backup() {
     : "${BACKUP_NOTATION:=folder-backup}"
     : "${HOME:=/tmp}"
     : "${USERNAME:=unknown}"
-    : "${VERSION:=1.1.0}"
+    : "${VERSION:=1.6.0}"
+    : "${MAX_DAILY_BACKUPS:=5}"
+    : "${MAX_TOTAL_BACKUPS:=30}"
 
     _source="${1:-}"
     if [ -z "${_source}" ]; then
@@ -1853,6 +2094,16 @@ fb_backup() {
     rm -f "${_stage_file}" 2>/dev/null || true
     trap - EXIT INT TERM
 
+    # Retention: daily (max 5) then total (max 30) per basename
+    _ret_day=$(date +%Y%m%d)
+    case "${_archive_name}" in
+        *-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*)
+            _ret_day=$(printf '%s' "${_archive_name}" | sed -n 's/.*-\([0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\)-[0-9][0-9]*\.tar\.gz$/\1/p')
+            [ -n "${_ret_day}" ] || _ret_day=$(date +%Y%m%d)
+            ;;
+    esac
+    fb_apply_retention "${_src_name}" "${_dest_dir}" "${_ret_day}"
+
     out_success "Backup complete: ${_dest_file}"
     out_success "Verified: source_files=${_src_files} archive_files=${_dest_files} members=${_dest_members} size=${_dest_size} mode=${_verify_mode}"
     if [ "${JSON}" -eq 1 ]; then
@@ -1869,6 +2120,12 @@ fb_backup() {
             "archive_size" "${_dest_size}" \
             "verified" "true" \
             "verify_mode" "${_verify_mode}" \
+            "retention_daily_cap" "${MAX_DAILY_BACKUPS}" \
+            "retention_daily_removed" "${FB_RETENTION_DAILY_REMOVED:-0}" \
+            "retention_daily_remaining" "${FB_RETENTION_DAILY_REMAINING:-0}" \
+            "retention_total_cap" "${MAX_TOTAL_BACKUPS}" \
+            "retention_total_removed" "${FB_RETENTION_TOTAL_REMOVED:-0}" \
+            "retention_total_remaining" "${FB_RETENTION_TOTAL_REMAINING:-0}" \
             "version" "${VERSION}"
     fi
     return 0
@@ -2396,7 +2653,8 @@ fb_print_sudoers() {
 ${_trust_banner}
 #
 # Allow ${_user} to create notation dir, deposit archives, list for verify,
-# and copy archives back to user stage for restore extract.
+# copy archives back to user stage for restore extract, and prune single
+# deposit archives for retention (daily/total caps).
 # Does NOT elevate ${_local_path} (user-rewritable).
 ${_user} ALL=(root) NOPASSWD: /bin/mkdir -p ${_dest}, /usr/bin/mkdir -p ${_dest}
 ${_user} ALL=(root) NOPASSWD: /bin/cp ${_stage_cache}/* ${_dest}/, /usr/bin/cp ${_stage_cache}/* ${_dest}/
@@ -2410,6 +2668,8 @@ ${_user} ALL=(root) NOPASSWD: /usr/bin/tar -tzf ${_dest}/*, /bin/tar -tzf ${_des
 ${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_shm}/, /bin/cp ${_dest}/* ${_stage_shm}/
 ${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_tmp}/, /bin/cp ${_dest}/* ${_stage_tmp}/
 ${_user} ALL=(root) NOPASSWD: /usr/bin/cp ${_dest}/* ${_stage_cache}/, /bin/cp ${_dest}/* ${_stage_cache}/
+# Retention prune: remove individual archives under deposit only (not recursive)
+${_user} ALL=(root) NOPASSWD: /bin/rm -f ${_dest}/*.tar.gz, /usr/bin/rm -f ${_dest}/*.tar.gz
 EOF
 )
 
@@ -2957,7 +3217,7 @@ EOF
 # =============================================================================
 app_version() {
     : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.5.0}"
+    : "${VERSION:=1.6.0}"
     : "${JSON:=0}"
     if [ "${JSON}" -eq 1 ]; then
         out_json "version" "" "app" "${APP_NAME}" "version" "${VERSION}"
@@ -2981,7 +3241,7 @@ app_about() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${APP_NAME:=folder-backup}"
-    : "${VERSION:=1.2.1}"
+    : "${VERSION:=1.6.0}"
     : "${REPO_USER:=cloudgen}"
     : "${REPO_NAME:=folder-backup}"
     : "${SCRIPT_URL:=}"
@@ -2995,6 +3255,8 @@ app_about() {
     : "${XDG_CACHE_HOME:=${HOME}/.cache}"
     : "${BACKUP_ROOT:=/var/backup}"
     : "${BACKUP_NOTATION:=folder-backup}"
+    : "${MAX_DAILY_BACKUPS:=5}"
+    : "${MAX_TOTAL_BACKUPS:=30}"
 
     if [ -z "${EFFECTIVE_STORAGE_DIR:-}" ]; then
         EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
@@ -3052,6 +3314,8 @@ app_about() {
             "deposit_dir" "${BACKUP_ROOT}/${BACKUP_NOTATION}" \
             "sudo_deposit" "${_sudo_deposit}" \
             "sudoers_trust_tier" "$(fb_sudoers_trust_tier)" \
+            "max_daily_backups" "$(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5)" \
+            "max_total_backups" "$(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30)" \
             "restore_host_default" "${RESTORE_HOST_DEFAULT}" \
             "projects_root" "$(util_resolve_projects_root 2>/dev/null || echo "")" \
             "ram_root" "${RAM_ROOT}"
@@ -3102,6 +3366,8 @@ app_about() {
     out_info "Backup notation:   ${BACKUP_NOTATION}"
     out_info "Deposit directory: ${BACKUP_ROOT}/${BACKUP_NOTATION}"
     out_info "Sudo deposit:      ${_sudo_deposit}"
+    out_info "Retention daily:   max $(fb_positive_int_or_default "${MAX_DAILY_BACKUPS}" 5) per basename per day (MAX_DAILY_BACKUPS)"
+    out_info "Retention total:   max $(fb_positive_int_or_default "${MAX_TOTAL_BACKUPS}" 30) per basename (MAX_TOTAL_BACKUPS)"
     _proot=$(util_resolve_projects_root 2>/dev/null || echo "")
     out_info "Restore default host: ${RESTORE_HOST_DEFAULT} (reverse of ram-drive-first)"
     out_info "Projects root (hard-disk): ${_proot:-unset — set PROJECTS_ROOT}"
@@ -3111,7 +3377,7 @@ app_about() {
     out_info "   ${APP_NAME} help            → Full usage"
     out_info "   ${APP_NAME} install         → Local install to ~/.local/bin"
     out_info "   ${APP_NAME} print-sudoers   → Sudoers fragment for admin"
-    out_info "   ${APP_NAME} backup <dir>    → Archive + deposit"
+    out_info "   ${APP_NAME} backup <dir>    → Archive + deposit + retention prune"
     out_info "   ${APP_NAME} restore <name>  → Restore archive (default dest: hard-disk)"
     out_info "   ${APP_NAME} --json          → Machine-readable output"
 }
@@ -3179,6 +3445,8 @@ app_help() {
     out_info "Environment:"
     out_plain "  BACKUP_ROOT          ${BACKUP_ROOT}"
     out_plain "  BACKUP_NOTATION      ${BACKUP_NOTATION}"
+    out_plain "  MAX_DAILY_BACKUPS    5  (per basename per day; prune oldest same-day N)"
+    out_plain "  MAX_TOTAL_BACKUPS    30 (per basename; prune oldest across days)"
     out_plain "  PROJECTS_ROOT        hard-disk projects tree (auto-detect when possible)"
     out_plain "  RAM_ROOT             ${RAM_ROOT}"
     out_plain "  RESTORE_HOST_DEFAULT ${RESTORE_HOST_DEFAULT}  (hard-disk|ram-drive)"

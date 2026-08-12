@@ -1,6 +1,6 @@
 # folder-backup - Local folder archive backup and restore with narrow sudo deposit
 
-![Version](https://img.shields.io/badge/Version-1.5.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.6.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/folder-backup?style=flat-square)](https://github.com/cloudgen/folder-backup)
@@ -10,7 +10,8 @@ POSIX `/bin/sh` local CLI that archives a folder to gzip tar, deposits it under 
 ## Features
 
 - **Local self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
-- **Backup**: `backup <folder>` → stage tar.gz → elevated deposit → verify (entries/files/size)
+- **Backup**: `backup <folder>` → stage tar.gz → elevated deposit → verify → **retention prune** (max **5**/day, **30** total per project basename)
+- **Retention**: `MAX_DAILY_BACKUPS` / `MAX_TOTAL_BACKUPS` (defaults 5 / 30); oldest first; never cross-basename
 - **Restore**: `restore <archive|prefix> [dest]` — default dest is hard-disk `${PROJECTS_ROOT}/<project>`
 - **Restore dest whitelist**: allow `/etc/{{username}}` (invoking user); always refuse `/etc/passwd` and other non-whitelisted system paths
 - **Narrow sudoers**: `print-sudoers` emits deposit / verify-list / restore-stage allowlist (admin installs to `/etc/sudoers.d/`)

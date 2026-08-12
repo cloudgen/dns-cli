@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] - 2026-08-12
+
+### Added
+
+- **Retention after successful backup** (per project basename under deposit):
+  - **`MAX_DAILY_BACKUPS`** default **5** — prune oldest same-day `N` until ≤5
+  - **`MAX_TOTAL_BACKUPS`** default **30** — prune oldest (day then `N`) until ≤30
+  - Order: daily prune, then total prune
+- **Sudoers** allowlisted `rm -f` of deposit `*.tar.gz` for root-owned prune
+- Law: `requirement-folder-archive-backup-retention-daily` · `requirement-folder-archive-backup-retention-total` (molds LM-*-RETENTION-*)
+- Suite **TP-FOLDER-BACKUP-17 / 17b / 18 / 18b**
+
+### Changed
+
+- Version SSOT **1.6.0**
+- Type 0 deposit when `BACKUP_ROOT` notation dir is user-writable (tests / custom roots)
+- `about` / help report retention caps; backup JSON includes retention_* fields
+
 ## [1.5.0] - 2026-08-12
 
 ### Fixed

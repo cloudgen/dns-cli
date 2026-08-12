@@ -13,6 +13,15 @@ This requirement is the **product Single Source of Truth** for **folder archive 
 
 It is **not** a domain four-pillar file. Domain surface (CLI verbs, help/about) lives in `requirement-domain-folder-backup`. Elevation and sudoers **files** live in `requirement-three-layer-privilege-model`.
 
+**Retention (peer SSOT — not duplicated here):**
+
+| Cap | Default | Law |
+|-----|---------|-----|
+| **Total** per project basename | **30** | `requirement-folder-archive-backup-retention-total` |
+| **Daily** per basename per `YYYYMMDD` | **5** | `requirement-folder-archive-backup-retention-daily` |
+
+After successful deposit + verify, product **MUST** enforce those peers (daily prune then total prune).
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -279,7 +288,7 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 |------|--------|
 | **Product / APP_NAME** | `folder-backup` |
 | **Ship unit** | `src/folder-backup` |
-| **VERSION** | `1.5.0` |
+| **VERSION** | `1.6.0` |
 | **CLI verbs** | `backup` → `fb_backup`; `restore` → `fb_restore` |
 | **Handlers** | `fb_deposit_archive`, `fb_verify_archive_counts`, `fb_count_*`, `fb_tar_list_stream`, `fb_fetch_archive_readable` |
 | **BACKUP_ROOT** | `/var/backup` |
@@ -368,6 +377,8 @@ Errors **MUST** use structured error emission with stable codes when feasible (e
 | Key | Relationship |
 |-----|--------------|
 | `requirement-domain-folder-backup` | Domain surface (verbs, help, about); defers behavior here |
+| `requirement-folder-archive-backup-retention-total` | Max **30** archives per basename; oldest-first prune |
+| `requirement-folder-archive-backup-retention-daily` | Max **5** archives per basename per day; lowest-`N` same-day prune |
 | `requirement-three-layer-privilege-model` | Type 1 deposit + sudoers + tar -tzf allowlist |
 | `requirement-shell-cli-storage` | Stage root resolve |
 | `requirement-shell-cli-interface` | Dispatch `backup` |
