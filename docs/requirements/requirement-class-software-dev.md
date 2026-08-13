@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.0.0 – folder-backup class law + residual stack)  
+**Status**: Active (Version 1.3.0 – cli-template class law + residual stack)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,7 +8,7 @@
 
 Declare this workspace as a **software-development** project class and hold the **residual collection** of software-engineering stack facts **not already owned** by more specific Active peer requirements: primary language, toolchain policy, package/test tooling, and runtime OS family.
 
-This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycle, domain backup, output, or storage tables (those stay on peer requirements).
+This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycle, output, or storage tables (those stay on peer requirements).
 
 ---
 
@@ -66,9 +66,9 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ### 2.7 Implementation Notes (this project)
 
-| Field | Value (folder-backup) |
+| Field | Value (cli-template) |
 |-------|---------------------|
-| **Project display name** | `folder-backup` |
+| **Project display name** | `cli-template` |
 | **Project class** | software-development |
 | **Class requirement basename** | `requirement-class-software-dev.md` |
 | **Primary language(s)** | `posix-sh` (`/bin/sh`) |
@@ -81,12 +81,12 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Lockfile policy** | not used |
 | **Test runner** | POSIX shell suite under `tests/` when present (`tests/run.sh` pattern) |
 | **Linter/formatter** | none as project law (shellcheck optional for maintainers) |
-| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `tar` + `gzip`/`tar -z` + `mktemp` exist) |
+| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `mktemp` + `date` exist) |
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published |
-| **Ship unit / install** | yes — `src/folder-backup` → `${USER_BIN}/folder-backup` (default `~/.local/bin/folder-backup`); **local-only** install (no online channel) |
-| **Product version SSOT** | `VERSION="1.0.0"` hard-assign in `src/folder-backup` |
-| **Bootstrap origin** | external product **selfmanaged** (`https://github.com/cloudgen/selfmanaged`) with **online install surfaces trimmed** |
+| **Ship unit / install** | yes — `src/cli-template` → `${USER_BIN}/cli-template` (default `~/.local/bin/cli-template`); **local-only** install (no online channel) |
+| **Product version SSOT** | `VERSION="1.0.0"` hard-assign in `src/cli-template` |
+| **Bootstrap origin** | **this product** (`cli-template`) — hop 0 Type 0 template. No live parent. |
 
 **Residual ownership table:**
 
@@ -95,7 +95,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Project class membership | **this file** | Fixed |
 | Primary language + toolchain policy | **this file** | posix-sh, unconstrained |
 | Package/build tool + lockfile | **this file** | none / not used |
-| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | A→B + online trim |
+| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | cli-template is hop 0 (no live parent) |
 | Project layout / ship path | `requirement-project-folder` | `src/` + bin targets |
 | Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
 | Empty argv Type N help | `requirement-shell-cli-zero-arguments` | Local-only |
@@ -105,10 +105,10 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
-| Privilege layers + sudoers **files** (emit/install/fail-closed) | `requirement-three-layer-privilege-model` | Type 0 + narrow Type 1 deposit; §2.3 sudoers SSOT |
-| Folder archive **backup operations** | `requirement-folder-archive-backup` | Create / name / deposit / verify (not domain) |
-| Domain surface (verbs, help, about) | `requirement-domain-folder-backup` | Four pillars only; ops pointer |
-| Online install / remote self-management / companion checksum | **intentionally absent** | Trimmed from bootstrap parent |
+| Privilege / sudoers-file emit | **intentionally absent** | Not this product’s domain |
+| Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
+| Domain surface (`requirement-domain-*`) | **intentionally absent** | Type 0 bootstrap/template; not host-OS setup |
+| Online install / remote self-management / companion checksum | **intentionally absent** | Not this origin’s channel |
 
 ---
 
@@ -166,7 +166,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-bootstrap-chain` | Lineage A=selfmanaged → B=folder-backup (trim online) |
+| `requirement-bootstrap-chain` | This product is hop 0 / origin |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
 | `requirement-shell-cli-zero-arguments` | Type N empty argv |
@@ -176,9 +176,6 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-shell-idempotency` | Re-run safety |
 | `requirement-shell-interactive-vs-noninteractive` | Mode policy |
 | `requirement-shell-modular-function-design` | Prefixes / single-file modularity |
-| `requirement-three-layer-privilege-model` | Privilege + working with sudoers fragment files |
-| `requirement-folder-archive-backup` | Folder archive backup operations SSOT |
-| `requirement-domain-folder-backup` | Domain four pillars |
 | `docs/requirements/index.md` | Registry SSOT |
 
 ---
@@ -188,9 +185,12 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Specialized class law for folder-backup (left genesis; bootstrap trim from selfmanaged) |
+| 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |
+| 2026-08-13 | Active 1.2.0 | Bootstrap origin = selfmanaged; folder-backup hop retired (no longer maintain bootstrap from it) |
+| 2026-08-13 | Active 1.3.0 | This product is hop 0; selfmanaged is not origin |
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-08-13  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

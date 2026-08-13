@@ -14,7 +14,6 @@ run_test_cli() {
 
     require_cmd sh
     require_cmd grep
-    require_cmd tar
 
     # TP-CLI-01 syntax
     sh -n "${SCRIPT}"
@@ -35,20 +34,17 @@ run_test_cli() {
     assert_contains "TP-CLI-03 app field" "$_out" "\"app\":\"${APP_NAME}\""
     assert_contains "TP-CLI-03 version field" "$_out" "\"version\":\"${PRODUCT_VERSION}\""
 
-    # TP-CLI-04 help lists local lifecycle + domain; not online verbs
+    # TP-CLI-04 help lists local lifecycle; not online; not trimmed parent domain
     _out=$(sh "${SCRIPT}" help 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
-    assert_contains "TP-CLI-04 help backup" "$_out" "backup"
-    assert_contains "TP-CLI-04 help restore" "$_out" "restore"
-    assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
-    assert_contains "TP-CLI-04 help install-script" "$_out" "print-sudoers-install-script"
-    assert_contains "TP-CLI-04 help remove-project-sudoers" "$_out" "remove-project-sudoers"
-    assert_contains "TP-CLI-04 help hard-disk default" "$_out" "hard-disk"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
+    assert_not_contains "TP-CLI-04 no backup verb" "$_out" "backup <"
+    assert_not_contains "TP-CLI-04 no restore verb" "$_out" "restore <"
+    assert_not_contains "TP-CLI-04 no print-sudoers" "$_out" "print-sudoers"
     assert_not_contains "TP-CLI-04 no self-update" "$_out" "self-update"
     assert_not_contains "TP-CLI-04 no self-uninstall" "$_out" "self-uninstall"
     assert_not_contains "TP-CLI-04 no version-check" "$_out" "version-check"
@@ -60,15 +56,15 @@ run_test_cli() {
     assert_eq "TP-CLI-05 help --json exit 0" 0 "$?"
     assert_contains "TP-CLI-05 help json success" "$_out" '"type":"success"'
 
-    # TP-CLI-06 about json domain + storage, no channel
+    # TP-CLI-06 about json storage, no channel, no domain backup fields
     _out=$(sh "${SCRIPT}" --json about 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
-    assert_contains "TP-CLI-06 backup_notation" "$_out" '"backup_notation"'
-    assert_contains "TP-CLI-06 deposit_dir" "$_out" '"deposit_dir"'
-    assert_contains "TP-CLI-06 restore_host_default" "$_out" '"restore_host_default"'
+    assert_not_contains "TP-CLI-06 no backup_notation" "$_out" '"backup_notation"'
+    assert_not_contains "TP-CLI-06 no deposit_dir" "$_out" '"deposit_dir"'
+    assert_not_contains "TP-CLI-06 no restore_host_default" "$_out" '"restore_host_default"'
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
 
@@ -126,4 +122,12 @@ run_test_cli() {
         t_fail "TP-CLI-12 effective_storage missing: '${_eff:-empty}'"
     fi
     ci_cleanup_env
+
+    # TP-CLI-13 trimmed parent domain / sudoers verbs fail closed
+    for _verb in backup restore print-sudoers print-sudoers-install-script remove-project-sudoers setup; do
+        _err=$(sh "${SCRIPT}" "${_verb}" 2>&1 >/dev/null)
+        _ec=$?
+        assert_eq "TP-CLI-13 ${_verb} exit 1" 1 "$_ec"
+        assert_contains "TP-CLI-13 ${_verb} unknown" "$_err" "Unknown command"
+    done
 }

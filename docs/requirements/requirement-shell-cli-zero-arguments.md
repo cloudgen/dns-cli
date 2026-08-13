@@ -6,11 +6,11 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **zero-argument (empty argv) dispatcher behavior** of the folder-backup POSIX shell CLI.
+This requirement is the **project Single Source of Truth** for **zero-argument (empty argv) dispatcher behavior** of the cli-template POSIX shell CLI.
 
 ### 1.0 Product type
 
-| Field | Value for folder-backup |
+| Field | Value for cli-template |
 |-------|-------------------------|
 | **Empty-argv type** | **Type N — Non-online-install** |
 | **Rationale** | Product is **local-only**; no `curl \| sh` channel; empty argv shows **help**, not install-ensure |
@@ -24,28 +24,28 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
 ### 2.1 Single meaning of empty argv
 
 1. When **argv is empty** (`$# -eq 0` at entry to `app_main`), the dispatcher **MUST** route to **`help`** / usage (`app_help`).  
-2. Empty argv **MUST NOT** perform install, backup, or any state-changing ensure.  
-3. Explicit `folder-backup help` remains a valid full-usage path (same content family as empty argv).  
-4. Explicit `folder-backup install` remains the only first-time local install path (plus documented force refresh).  
+2. Empty argv **MUST NOT** perform install or any state-changing ensure.  
+3. Explicit `cli-template help` remains a valid full-usage path (same content family as empty argv).  
+4. Explicit `cli-template install` remains the only first-time local install path (plus documented force refresh).  
 5. Script entry **MUST** always call `app_main "$@"` (no basename product-name gate that blocks dispatch).
 
 ### 2.2 Normative matrix
 
 | Invocation | Behavior |
 |------------|----------|
-| `folder-backup` (no args) | Show help; exit 0 |
-| `folder-backup help` | Show help; exit 0 |
-| `folder-backup install` | Local install ensure |
+| `cli-template` (no args) | Show help; exit 0 |
+| `cli-template help` | Show help; exit 0 |
+| `cli-template install` | Local install ensure |
 | Flags only (e.g. `--json` with no command) | **MUST** still resolve to help (or fail with clear usage if product chooses fail-closed) — default: **help** after flag parse with no command token |
 
 ### 2.3 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
+| **Product** | `cli-template` |
 | **Type** | **Type N** |
 | **Default COMMAND** | `help` |
-| **Contrast parent** | selfmanaged is Type O — **not** inherited after bootstrap trim |
+| **Contrast Type O** | Type O install-ensure is **not** this origin’s empty-argv law |
 
 ### 2.4 Why This Requirement Exists (CIAO)
 
@@ -69,7 +69,7 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
 1. Change empty argv to install-ensure while the product remains local-only.  
-2. Copy selfmanaged Type O empty-argv law wholesale without updating this file and install mode.  
+2. Copy Type O empty-argv law wholesale without updating this file and install mode.  
 3. Make bare invocation run domain `backup`.
 
 **Violating this rule is a critical dispatcher regression.**

@@ -6,7 +6,7 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for how folder-backup behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
+This requirement is the **project Single Source of Truth** for how cli-template behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
 
 ---
 
@@ -41,15 +41,13 @@ Rules:
 |--------|-------------|-----------------|
 | `uninstall` | Confirm unless `--force` | **Fail closed** without `--force` (`confirm_required`) |
 | `install` | May inform; no required confirm for first install | Proceed without hang |
-| `backup` | May show progress via `out_*` | No prompts; fail loud on missing operands / sudo failure |
-| `print-sudoers` | Print fragment | Print fragment (stdout/file); no `/etc` write |
 | Missing required operand | Clear error | Clear error; non-zero exit |
 
 ### 2.4 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
+| **Product** | `cli-template` |
 | **No curl\|sh auto-install path** | Local-only; non-interactive does not mean Type O install-ensure |
 | **Prompt helper** | `prompt_yes_no` for uninstall (and any future destructive confirm) |
 
@@ -89,7 +87,7 @@ Rules:
 |----|-----------|
 | AC-1 | Non-interactive uninstall without force fails closed |
 | AC-2 | JSON mode never prompts |
-| AC-3 | Backup never hangs waiting for optional confirm by default |
+| AC-3 | Lifecycle commands never hang waiting for optional confirm by default |
 
 ---
 

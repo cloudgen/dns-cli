@@ -1,22 +1,19 @@
 # Requirements
 
-Authoritative specialized product law for **folder-backup** lives here.
+Authoritative specialized product law for **cli-template** lives here.
 
-**Current state (2026-08-03):** Specialized **software-development** product. Left genesis. Bootstrap parent is external **selfmanaged** with **online install trimmed**. Registry is populated — see `index.md`.
+**Current state (2026-08-13):** Specialized **software-development** product. Left genesis. **This product is the Type 0 bootstrap origin** (no live parent). Registry is populated — see `index.md`.
 
 ## Product identity (summary)
 
 | Field | Value |
 |-------|--------|
-| Product / `APP_NAME` | `folder-backup` |
+| Product / `APP_NAME` | `cli-template` |
 | Version SSOT | `1.0.0` (ship unit hard-assign) |
-| Ship unit | `src/folder-backup` |
-| Default install | `~/.local/bin/folder-backup` |
+| Ship unit | `src/cli-template` |
+| Default install | `~/.local/bin/cli-template` |
 | Install mode | **Local-only** |
-| Backup ops | `requirement-folder-archive-backup` — create / name / deposit / verify / restore |
-| Retention total | `requirement-folder-archive-backup-retention-total` — max **30** per basename |
-| Retention daily | `requirement-folder-archive-backup-retention-daily` — max **5** per basename per day |
-| Domain surface | `requirement-domain-folder-backup` — four pillars; ops deferred |
+| Domain surface | **None** (Type 0 bootstrap/template: version, install, about, help) |
 
 ## Class requirement gate
 
@@ -48,4 +45,4 @@ Typical: `draft` · `Active` · `approved` · `in-progress` · `done` · `deprec
 2. Class files only via class process; non-class via create-specific process.  
 3. Never dump harness inventories into this versioned surface.  
 4. Online install requirements stay **absent** unless product mode is explicitly changed.  
-5. Sole domain SSOT: `requirement-domain-folder-backup.md`.
+5. Do **not** create a hollow `requirement-domain-*` that restates Type 0, and do **not** add host `setup`.

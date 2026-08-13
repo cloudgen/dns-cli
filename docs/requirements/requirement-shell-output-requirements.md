@@ -6,9 +6,9 @@
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **all CLI output** of folder-backup: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
+This requirement is the **project Single Source of Truth** for **all CLI output** of cli-template: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
 
-Inherited architecture from bootstrap parent **selfmanaged** (`out_*` family); retargeted for this product’s identity and domain messages.
+This origin owns the `out_*` family. No domain messages.
 
 ---
 
@@ -31,7 +31,7 @@ Inherited architecture from bootstrap parent **selfmanaged** (`out_*` family); r
 |-----------------|------|
 | **A. Inside output SSOT** | Only `out_text`, `out_json`, and `out_json_error` may `printf` to fd 1/2 for product human or JSON lines |
 | **B. Function return-via-stdout** | Helpers may `printf '%s' "$value"` solely for `$(…)` capture (data return, not UI) |
-| **C. File I/O (redirected)** | Writing config/sudoers draft files is file mutation; user-visible status still via `out_*` |
+| **C. File I/O (redirected)** | Writing install staging files is file mutation; user-visible status still via `out_*` |
 | **D. Tool protocol / computation pipes** | e.g. feeding `tar`/`gzip`/`sha256sum` via pipes; product status still via `out_*` |
 | **E. Command-sub fallbacks** | Logic defaults only (`id -un \|\| echo "unknown"`) |
 
@@ -61,7 +61,7 @@ Rules:
 
 1. Fatal paths use `out_die` / `out_json_error`.  
 2. JSON mode: no colors, banners, or progress mixed into stdout JSON.  
-3. Capture pattern: `folder-backup --json <cmd> 2>err.log`.  
+3. Capture pattern: `cli-template --json <cmd> 2>err.log`.  
 4. **No secrets** on either channel (tokens, passwords, private keys, full private key material).
 
 ### 2.4 Mode behavior
@@ -77,11 +77,11 @@ Rules:
 
 | Item | Value |
 |------|--------|
-| **Product** | `folder-backup` |
-| **Ship unit** | `src/folder-backup` |
+| **Product** | `cli-template` |
+| **Ship unit** | `src/cli-template` |
 | **Human prefixes** | `[INFO]`, `[OK]`, `[WARN]`, `[ERROR]` (or equivalent consistent set) |
-| **Domain messages** | Backup progress/results and sudoers-print status **must** use `out_*` |
-| **Bootstrap inheritance** | Same `out_*` family as selfmanaged |
+| **Domain messages** | None (Type 0 only) |
+| **Bootstrap role** | This product is hop 0; `out_*` is this origin’s family |
 
 ### 2.6 Why This Requirement Exists (CIAO)
 
@@ -121,7 +121,7 @@ Rules:
 | AC-1 | All product messages route through `out_*` |
 | AC-2 | JSON mode produces structured success/error without human interleave |
 | AC-3 | Quiet still surfaces errors |
-| AC-4 | Domain backup messaging uses the same SSOT |
+| AC-4 | Lifecycle messaging uses the same SSOT |
 
 ---
 
@@ -131,7 +131,6 @@ Rules:
 |-----|--------------|
 | `requirement-shell-cli-interface` | Modes and flags |
 | `requirement-shell-interactive-vs-noninteractive` | Prompt vs auto |
-| `requirement-domain-folder-backup` | Domain message payloads |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -141,9 +140,10 @@ Rules:
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Output SSOT for folder-backup |
+| 2026-08-13 | Active | Retarget to cli-template; drop domain message law |
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-08-13  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

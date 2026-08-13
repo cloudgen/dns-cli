@@ -1,4 +1,4 @@
-# Reviews — folder-backup
+# Reviews — cli-template
 
 Public product review surface (peer of `tests/`).
 
@@ -11,8 +11,8 @@ Public product review surface (peer of `tests/`).
 | `index.md` | Report index |
 | `reports/` | Dated review run reports |
 
-**Ship unit:** `src/folder-backup` (**VERSION 1.4.1**)  
+**Ship unit:** `src/cli-template` (**VERSION 1.0.0**)  
 **Suite:** `./tests/run.sh`  
-**Last suite baseline:** PASS=131 FAIL=0 SKIP=0 (2026-08-09) — see `test-plan.md` and `reports/`  
+**Last suite baseline:** see `test-plan.md`
 
-**Privilege review focus (1.3+):** trust tier **S13**, project-sudoers-file, `print-sudoers-install-script`, `remove-project-sudoers` (draft only).
+**Review focus:** Type 0 local lifecycle; no backup/restore/sudoers-file surface.

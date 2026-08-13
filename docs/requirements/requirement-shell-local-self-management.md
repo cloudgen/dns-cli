@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the folder-backup POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
+This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the cli-template POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
 
 **Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
 
@@ -31,7 +31,7 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 |---------|---------|---------|
 | **Local version** | `version` | **MUST NOT** fetch remote |
 | About | `about` | Local diagnostics only; **no** `SCRIPT_URL` install one-liner as product UX |
-| Help | `help` | Lists local lifecycle + domain commands |
+| Help | `help` | Lists local lifecycle commands only |
 
 ### 2.3 Local install rules
 
@@ -43,7 +43,7 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 6. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the required mode when the installer can write the target (see §2.3.1).  
 7. **MUST NOT** require network for install.  
 8. **`install --global`** (or `FORCE_GLOBAL=1`): target **`${GLOBAL_BIN}/${APP_NAME}`**; if not writable, fail with clear root/sudo guidance.  
-9. For hosts that will admin-install **sudoers**, operators **SHOULD** use global install (root). Local install alone is **not** production-secure for elevation (see `requirement-three-layer-privilege-model` §2.3.1a).
+9. Global install **SHOULD** be used on multi-user hosts when a shared CLI is desired. Local install remains correct for Type 0 day-to-day use.
 
 ### 2.3.1 Installed binary mode (multi-user runnable) — mandatory
 
@@ -67,8 +67,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 2. Target **MUST** be the managed binary only.  
 3. Absent → success no-op.  
 4. Interactive confirm unless `--force`; non-interactive/json/quiet without force → **fail closed** (`confirm_required`).  
-5. **MUST NOT** delete domain data, `/var/backup` archives, home trees, or unrelated binaries.  
-6. After remove, human mode **SHOULD** warn that host sudoers fragments under **`/etc/sudoers.d/folder-backup-<user>`** (and any legacy `/etc/sudoers.d/folder-backup`) are **not** removed by uninstall; admin must remove or reinstall fragment separately when leaving test elevation.
+5. **MUST NOT** delete home trees, unrelated binaries, or invent a sudoers/backup cleanup path.
 
 ### 2.5 Where-is-me rules
 
@@ -82,22 +81,21 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 | Variable | Role | Default / note |
 |----------|------|----------------|
-| `APP_NAME` | Binary basename SSOT | hard-assign `folder-backup` |
+| `APP_NAME` | Binary basename SSOT | hard-assign `cli-template` |
 | `VERSION` | Local version SSOT | hard-assign `1.0.0` |
 | `GLOBAL_BIN` | System-wide bin | `/usr/local/bin` |
 | `USER_BIN` | Per-user bin | `${HOME}/.local/bin` |
 | `FORCE` | Replace / skip confirm | `0` |
 | `FORCE_GLOBAL` | Force install/operate on global path | `0` (`install --global`) |
-| `ALLOW_TEST_LOCAL_SUDOERS` | Allow `print-sudoers` under test_local tier | `0` (see three-layer privilege) |
 | `SCRIPT_URL` / `REPO_*` / `CHECKSUM` | **Not** install source | Must not appear as required install UX |
 
 ### 2.7 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **Product / binary** | `folder-backup` |
-| **Ship unit** | `src/folder-backup` |
-| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/folder-backup`; production elevation: `/usr/local/bin/folder-backup` |
+| **Product / binary** | `cli-template` |
+| **Ship unit** | `src/cli-template` |
+| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/cli-template`; multi-user: `/usr/local/bin/cli-template` |
 | **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
 | **Online package** | **Absent by design** (bootstrap trim) |
@@ -127,7 +125,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 1. Replace local `uninstall` with online `self-uninstall` as the primary remove verb.  
 2. Require `SCRIPT_URL` for install.  
 3. Make empty argv install-ensure while this product remains local-only (Type N owns empty argv).  
-4. Delete user data or `/var/backup` content during uninstall.  
+4. Delete user data or unrelated paths during uninstall.  
 5. Fetch remote version inside `version`.  
 6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.
 

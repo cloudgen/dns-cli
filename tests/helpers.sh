@@ -1,5 +1,5 @@
 # =============================================================================
-# tests/helpers.sh — shared assertions for folder-backup CI tests
+# tests/helpers.sh — shared assertions for cli-template CI tests
 # =============================================================================
 # Source from test scripts (POSIX /bin/sh). Does not modify product code.
 # =============================================================================
@@ -7,8 +7,8 @@
 # shellcheck disable=SC2034
 : "${TESTS_ROOT:=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
 : "${REPO_ROOT:=$(CDPATH= cd -- "${TESTS_ROOT}/.." && pwd)}"
-: "${SCRIPT:=${REPO_ROOT}/src/folder-backup}"
-: "${APP_NAME:=folder-backup}"
+: "${SCRIPT:=${REPO_ROOT}/src/cli-template}"
+: "${APP_NAME:=cli-template}"
 : "${PASS:=0}"
 : "${FAIL:=0}"
 : "${SKIP:=0}"
@@ -84,10 +84,10 @@ _trunc() {
 
 # Isolated HOME + USER_BIN + GLOBAL_BIN for install tests.
 # GLOBAL_BIN is redirected so a host /usr/local/bin install cannot pollute
-# uninstall target selection or trust-tier detection (TP-LC / print-sudoers).
+# uninstall target selection.
 # Sets CI_HOME, CI_USER_BIN, CI_GLOBAL_BIN.
 ci_isolated_env() {
-    CI_HOME=$(mktemp -d "${TMPDIR:-/tmp}/fb-home.XXXXXX")
+    CI_HOME=$(mktemp -d "${TMPDIR:-/tmp}/hm-home.XXXXXX")
     CI_USER_BIN="${CI_HOME}/.local/bin"
     CI_GLOBAL_BIN="${CI_HOME}/.global-bin"
     mkdir -p "${CI_USER_BIN}" "${CI_GLOBAL_BIN}"

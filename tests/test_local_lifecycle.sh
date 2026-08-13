@@ -13,7 +13,6 @@ run_test_local_lifecycle() {
     t_header "Local lifecycle (TP-LC)"
 
     require_cmd sh
-    require_cmd tar
 
     ci_isolated_env
 
