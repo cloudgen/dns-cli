@@ -12,7 +12,7 @@ The operator is **`dns-adm`**. It owns **one** host vault with **N domains**. Ea
 
 Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `requirement-three-layer-privilege-model`. Vault **schema** (multi-account, per-domain-id token, subdomains) lives in `requirement-cloudflare-vault`. Default vault **path** lives in `requirement-application-local-vault`. This file owns **who** `dns-adm` is (F1–F7).
 
-`dns-adm` is **not** a least-privilege-approver and has **no** approval-subject.
+`dns-adm` **is** the approver for inbound DNS request JSON (`requirement-dns-actor-table`). Approval-subject: Cloudflare DNS request (`add` / `update` / `remove` / `mode`). **Anyone** may submit. **MUST NOT** invent a second approver account. Login-hook heal (`.bashrc` / missing `.profile`) is `requirement-dns-approver`.
 
 ---
 
@@ -106,7 +106,7 @@ Absent account → success no-op.
 | **F7** | `remove-lpu` |
 | **Handlers (target)** | `lpu_setup`, `lpu_remove` |
 | **Ship unit** | **Gap** — `src/dns-cli` has no `setup` / `remove-lpu` / `dns-adm` create |
-| **Approval-subject** | N/A (not an approver) |
+| **Approval-subject** | Cloudflare DNS request JSON (`requirement-cloudflare-dns-request`) |
 | **Proof family** | **TP-LPU-*** (todo) |
 
 ### 2.9 Why This Requirement Exists (Direct CIAO Alignment)
@@ -140,7 +140,7 @@ Absent account → success no-op.
 6. Collapse `dns-adm` with `nginx-adm` / `gitlab-adm` / the invoking human.  
 7. Store tokens in the invoking user’s XDG tree as the **default** production vault.  
 8. Fix a UID/GID in core rules as if every host shared it.  
-9. Make `dns-adm` a least-privilege-approver without a named approval-subject and a new user order.  
+9. Invent a second approver leaf after this redesign — `dns-adm` **is** the approver.  
 10. Dump glossary/skill paths into this file.
 
 **Violating this rule is a critical least-privilege identity regression.**

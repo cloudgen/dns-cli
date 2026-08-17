@@ -269,6 +269,7 @@ Basename: `20260817-alice-mode-2.json`
 | Key | Relationship |
 |-----|--------------|
 | `requirement-domain-cloudflare-dns` | Consumes types when submit/approve is routed |
+| `requirement-dns-actor-table` | Who may submit / approve |
 | `requirement-cloudflare-dns-mode` | Mode values + switch gate |
 | `requirement-cloudflare-api` | Approve dest is type=A only |
 | `requirement-cloudflare-vault` | `domain_id` + stored `mode` |

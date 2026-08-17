@@ -96,6 +96,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Gap** |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | Emit Table A fragment — **Gap** |
 | `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here |
+| `submit` | Type 0 | Gap | Inbound JSON drop — `requirement-dns-actor-table` |
+| `approve` / `reject` / `interactive` | Type 1 | Gap | Approver path — `requirement-dns-actor-table` |
 
 #### Argv grammar (normative)
 

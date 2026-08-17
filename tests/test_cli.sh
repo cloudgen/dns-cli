@@ -134,4 +134,14 @@ run_test_cli() {
         assert_eq "TP-CLI-13 ${_verb} exit 1" 1 "$_ec"
         assert_contains "TP-CLI-13 ${_verb} unknown" "$_err" "Unknown command"
     done
+
+    # TP-CF-ACTOR-* — unrouted approval verbs fail closed (Gap on 1.4.0)
+    _help=$(sh "${SCRIPT}" help 2>/dev/null)
+    for _verb in submit approve reject interactive; do
+        _err=$(sh "${SCRIPT}" "${_verb}" 2>&1 >/dev/null)
+        _ec=$?
+        assert_eq "TP-CF-ACTOR-${_verb} exit 1" 1 "$_ec"
+        assert_contains "TP-CF-ACTOR-${_verb} unknown" "$_err" "Unknown command"
+        assert_not_contains "TP-CF-ACTOR-05 help omits ${_verb}" "${_help}" "${_verb}"
+    done
 }

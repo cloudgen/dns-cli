@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
 **Updated:** 2026-08-17  
-**Product VERSION:** 1.1.0  
+**Product VERSION:** 1.4.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -19,7 +19,9 @@
 | requirement-shell-idempotency | shell | TP-LC-03,07 | Re-install / uninstall absent |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 | Uninstall confirm |
 | requirement-shell-cli-storage | shell | TP-CLI-12 | Isolation |
-| requirement-domain-cloudflare-dns | domain | TP-CF-DNS-* | **have** — stubbed curl; implicit non-RR; consumes mode law |
+| requirement-domain-cloudflare-dns | domain | TP-CF-DNS-* · TP-CF-ACTOR-* | **have** — stubbed curl; actor verbs fail closed |
+| requirement-dns-actor-table | architecture | TP-CF-ACTOR-01..06 | **have** — unrouted submit/approve/interactive |
+| requirement-dns-approver | architecture | TP-CF-APR-01..06 | **have** — `.bashrc` / missing `.profile` heal |
 | requirement-cloudflare-dns-mode | domain | TP-CF-MODE-01..08 have; 06/09/10 todo | stored mode + RR add/status + switch lock |
 | requirement-cloudflare-dns-request | domain | TP-CF-REQ-01..08 | **todo** — inbound JSON types; submit/approve Gap |
 | requirement-external-ipv4 | shell | TP-CF-IP-01..04, TP-CLI-04 | **have** — vault-free `ip`; IPv6 MUST NOT |
@@ -29,4 +31,4 @@
 
 **Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, folder-archive backup/restore, sudoers-manager extras.
 
-**Honesty:** Type 0 TP-CLI / TP-LC, v2 vault TP-CF-VAULT-01..33, and TP-CF-MODE-01..08 are **have** against `src/dns-cli` **1.2.0**. LPU / Type 1 setup remain **todo**.
+**Honesty:** Type 0 TP-CLI / TP-LC, v2 vault TP-CF-VAULT-01..33, TP-CF-MODE-01..08, and TP-CF-APR-01..06 are **have** against `src/dns-cli` **1.4.0**. Inbound submit/approve/`interactive` remain **Gap**. LPU / Type 1 setup remain **todo**.

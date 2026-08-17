@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.3.0  
+**Product VERSION:** 1.4.0  
 **Last plan update:** 2026-08-17  
-**Last suite run:** PASS=240 FAIL=0 SKIP=0 (2026-08-17)
+**Last suite run:** PASS=266 FAIL=0 SKIP=0 (2026-08-17)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -53,6 +53,28 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-11 | env -u HOME version | test_cli | class / defensive | **have** |
 | TP-CLI-12 | storage isolation | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | backup/restore/sudoers verbs unknown | test_cli | requirement-bootstrap-chain · interface | **have** |
+
+### TP-CF-ACTOR (submit / approve actors)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-ACTOR-01 | `submit` unknown until routed | `tests/test_cli.sh` | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-02 | `approve` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-03 | `reject` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-04 | `interactive` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-05 | help omits those verbs | test_cli | requirement-dns-actor-table · interface | **have** |
+| TP-CF-ACTOR-06 | empty argv is help | test_cli (TP-CLI-07) | requirement-dns-actor-table · zero-arguments | **have** |
+
+### TP-CF-APR (approver hook heal)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-APR-01 | interactive approver heals `.bashrc` hook | `tests/test_cf_approver.sh` | requirement-dns-approver | **have** |
+| TP-CF-APR-02 | missing `.profile` created and sources `.bashrc` | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-03 | existing `.profile` not overwritten | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-dns-approver | **have** |
 
 ### TP-LC (local lifecycle)
 

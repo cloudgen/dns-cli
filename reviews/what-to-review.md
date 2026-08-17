@@ -5,7 +5,7 @@
 **Always load first:** `reviews/lessons.md`
 
 **Last plan update:** 2026-08-17  
-**Ship unit VERSION:** 1.3.0  
+**Ship unit VERSION:** 1.4.0  
 **Suite baseline:** see `reviews/test-plan.md`
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.2.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.4.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -45,6 +45,8 @@
 | DNS request JSON | `requirement-cloudflare-dns-request.md` | four types + examples; inbound Gap |
 | External IPv4 | `requirement-external-ipv4.md` | ipinfo lookup + vault-free `ip`; IPv6 MUST NOT |
 | Domain DNS | `requirement-domain-cloudflare-dns.md` | consumes mode; `ip`, add/update/status |
+| Actor table | `requirement-dns-actor-table.md` | anyone submits; `dns-adm` approves; login hook; Gap |
+| Approver | `requirement-dns-approver.md` | heal `.bashrc` hook; create missing `.profile` |
 | Idempotency | `requirement-shell-idempotency.md` | Re-install |
 | Storage | `requirement-shell-cli-storage.md` | Isolation |
 

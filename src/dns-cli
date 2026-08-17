@@ -33,7 +33,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.3.0"
+# VERSION: hard-assign VERSION="1.4.0"
 #
 # =============================================================================
 
@@ -50,8 +50,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.3.0"
-: "${VERSION:=1.3.0}"
+VERSION="1.4.0"
+: "${VERSION:=1.4.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -2855,6 +2855,94 @@ cf_vault_require_token_probe() {
     fi
 }
 
+# ALIGNMENT: requirement-dns-approver.md (APR-M3..M4)
+# Heal .bashrc hook + create .profile (if missing) when interactive approver.
+cf_approver_user() {
+    printf '%s' "${CF_APPROVER_USER:-dns-adm}"
+}
+
+cf_approver_hook_block() {
+    printf '%s\n' \
+        "# BEGIN dns-cli login hook" \
+        "if [ -z \"\${DNS_CLI_HOOK_RAN:-}\" ] \\" \
+        "    && [ -n \"\${PS1:-}\" ] \\" \
+        "    && [ -t 0 ] && [ -t 1 ] \\" \
+        "    && case \"\$-\" in *i*) true ;; *) false ;; esac \\" \
+        "    && [ \"\$(id -un)\" = \"$(cf_approver_user)\" ] \\" \
+        "    && [ -z \"\${SSH_ORIGINAL_COMMAND:-}\" ]; then" \
+        "    DNS_CLI_HOOK_RAN=1" \
+        "    export DNS_CLI_HOOK_RAN" \
+        "    if ! sudo -n ${GLOBAL_BIN:-/usr/local/bin}/${APP_NAME:-dns-cli} interactive; then" \
+        "        printf '%s\\n' \"dns-cli: login review hook skipped (sudo -n failed)\" >&2" \
+        "    fi" \
+        "fi" \
+        "# END dns-cli login hook"
+}
+
+cf_approver_profile_block() {
+    printf '%s\n' \
+        "# BEGIN dns-cli profile source-bashrc" \
+        "# Created so a bash login shell sources interactive rc (hook lives in .bashrc)." \
+        "if [ -n \"\${BASH_VERSION:-}\" ]; then" \
+        "    if [ -f \"\${HOME}/.bashrc\" ]; then" \
+        "        . \"\${HOME}/.bashrc\"" \
+        "    fi" \
+        "fi" \
+        "# END dns-cli profile source-bashrc"
+}
+
+cf_approver_heal_login_rc() {
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    if [ "${JSON}" -eq 1 ]; then
+        return 0
+    fi
+    if [ "${TTY}" -ne 1 ] && [ "${CF_TEST_HEAL_RC:-0}" != "1" ]; then
+        return 0
+    fi
+    if [ "$(id -un 2>/dev/null || echo "")" != "$(cf_approver_user)" ]; then
+        return 0
+    fi
+    _home="${HOME-}"
+    case "${_home}" in
+        ""|/tmp|/tmp/*|/dev/shm|/dev/shm/*)
+            return 0
+            ;;
+    esac
+    if [ ! -d "${_home}" ]; then
+        return 0
+    fi
+    _brc="${_home}/.bashrc"
+    _prf="${_home}/.profile"
+    _has_begin=0
+    _has_end=0
+    if [ -f "${_brc}" ]; then
+        grep -q '# BEGIN dns-cli login hook' "${_brc}" 2>/dev/null && _has_begin=1
+        grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
+    fi
+    if [ "${_has_begin}" -ne 1 ] || [ "${_has_end}" -ne 1 ]; then
+        _tmp=$(mktemp "${_home}/.bashrc.dns-cli.XXXXXX") || return 0
+        if [ -f "${_brc}" ]; then
+            cp -p "${_brc}" "${_tmp}" || { rm -f "${_tmp}"; return 0; }
+            cf_approver_hook_block >>"${_tmp}" || { rm -f "${_tmp}"; return 0; }
+        else
+            cf_approver_hook_block >"${_tmp}" || { rm -f "${_tmp}"; return 0; }
+            chmod 0600 "${_tmp}" 2>/dev/null || true
+        fi
+        mv -f "${_tmp}" "${_brc}" || { rm -f "${_tmp}"; return 0; }
+    fi
+    if [ ! -f "${_prf}" ]; then
+        _ptmp=$(mktemp "${_home}/.profile.dns-cli.XXXXXX") || return 0
+        cf_approver_profile_block >"${_ptmp}" || { rm -f "${_ptmp}"; return 0; }
+        chmod 0600 "${_ptmp}" 2>/dev/null || true
+        if [ ! -f "${_prf}" ]; then
+            mv -f "${_ptmp}" "${_prf}" || { rm -f "${_ptmp}"; return 0; }
+        else
+            rm -f "${_ptmp}"
+        fi
+    fi
+}
+
 cf_dns_add() {
     cf_dns_ensure_ready
     cf_select_label
@@ -3550,7 +3638,7 @@ app_about() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.3.0}"
+    : "${VERSION:=1.4.0}"
     : "${REPO_USER:=cloudgen}"
     : "${REPO_NAME:=dns-cli}"
     : "${SCRIPT_URL:=}"
@@ -3928,6 +4016,8 @@ app_main() {
     esac
 
     out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL}"
+
+    cf_approver_heal_login_rc
 
     case "${COMMAND}" in
         version)      app_version ;;

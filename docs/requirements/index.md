@@ -1,6 +1,6 @@
 # Requirements index
 
-**Product:** dns-cli (POSIX `/bin/sh` local self-managed Cloudflare DNS CLI — Type 0/1/2 + LPU `dns-adm` + domain)  
+**Product:** dns-cli (POSIX `/bin/sh` local self-managed Cloudflare DNS CLI — Type 0/1/2 + LPU `dns-adm` as Type 2 operator **and** Type 1 approver; anyone may submit)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; **B = `dns-cli` hop 1** specialized from **A = `cli-template` hop 0**. Online / Type O / backup / restore **intentionally absent**. LPU **`dns-adm`** + Type 1 `setup` **in scope** (ship unit Gap).  
 **Updated:** 2026-08-17
 
@@ -19,7 +19,9 @@
 | requirement-shell-idempotency | Re-run safety for install / uninstall / vault / DNS / mode switch | shell | Active (1.5.0) | `requirement-shell-idempotency.md` | 2026-08-17 |
 | requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm / vault collect / remove-lpu | shell | Active (1.3.0) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-17 |
 | requirement-shell-cli-storage | Scratch/cache resolve (not vault) | shell | Active (1.2.0) | `requirement-shell-cli-storage.md` | 2026-08-16 |
-| requirement-domain-cloudflare-dns | **Domain SSOT** — A-record verbs; Type 0 live specify as invoking user | domain | Active (2.4.0) | `requirement-domain-cloudflare-dns.md` | 2026-08-17 |
+| requirement-domain-cloudflare-dns | **Domain SSOT** — A-record verbs; Type 0 live specify as invoking user | domain | Active (2.5.0) | `requirement-domain-cloudflare-dns.md` | 2026-08-17 |
+| requirement-dns-actor-table | Actor table (anyone submits; `dns-adm` approves) + login-hook procedure | architecture | Active (1.0.1) Gap | `requirement-dns-actor-table.md` | 2026-08-17 |
+| requirement-dns-approver | Approver `dns-adm`; interactive login hook; heal `.bashrc` / create `.profile` | architecture | Active (1.0.0) | `requirement-dns-approver.md` | 2026-08-17 |
 | requirement-cloudflare-dns-mode | Per-subdomain A-record mode (default non-RR; RR multi-A; switch only when ipv4_count ∈ {0,1}; IPv4 only) | domain | Active (1.0.0) | `requirement-cloudflare-dns-mode.md` | 2026-08-17 |
 | requirement-cloudflare-dns-request | Four inbound JSON types (`add`/`update`/`remove`/`mode`) + complete examples | domain | Active (1.0.0) Gap | `requirement-cloudflare-dns-request.md` | 2026-08-17 |
 | requirement-external-ipv4 | External/public IPv4 lookup, `--ip`, vault-free `ip` display; IPv6 MUST NOT | shell | Active (1.1.0) | `requirement-external-ipv4.md` | 2026-08-17 |

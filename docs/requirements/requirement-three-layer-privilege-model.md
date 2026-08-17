@@ -73,6 +73,8 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 | `setup` | Type 1 | Create `dns-adm` + F3 + F5 + F6 dest. Idempotent. Password `sudo` / already-root |
 | `remove-lpu` | Type 1 | F7 order in LPU law. Confirm unless `--force` |
 | `print-sudoers` | Type 0 | Emit Table A fragment to stdout (or a user-writable path). **MUST NOT** write dest. Human output **MUST** include admin steps: `visudo -c`, mode `0440`, dest `/etc/dns-adm/sudoers` |
+| `submit` | Type 0 | Inbound JSON drop — **Gap** (`requirement-dns-actor-table`) |
+| `approve` / `reject` / `interactive` | Type 1 | Approver move + login review — **Gap**; runas **`dns-adm`** after F6 (same LPU as Type 2 vault/DNS) |
 
 **P-M6.** `print-sudoers` **MUST** end with a newline plus extra blank line. **MUST NOT** contain tokens, keys, or passwords.
 

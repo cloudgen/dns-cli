@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-17
+
+### Added (ship unit 1.4.0)
+
+- Approver rc heal: when interactive and `id -un` is `dns-adm`, ensure `~/.bashrc` has the login hook; if `~/.profile` is missing, create one that sources `.bashrc`.
+
+### Fixed
+
+- Heal rewrites `.bashrc` via `mktemp` (not a predictable sidecar), preserves an existing rc mode, and treats the hook as present only when both BEGIN and END markers exist.
+
+### Added (law)
+
+- **`requirement-dns-approver`** **1.0.0**: approver is `dns-adm`; interactive hook after login; heal `.bashrc` / create `.profile`. **TP-CF-APR-01..06**. Mold **LM-ACTOR-TABLE** 1.1.0.
+- **Actor table** `requirement-dns-actor-table` **1.0.1** (Gap): **anyone** may `submit`; **`dns-adm`** approves (no `dns-apr`); login-time `interactive` hook on `dns-adm`. README table + procedure. **TP-CF-ACTOR-01..06**.
+
+## [1.3.0] - 2026-08-17
+
 ### Changed (ship unit 1.3.0)
 
 - Product renamed **dns-cli** (`src/dns-cli`, `APP_NAME=dns-cli`). LPU name in law is **dns-adm** (default dest `/etc/dns-adm/vault/`; host create still Gap). Workspace folder may still be named `cf-cli`.

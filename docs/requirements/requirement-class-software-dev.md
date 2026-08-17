@@ -87,7 +87,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
 | **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
-| **Product version SSOT** | `VERSION="1.3.0"` hard-assign in `src/dns-cli` |
+| **Product version SSOT** | `VERSION="1.4.0"` hard-assign in `src/dns-cli` |
 | **Bootstrap origin** | **A = `cli-template`** (hop 0, sibling origin). **This product is B = `dns-cli` (hop 1).** |
 
 **Residual ownership table:**

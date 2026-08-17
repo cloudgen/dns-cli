@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-domain-cloudflare-dns.md  
-**Status**: Active (Version 2.4.0)  
+**Status**: Active (Version 2.5.0)  
 **Area**: domain  
 **Key**: `requirement-domain-cloudflare-dns`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **current domain SSOT** for dns-cli: specialized CLI subcommands, features, help items, and about items for managing Cloudflare DNS **A records** on a **vault-selected domain-id** and subdomain. **A-record mode** is owned by `requirement-cloudflare-dns-mode`. **Inbound JSON request types** (`add` / `update` / `remove` / `mode`) are owned by `requirement-cloudflare-dns-request`. This catalog **consumes** both.
+This requirement is the **current domain SSOT** for dns-cli: specialized CLI subcommands, features, help items, and about items for managing Cloudflare DNS **A records** on a **vault-selected domain-id** and subdomain. **A-record mode** is owned by `requirement-cloudflare-dns-mode`. **Inbound JSON request types** (`add` / `update` / `remove` / `mode`) are owned by `requirement-cloudflare-dns-request`. This catalog **consumes** both. **Who** may submit or approve is `requirement-dns-actor-table`.
 
 It **consumes** the **selected** account’s vault fields (API token, zone id, account id, apex domain, host-labels). One vault holds **many** Cloudflare API accounts; each **domain-id** (apex domain name) is one account and **MAY** hold many subdomains. Layout/schema live in `requirement-cloudflare-vault.md`. Default operator is LPU **`dns-adm`** (`requirement-least-privilege-user`).
 
@@ -15,6 +15,14 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
+
+### 2.0 Named machine + actor table
+
+**Folder = state. JSON = the checkable proposal.** **Anyone** (any login) may drop self-scoped request JSON into inbound; **`dns-adm`** re-checks that JSON and **moves** the file. Dest on accept is a DNS / mode apply via the vault — not a host `/etc` grant file.
+
+The **actor table** (anyone submits; `dns-adm` approves; allocator / root) and the **login-hook procedure** are owned by `requirement-dns-actor-table`. This catalog **MUST NOT** invent a second table or a second approver account.
+
+Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Gap** on ship unit 1.4.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST NOT** list those verbs until routed (D-M7).
 
 ### 2.1 Specialized CLI subcommands (pillar 1)
 
@@ -27,6 +35,9 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 | `remove` | Type 2 / Type 0 specify | `cf_dns_*` | Delete the targeted A; absent → success no-op (round-robin N>1 needs `--ip`) |
 | `status` | Type 2 / Type 0 specify | `cf_dns_*` | **Read-only**: public IPv4 + **real resolver A lookup** + Cloudflare A set + `mode` / `ipv4_count` |
 | `show` | Type 2 / Type 0 specify | `cf_dns_*` | Alias of `status` |
+| `submit` | Type 0 | Gap | Drop request JSON into inbound (`requirement-dns-actor-table`) |
+| `approve` / `reject` | Type 1 | Gap | Re-validate and move inbound → accepted/declined |
+| `interactive` | Type 1 | Gap | TTY review loop; login hook target |
 
 **D-M1.** Default-vault DNS/vault verbs **MUST** run as `dns-adm` (Type 2). Specified `--vault-dir` **MAY** stay Type 0. **MUST NOT** require sudo for Cloudflare HTTPS itself, write `/etc` from DNS verbs, or mutate host resolver config. `setup` / `remove-lpu` are **not** domain verbs (privilege law).
 
@@ -44,7 +55,7 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 
 **D-M3. Cloudflare DNS API.** Transport, auth, envelope, zone GET, and DNS CRUD **MUST** follow `requirement-cloudflare-api`. This domain SSOT **consumes** that file: it does **not** invent a second base URL, auth scheme, or record JSON.
 
-**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Submit/approve is **Gap** on ship unit 1.2.0.
+**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Actors and the login hook **MUST** follow `requirement-dns-actor-table`. Submit/approve/`interactive` are **Gap** on ship unit 1.4.0. Rc heal is **Implemented**.
 
 **D-M4. A-record mode.** Verb **cardinality** **MUST** follow `requirement-cloudflare-dns-mode` (default `non-round-robin`; `round-robin` = many distinct IPv4 A rows; switch only when `ipv4_count` ∈ {0, 1}; IPv4 only). This catalog **MUST NOT** re-specify the enum. Query matching A records by `name`.  
 - Stored `non-round-robin` + N>1 on mutate: fail `dns_multi_record` unless `--force` **repairs** (collapse to one A; mode stays non-round-robin).  
@@ -133,7 +144,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **IP lookup** | `https://ipinfo.io` field `ip` (`--ip` override; `CF_CURL` stub for tests) |
 | **Record type** | A only (IPv4). AAAA out of scope |
 | **A-record mode** | `requirement-cloudflare-dns-mode` — default non-round-robin; **Gap** on ship unit |
-| **VERSION** | `1.2.0` (ship unit; LPU dest still Gap) |
+| **VERSION** | `1.4.0` (ship unit; LPU dest + inbound machine still Gap; rc heal Implemented) |
 | **Proof family** | **TP-CF-DNS-*** |
 
 ### 2.7 Why This Requirement Exists (Direct CIAO Alignment)
@@ -202,6 +213,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 |-----|--------------|
 | `requirement-cloudflare-dns-mode` | Two A-record modes, default, switch gate, IPv4-only fence |
 | `requirement-cloudflare-dns-request` | Four inbound JSON types + examples |
+| `requirement-dns-actor-table` | Actor table + login-hook procedure |
 | `requirement-external-ipv4` | Public IPv4 lookup + `ip` display SSOT |
 | `requirement-cloudflare-api` | HTTPS transport, Bearer token, envelope, zone GET, DNS CRUD |
 | `requirement-cloudflare-vault` | Multi-account fields, modes, token transport file |
@@ -233,6 +245,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **TP-CLI-07** | `tests/test_cli.sh` | have | Type N empty argv (peer) |
 | **TP-CF-DNS-08** | `tests/test_cf_dns.sh` | todo | two domain-ids → `domain_required` without `--domain` |
 | **TP-CF-LIVE-01..05** | `tests/test_cf_live.sh` | skip | Live `crms.hk` as invoking user; off unless `CF_LIVE=1` |
+| **TP-CF-ACTOR-01..06** | `tests/test_cli.sh` | have | Unrouted submit/approve/reject/interactive fail closed |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -243,6 +256,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-17 | Active 2.5.0 | Consumes `requirement-dns-actor-table` (named machine + login hook) |
 | 2026-08-17 | Active 2.4.0 | Live Type 0 specify verify as invoking user (`crms.hk` / `leolio`); not dns-adm-only |
 | 2026-08-17 | Active 2.3.0 | Consumes `requirement-cloudflare-dns-request` (four types) |
 | 2026-08-17 | Active 2.2.0 | Vault catalog: `account`/`zone` add\|list\|modify\|remove; `subdomain modify` |
