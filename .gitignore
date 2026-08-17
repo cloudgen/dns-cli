@@ -12,6 +12,10 @@
 !.env.example
 !.env.sample
 *.pem
+.live-vault/
+tests/live/.env
+tests/live/token
+tests/live/*.token
 
 # --- OS ---
 .DS_Store
@@ -84,6 +88,7 @@ __pycache__/
 
 # --- Shell / local run debris ---
 *.YYYYMMDD-*.bak
+.ci-homes/
 
 # --- Harness transfer safety backups (H1/H2; not payload) ---
 .harness-transfer-bak-*/

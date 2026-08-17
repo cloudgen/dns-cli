@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.3.0)  
+**Status**: Active (Version 1.5.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the cli-template POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
+This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the dns-cli POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
 
 **Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
 
@@ -31,7 +31,7 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 |---------|---------|---------|
 | **Local version** | `version` | **MUST NOT** fetch remote |
 | About | `about` | Local diagnostics only; **no** `SCRIPT_URL` install one-liner as product UX |
-| Help | `help` | Lists local lifecycle commands only |
+| Help | `help` | Lists local lifecycle commands **and** routed domain rows (domain SSOT owns domain rows) |
 
 ### 2.3 Local install rules
 
@@ -67,7 +67,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 2. Target **MUST** be the managed binary only.  
 3. Absent → success no-op.  
 4. Interactive confirm unless `--force`; non-interactive/json/quiet without force → **fail closed** (`confirm_required`).  
-5. **MUST NOT** delete home trees, unrelated binaries, or invent a sudoers/backup cleanup path.
+5. **MUST NOT** delete home trees, unrelated binaries, the Cloudflare vault, the `dns-adm` account, or F6 dest. LPU teardown is **`remove-lpu`** only.
 
 ### 2.5 Where-is-me rules
 
@@ -81,8 +81,8 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 | Variable | Role | Default / note |
 |----------|------|----------------|
-| `APP_NAME` | Binary basename SSOT | hard-assign `cli-template` |
-| `VERSION` | Local version SSOT | hard-assign `1.0.0` |
+| `APP_NAME` | Binary basename SSOT | hard-assign `dns-cli` (Implemented) |
+| `VERSION` | Local version SSOT | hard-assign `1.1.0` |
 | `GLOBAL_BIN` | System-wide bin | `/usr/local/bin` |
 | `USER_BIN` | Per-user bin | `${HOME}/.local/bin` |
 | `FORCE` | Replace / skip confirm | `0` |
@@ -93,9 +93,11 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 
 | Item | Value |
 |------|--------|
-| **Product / binary** | `cli-template` |
-| **Ship unit** | `src/cli-template` |
-| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/cli-template`; multi-user: `/usr/local/bin/cli-template` |
+| **Product / binary** | `dns-cli` |
+| **Ship unit (target)** | `src/dns-cli` |
+| **Ship unit (live)** | `src/dns-cli` |
+| **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/dns-cli`; multi-user: `/usr/local/bin/dns-cli` |
+| **Uninstall vs vault / LPU** | Uninstall **MUST NOT** delete vault files or `dns-adm` |
 | **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
 | **Online package** | **Absent by design** (bootstrap trim) |
@@ -125,7 +127,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 1. Replace local `uninstall` with online `self-uninstall` as the primary remove verb.  
 2. Require `SCRIPT_URL` for install.  
 3. Make empty argv install-ensure while this product remains local-only (Type N owns empty argv).  
-4. Delete user data or unrelated paths during uninstall.  
+4. Delete user data, unrelated paths, the Cloudflare vault, or `dns-adm` during uninstall.  
 5. Fetch remote version inside `version`.  
 6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.
 
@@ -157,6 +159,8 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | `requirement-project-folder` | Path defaults |
 | `requirement-shell-idempotency` | Already installed / uninstalled |
 | `requirement-bootstrap-chain` | Why online package is absent |
+| `requirement-cloudflare-vault` | Uninstall does not wipe vault |
+| `requirement-least-privilege-user` | Uninstall ≠ `remove-lpu` |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -178,9 +182,11 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 |------|--------|------|
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
+| 2026-08-17 | Active 1.5.0 | Uninstall must not remove `dns-adm` |
+| 2026-08-16 | Active 1.4.0 | dns-cli identity; uninstall must not delete vault |
 
 ---
 
-**Last Updated**: 2026-08-09  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

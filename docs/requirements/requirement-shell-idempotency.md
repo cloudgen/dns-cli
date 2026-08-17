@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-shell-idempotency.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.5.0)  
 **Area**: shell  
 **Key**: `requirement-shell-idempotency`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **idempotency (re-run safety)** of state-changing operations in the cli-template POSIX shell CLI.
+This requirement is the **project Single Source of Truth** for **idempotency (re-run safety)** of state-changing operations in the dns-cli POSIX shell CLI.
 
 **Informal formula:** for ensure-style operation *f* and system state *x*, **f(f(x)) ≈ f(x)** for the **desired outcome** (logs and timestamps may differ).
 
@@ -45,6 +45,21 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 | `install` | Managed binary present at privilege-correct path | Success no-op (mode heal still runs) | `--force` replaces from running ship unit |
 | `uninstall` | Managed binary absent | Success no-op | `--force` skips confirm |
 | `where-is-me` / `version` / `about` / `help` | Read-only | Always safe | N/A |
+| `vault set` | Selected domain-id files complete and valid | Success; fill missing only (vault wins) | Explicit rewrite of named fields |
+| `vault account add` / `vault zone add` | That domain-id exists with valid files | Fail `domain_exists` (not silent overwrite) | N/A |
+| `vault account modify` / `vault zone modify` | Named fields equal the requested values | Success no-op for already-equal fields | Named flags rewrite; domain-id immutable |
+| `vault account remove` / `vault zone remove` | That domain-id absent | Success no-op | `--force` skips confirm |
+| `vault account list` / `vault zone list` | Read-only catalog | Always safe | N/A |
+| `setup` | `dns-adm` + home + vault dir + F6 dest | Success no-op + heal | `--force` may rewrite F6 after backup |
+| `remove-lpu` | Account absent | Success no-op | `--force` skips confirm |
+| `add` | Desired IP present as an A for the FQDN (one A if non-round-robin; that IP among many if round-robin) | Success no-op (`already`) | `--force` collapses N>1 **only** under non-round-robin (repair, not a mode switch) |
+| `update` | Targeted A has the desired IP | Success no-op | Fail if N=0; round-robin N>1 needs `--from` |
+| `remove` | Targeted A absent (non-round-robin: no A; round-robin: that `--ip` absent) | Success no-op | `--force` may delete all A on the name; mode unchanged |
+| `status` / `show` | Read-only | Always safe (fail closed on N>1 **only** in non-round-robin) | `--force` ignored |
+| `vault subdomain add` | Label present on selected domain-id | Success no-op (`already`) if label exists | N/A |
+| `vault subdomain modify` | Label has requested `mode` / name | Success no-op | `--mode` uses switch gate; `--label` rename |
+| `vault subdomain mode` | Stored mode equals the requested value | Success no-op | Fail `dns_mode_locked` if `ipv4_count` ≥ 2 |
+| `vault subdomain list` | Read-only | Always safe | N/A |
 
 ### 2.5 Why This Requirement Exists (CIAO)
 
@@ -88,6 +103,10 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 |-----|--------------|
 | `requirement-shell-local-self-management` | Install/uninstall ensure |
 | `requirement-shell-cli-interface` | Force flag wiring |
+| `requirement-domain-cloudflare-dns` | DNS ensure / collapse |
+| `requirement-cloudflare-dns-mode` | Per-mode add/remove / mode-switch re-run |
+| `requirement-cloudflare-vault` | Vault set / last-label / account add |
+| `requirement-least-privilege-user` | `setup` / `remove-lpu` |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -107,9 +126,13 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup lifecycle + archive numbering |
 | 2026-08-13 | Active 1.1.0 | cli-template: lifecycle only |
+| 2026-08-17 | Active 1.5.0 | `account`/`zone` add/modify/remove/list re-run |
+| 2026-08-17 | Active 1.4.0 | Per-mode add/remove; `vault subdomain mode` no-op |
+| 2026-08-17 | Active 1.3.0 | setup / account add rows |
+| 2026-08-16 | Active 1.2.0 | add/update/remove/vault set matrix for dns-cli |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

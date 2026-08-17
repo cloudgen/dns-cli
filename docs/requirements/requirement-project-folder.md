@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 2.2.0)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Define **project folder structure** and path ownership for the cli-template CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit.
+Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `/etc/dns-adm/vault/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`.
 
 ---
 
@@ -16,7 +16,7 @@ Define **project folder structure** and path ownership for the cli-template CLI:
 
 | Path | Role |
 |------|------|
-| `src/cli-template` | **Ship unit** — single POSIX shell executable source |
+| `src/dns-cli` | **Ship unit (target)** — single POSIX shell executable source |
 | `tests/` | CLI tests when present |
 | `docs/requirements/` | Product law (this surface) |
 | Product root README / CHANGELOG / LICENSE / SECURITY | Product user docs when specialized |
@@ -30,8 +30,8 @@ Define **project folder structure** and path ownership for the cli-template CLI:
 
 | Mode | Binary path | Default |
 |------|-------------|---------|
-| **Per-user (normal)** | `${USER_BIN}/${APP_NAME}` | `${HOME}/.local/bin/cli-template` |
-| **Global (root)** | `${GLOBAL_BIN}/${APP_NAME}` | `/usr/local/bin/cli-template` |
+| **Per-user (normal)** | `${USER_BIN}/${APP_NAME}` | `${HOME}/.local/bin/dns-cli` |
+| **Global (root)** | `${GLOBAL_BIN}/${APP_NAME}` | `/usr/local/bin/dns-cli` |
 
 Rules:
 
@@ -52,18 +52,19 @@ Rules:
 
 1. Scratch **MUST** be per-user isolated (`APP_NAME` + `USERNAME`).  
 2. Temps **MUST** clean up after success/failure of install staging.  
-3. Scratch is **not** a durable backup deposit.
+3. Scratch is **not** a durable backup deposit and **not** the Cloudflare vault.
 
 ### 2.4 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **APP_NAME** | `cli-template` |
-| **Ship unit path** | `src/cli-template` |
+| **APP_NAME** | `dns-cli` |
+| **Ship unit path (target)** | `src/dns-cli` |
+| **Ship unit path (live)** | `src/dns-cli` |
 | **USER_BIN default** | `${HOME}/.local/bin` |
 | **GLOBAL_BIN default** | `/usr/local/bin` |
-| **Config dir (optional)** | `${HOME}/.config/cli-template/` if needed later |
-| **No Type 2 app data tree** | No dedicated system app user for routine ops |
+| **Local application vault** | Path + specify: `requirement-application-local-vault` (default `/etc/dns-adm/vault/`). Schema: `requirement-cloudflare-vault`. Pointer only. |
+| **LPU home / F5** | `requirement-least-privilege-user` — `/etc/dns-adm` + `/etc/dns-adm/vault/` |
 | **No backup deposit** | `/var/backup` is not a product path |
 
 ### 2.5 Why This Requirement Exists (CIAO)
@@ -101,8 +102,8 @@ Rules:
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Ship unit lives at `src/cli-template` |
-| AC-2 | Default user install path is `~/.local/bin/cli-template` |
+| AC-1 | Target ship unit lives at `src/dns-cli` (live) |
+| AC-2 | Default user install path is `~/.local/bin/dns-cli` after retarget |
 | AC-3 | No product law requires `/var/backup` |
 
 ---
@@ -113,6 +114,9 @@ Rules:
 |-----|--------------|
 | `requirement-shell-local-self-management` | Place/remove binary |
 | `requirement-shell-cli-storage` | Scratch resolve |
+| `requirement-application-local-vault` | Default dest path |
+| `requirement-cloudflare-vault` | Durable vault schema |
+| `requirement-least-privilege-user` | `/etc/dns-adm` |
 | `requirement-shell-cli-interface` | Commands |
 | `docs/requirements/index.md` | Registry |
 
@@ -124,9 +128,11 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup layout + `/var/backup` deposit |
 | 2026-08-13 | Active 2.0.0 | cli-template: retarget; remove deposit |
+| 2026-08-17 | Active 2.2.0 | LPU home + default vault `/etc/dns-adm/vault/` |
+| 2026-08-16 | Active 2.1.0 | dns-cli target paths; vault pointer only |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for how cli-template behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
+This requirement is the **project Single Source of Truth** for how dns-cli behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
 
 ---
 
@@ -41,15 +41,22 @@ Rules:
 |--------|-------------|-----------------|
 | `uninstall` | Confirm unless `--force` | **Fail closed** without `--force` (`confirm_required`) |
 | `install` | May inform; no required confirm for first install | Proceed without hang |
+| `vault input` (and bare `vault`) | Full TTY wizard (domain-id then fields; Enter keeps current; token via `prompt_secret`) | Fail `confirm_required` |
+| `vault set` / `init` / `account modify` / `zone modify` | `prompt_*` / `prompt_secret` **only empty fields** after vault+flags+env | Fail `vault_incomplete` unless flags/env complete remaining fields |
+| `vault account remove` / `vault zone remove` / `vault clear` | Confirm unless `--force` | Fail `confirm_required` unless `--force` |
+| `vault subdomain remove` last label | Fail `subdomain_required` / `vault_incomplete` | Same |
+| `remove-lpu` | Confirm unless `--force` | Fail `confirm_required` unless `--force` |
+| `setup` | Password `sudo` is approval; no extra confirm required | Fail closed if sudo/root unavailable |
+| `add`/`update`/`remove`/`status` with incomplete vault | Collect **empty** fields then continue | `vault_incomplete` |
 | Missing required operand | Clear error | Clear error; non-zero exit |
 
 ### 2.4 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
-| **Product** | `cli-template` |
+| **Product** | `dns-cli` |
 | **No curl\|sh auto-install path** | Local-only; non-interactive does not mean Type O install-ensure |
-| **Prompt helper** | `prompt_yes_no` for uninstall (and any future destructive confirm) |
+| **Prompt helpers** | `prompt_yes_no` (uninstall, vault clear); `prompt_secret` (token — **Gap** until implemented) |
 
 ### 2.5 Why This Requirement Exists (CIAO)
 
@@ -98,6 +105,8 @@ Rules:
 | `requirement-shell-cli-interface` | Flags |
 | `requirement-shell-local-self-management` | Uninstall confirm |
 | `requirement-shell-output-requirements` | Quiet/json emission |
+| `requirement-cloudflare-vault` | Collect / clear / last-label |
+| `requirement-domain-cloudflare-dns` | First-run DNS with incomplete vault |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -107,9 +116,12 @@ Rules:
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-03 | Active | Interactive vs non-interactive for folder-backup |
+| 2026-08-17 | Active 1.3.0 | `account`/`zone` modify collect; `zone remove` confirm |
+| 2026-08-17 | Active 1.2.0 | account remove / remove-lpu / setup rows |
+| 2026-08-16 | Active 1.1.0 | Vault collect / clear / DNS incomplete-vault matrix |
 
 ---
 
-**Last Updated**: 2026-08-03  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

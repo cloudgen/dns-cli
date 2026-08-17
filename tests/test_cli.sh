@@ -42,6 +42,7 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
+    assert_contains "TP-CLI-04 help ip verb" "$_out" "ip [--ip"
     assert_not_contains "TP-CLI-04 no backup verb" "$_out" "backup <"
     assert_not_contains "TP-CLI-04 no restore verb" "$_out" "restore <"
     assert_not_contains "TP-CLI-04 no print-sudoers" "$_out" "print-sudoers"
@@ -62,6 +63,9 @@ run_test_cli() {
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
+    assert_contains "TP-CLI-06 vault_dir" "$_out" '"vault_dir"'
+    assert_contains "TP-CLI-06 token_present" "$_out" '"token_present"'
+    assert_not_contains "TP-CLI-06 no raw token key" "$_out" '"token":"'
     assert_not_contains "TP-CLI-06 no backup_notation" "$_out" '"backup_notation"'
     assert_not_contains "TP-CLI-06 no deposit_dir" "$_out" '"deposit_dir"'
     assert_not_contains "TP-CLI-06 no restore_host_default" "$_out" '"restore_host_default"'

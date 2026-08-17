@@ -1,5 +1,5 @@
 # =============================================================================
-# tests/helpers.sh — shared assertions for cli-template CI tests
+# tests/helpers.sh — shared assertions for dns-cli CI tests
 # =============================================================================
 # Source from test scripts (POSIX /bin/sh). Does not modify product code.
 # =============================================================================
@@ -7,8 +7,8 @@
 # shellcheck disable=SC2034
 : "${TESTS_ROOT:=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
 : "${REPO_ROOT:=$(CDPATH= cd -- "${TESTS_ROOT}/.." && pwd)}"
-: "${SCRIPT:=${REPO_ROOT}/src/cli-template}"
-: "${APP_NAME:=cli-template}"
+: "${SCRIPT:=${REPO_ROOT}/src/dns-cli}"
+: "${APP_NAME:=dns-cli}"
 : "${PASS:=0}"
 : "${FAIL:=0}"
 : "${SKIP:=0}"
@@ -111,6 +111,34 @@ ci_cleanup_env() {
 
 ci_run() {
     sh "${SCRIPT}" "$@"
+}
+
+# Vault tests must not use HOME under /tmp (default vault law fail-closed).
+# Specified isolation: --vault-dir / CF_VAULT_DIR on a safe absolute tree (not /tmp).
+ci_vault_env() {
+    CI_VAULT_ROOT="${REPO_ROOT}/.ci-homes"
+    mkdir -p "${CI_VAULT_ROOT}"
+    CI_HOME=$(mktemp -d "${CI_VAULT_ROOT}/home.XXXXXX")
+    CI_USER_BIN="${CI_HOME}/.local/bin"
+    mkdir -p "${CI_USER_BIN}"
+    export HOME="${CI_HOME}"
+    export USER_BIN="${CI_USER_BIN}"
+    unset XDG_CONFIG_HOME 2>/dev/null || true
+    unset CF_API_TOKEN CF_ZONE_ID CF_ACCOUNT_ID CF_DOMAIN CF_SUBDOMAIN 2>/dev/null || true
+    # Token-probe on vault add/set uses this stub (never public net).
+    CI_STUB="${CI_HOME}/stub"
+    mkdir -p "${CI_STUB}"
+    export CF_STUB_DIR="${CI_STUB}"
+    export CF_CURL="${TESTS_ROOT}/fixtures/cf_curl_stub.sh"
+    chmod +x "${CF_CURL}" 2>/dev/null || true
+    unset CF_STUB_DNS_POST_HTTP 2>/dev/null || true
+}
+
+ci_vault_cleanup() {
+    if [ -n "${CI_HOME:-}" ] && [ -d "${CI_HOME}" ]; then
+        rm -rf "${CI_HOME}"
+        CI_HOME=
+    fi
 }
 
 ci_capture() {

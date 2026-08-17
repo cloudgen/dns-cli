@@ -1,19 +1,28 @@
 # Requirements
 
-Authoritative specialized product law for **cli-template** lives here.
+Authoritative specialized product law for **dns-cli** lives here.
 
-**Current state (2026-08-13):** Specialized **software-development** product. Left genesis. **This product is the Type 0 bootstrap origin** (no live parent). Registry is populated — see `index.md`.
+**Current state (2026-08-17):** Specialized **software-development** product. **B = `dns-cli` (hop 1)** from **A = `cli-template` (hop 0)**. Registry is populated — see `index.md`.
 
 ## Product identity (summary)
 
 | Field | Value |
 |-------|--------|
-| Product / `APP_NAME` | `cli-template` |
-| Version SSOT | `1.0.0` (ship unit hard-assign) |
-| Ship unit | `src/cli-template` |
-| Default install | `~/.local/bin/cli-template` |
+| Product / `APP_NAME` (law) | `dns-cli` |
+| Live Config | `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
+| Version SSOT | `1.2.0` |
+| Ship unit (live) | `src/dns-cli` |
+| Default install | `~/.local/bin/dns-cli` |
 | Install mode | **Local-only** |
-| Domain surface | **None** (Type 0 bootstrap/template: version, install, about, help) |
+| LPU | `dns-adm` — `requirement-least-privilege-user` — **Gap** |
+| Type map / elev | `requirement-three-layer-privilege-model` — **Gap** |
+| Domain SSOT | `requirement-domain-cloudflare-dns` — v1 Implemented; v2 domain-id **Gap** |
+| A-record mode | `requirement-cloudflare-dns-mode` — default non-round-robin; stored mode **Implemented** |
+| DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Gap** |
+| External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
+| Application local vault (path + specify) | `requirement-application-local-vault` — specify Implemented; default `/etc/dns-adm/vault/` **Gap** |
+| Vault law (schema / verbs) | `requirement-cloudflare-vault` 2.4.0 — zone-slot add/list/modify/remove; `{label, mode}`; v2 **Implemented** (1.2.0) |
+| Cloudflare API | `requirement-cloudflare-api` 1.2.0 — Implemented (ship-unit subset; A only) |
 
 ## Class requirement gate
 
@@ -28,21 +37,4 @@ Authoritative specialized product law for **cli-template** lives here.
 - **Implement** delivers code that **traces** to these requirements.  
 - **Review** verifies delivery against requirements and CIAO checklists.
 
-## Layout
-
-| Path | Role |
-|------|------|
-| `docs/requirements/index.md` | Registry of all requirements — keep in sync |
-| `docs/requirements/requirement-*.md` | CIAO-style project requirements |
-
-## Status values
-
-Typical: `draft` · `Active` · `approved` · `in-progress` · `done` · `deprecated` · `superseded`
-
-## Rules
-
-1. Never invent paths — verify on disk.  
-2. Class files only via class process; non-class via create-specific process.  
-3. Never dump harness inventories into this versioned surface.  
-4. Online install requirements stay **absent** unless product mode is explicitly changed.  
-5. Do **not** create a hollow `requirement-domain-*` that restates Type 0, and do **not** add host `setup`.
+v2 vault CRUD, stored A-record mode, and implicit/default non-round-robin DNS are **Implemented** on `src/dns-cli` **1.2.0**. LPU `dns-adm`, Type 1 `setup`, and default `/etc/dns-adm/vault/` are **Gap**.

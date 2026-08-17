@@ -1,14 +1,14 @@
 **file**: docs/requirements/requirement-shell-output-requirements.md  
-**Status**: Active (Version 1.0.0)  
+**Status**: Active (Version 1.1.0)  
 **Area**: shell  
 **Key**: `requirement-shell-output-requirements`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **all CLI output** of cli-template: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
+This requirement is the **project Single Source of Truth** for **all CLI output** of dns-cli: human messages, machine JSON, channel split (stdout vs stderr), and mode behavior (normal / quiet / JSON / debug).
 
-This origin owns the `out_*` family. No domain messages.
+This product owns the `out_*` family. Domain messages **MUST** use the same family. **MUST NOT** print API tokens.
 
 ---
 
@@ -44,7 +44,8 @@ This origin owns the `out_*` family. No domain messages.
 | `out_success` | Success / OK | stdout | Suppress | Suppress human |
 | `out_warn` | Warning | stderr | Should still show | Prefer structured status when designed |
 | `out_error` | Error | stderr | Always show (human) | Prefer `out_json_error` / `out_die` |
-| `out_die` | Fatal + exit 1 | stderr (+ JSON error when JSON) | Always | Emits JSON error then exits |
+| `out_die` | Fatal + exit 1 (message only; JSON `code` stays `unknown`) | stderr (+ JSON error when JSON) | Always | Emits JSON error then exits |
+| `out_die_code` | Fatal + exit 1 with **stable JSON `code`** | stderr (+ JSON error when JSON) | Always | **MUST** wrap `out_json_error MESSAGE CODE` then exit 1 |
 | `out_plain` | Plain text, no prefix | stdout | Suppress under quiet | Suppress under JSON |
 | `out_msg_n` | Prompt fragment without newline | stdout | Suppress under quiet/json | Never for machines |
 | `out_json` | Machine success/status object | stdout | N/A | Only when `JSON=1` |
@@ -59,10 +60,11 @@ This origin owns the `out_*` family. No domain messages.
 
 Rules:
 
-1. Fatal paths use `out_die` / `out_json_error`.  
+1. Fatal paths use `out_die` or **`out_die_code`**. Domain and vault stable codes **MUST** use `out_die_code CODE MESSAGE` (live `out_die` cannot set `code`).  
 2. JSON mode: no colors, banners, or progress mixed into stdout JSON.  
-3. Capture pattern: `cli-template --json <cmd> 2>err.log`.  
-4. **No secrets** on either channel (tokens, passwords, private keys, full private key material).
+3. Capture pattern: `dns-cli --json <cmd> 2>err.log`.  
+4. **No secrets** on either channel (API tokens, passwords, private keys).  
+5. `out_json` **MUST** emit `"type"` first. Use `@key` prefixes for raw JSON numbers, bools, or arrays.
 
 ### 2.4 Mode behavior
 
@@ -77,11 +79,12 @@ Rules:
 
 | Item | Value |
 |------|--------|
-| **Product** | `cli-template` |
-| **Ship unit** | `src/cli-template` |
+| **Product** | `dns-cli` |
+| **Ship unit (target)** | `src/dns-cli` |
+| **Ship unit (live)** | `src/dns-cli` (`out_die_code` Implemented) |
 | **Human prefixes** | `[INFO]`, `[OK]`, `[WARN]`, `[ERROR]` (or equivalent consistent set) |
-| **Domain messages** | None (Type 0 only) |
-| **Bootstrap role** | This product is hop 0; `out_*` is this origin’s family |
+| **Domain messages** | Via `out_*` / `out_die_code`; codes in domain + vault law |
+| **Bootstrap role** | Inherited `out_*` from A; this product is hop 1 |
 
 ### 2.6 Why This Requirement Exists (CIAO)
 
@@ -108,7 +111,9 @@ Rules:
 2. Print user-facing banners with raw `echo` outside allowed exceptions.  
 3. Mix human text into JSON stdout success paths.  
 4. Log secrets or private key material.  
-5. Remove quiet/json contracts for “simplicity.”
+5. Remove quiet/json contracts for “simplicity.”  
+6. Emit domain/vault stable JSON `code` values via `out_die` (message-only) instead of `out_die_code`.  
+7. Print Cloudflare API tokens on either channel.
 
 **Violating this rule is a critical output SSOT regression.**
 
@@ -131,6 +136,8 @@ Rules:
 |-----|--------------|
 | `requirement-shell-cli-interface` | Modes and flags |
 | `requirement-shell-interactive-vs-noninteractive` | Prompt vs auto |
+| `requirement-domain-cloudflare-dns` | Domain codes + about redaction |
+| `requirement-cloudflare-vault` | Token never printed |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -141,9 +148,10 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active | Output SSOT for folder-backup |
 | 2026-08-13 | Active | Retarget to cli-template; drop domain message law |
+| 2026-08-16 | Active 1.1.0 | `out_die_code`; domain messages; dns-cli; no token |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

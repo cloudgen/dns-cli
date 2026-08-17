@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.0.0 (current) | Yes |
+| 1.3.0 (current) | Yes |
+| 1.1.x | Limited (specify vault / `ip`) |
+| 1.0.0 | Limited |
 
 ## Reporting a Vulnerability
 
@@ -30,6 +32,14 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 Full principles: [CIAO](https://github.com/cloudgen/ciao) · [CIAO-Lite](https://github.com/cloudgen/ciao-lite).
 
 This section is **design posture**, not a third-party certification claim.
+
+## Secrets (Cloudflare API token)
+
+- Store the API token only in a **0600** vault token file (`--token-file`). **Never** `--token` on argv.  
+- HTTPS uses `curl --config` so the Bearer line is not on `ps`.  
+- Inbound DNS request JSON **MUST NOT** include a `token` key.  
+- Do **not** commit tokens, Bearer lines, vault token files, or live dashboard ids into `README.md`, `CHANGELOG.md`, this file, `reviews/**`, or `docs/requirements/**`. Reviews treat a pasted `cfut_…` value as a Block (`skill-file-leaks-check` C5).  
+- Report token exposure privately (email / GitHub security advisory), then **revoke** the token in the Cloudflare dashboard.
 
 ## Scope notes
 

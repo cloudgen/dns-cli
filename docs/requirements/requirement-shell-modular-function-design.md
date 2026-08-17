@@ -1,16 +1,16 @@
 **file**: docs/requirements/requirement-shell-modular-function-design.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 2.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-modular-function-design`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **modular function organization** of the cli-template POSIX shell CLI.
+This requirement is the **project Single Source of Truth** for **modular function organization** of the dns-cli POSIX shell CLI.
 
 **Core idea:** Modularity is achieved through **clear function boundaries, consistent prefixes, and full CIAO documentation** — **not** by splitting the installable CLI into multiple shipped files.
 
-Ship unit remains a **single executable** at `src/cli-template`.
+Ship unit remains a **single executable** at `src/dns-cli`.
 
 ---
 
@@ -36,11 +36,13 @@ Ship unit remains a **single executable** at `src/cli-template`.
 | `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper | `util_resolve_storage`, `util_get_install_bin_path`, `util_backup` |
 | `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |
-| `prompt_` | Interactive prompts | TTY-safe confirmations | `prompt_yes_no` |
+| `prompt_` | Interactive prompts | TTY-safe confirmations and secrets | `prompt_yes_no`, `prompt_secret` |
+| `cf_` | Cloudflare domain | Vault, DNS, IP lookup, API, JSON extract | `cf_vault_*`, `cf_dns_*`, `cf_ip_*`, `cf_api_*`, `cf_json_*` |
+| `lpu_` | LPU / privilege | `setup`, `remove-lpu`, `print-sudoers` | `lpu_setup`, `lpu_remove`, `lpu_print_sudoers` |
 
 **Notes:**
 
-- **No domain prefix** until a real domain surface exists. Do not invent `hm_*` for unused ops.  
+- Domain prefix **`cf_`** is required for Cloudflare ops. LPU prefix **`lpu_`** is required for `setup` / `remove-lpu` / `print-sudoers`. Do not invent `hm_*` / `fb_*`.  
 - **Do not** put generic about/help/main under a domain prefix.  
 - Parent `fb_*` **MUST NOT** be reintroduced.  
 - Online-only prefixes from grandparent (`ver_check` remote network path, download install family) **MUST NOT** be reintroduced unless product mode changes.  
@@ -66,9 +68,11 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 
 | Item | Value |
 |------|--------|
-| **Ship unit** | `src/cli-template` |
-| **Domain prefix** | **none** |
-| **Bootstrap role** | This product is hop 0; Type 0 prefixes; no domain prefix |
+| **Ship unit (target)** | `src/dns-cli` |
+| **Domain prefix** | **`cf_`** — Implemented for v1 vault/DNS |
+| **LPU prefix** | **`lpu_`** — **Gap** |
+| **New prompt** | `prompt_secret` (no echo) — Implemented |
+| **Bootstrap role** | Hop 1; inherit Type 0 prefixes; add `cf_` + `lpu_` |
 | **Multi-file authoring** | Optional later only if pack still yields one installable artifact and this requirement is updated |
 
 ### 2.6 Why This Requirement Exists (CIAO)
@@ -83,7 +87,7 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - Single file; logical modules via prefixes.  
-- Do not invent a domain prefix for an empty domain.  
+- Domain prefix is `cf_` only.  
 - Keep `out_*` intact.
 
 ---
@@ -105,7 +109,7 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Ship unit is a single file at `src/cli-template` |
+| AC-1 | Ship unit is a single file at `src/dns-cli` after retarget |
 | AC-2 | No `fb_` functions exist |
 | AC-3 | Dispatcher is `app_main` |
 
@@ -118,6 +122,9 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 | `requirement-shell-cli-interface` | Dispatch |
 | `requirement-shell-output-requirements` | `out_*` |
 | `requirement-shell-local-self-management` | `inst_*` |
+| `requirement-domain-cloudflare-dns` | `cf_dns_*` / `cf_ip_*` |
+| `requirement-cloudflare-vault` | `cf_vault_*` |
+| `requirement-least-privilege-user` | `lpu_*` |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -128,9 +135,11 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup prefixes including `fb_*` |
 | 2026-08-13 | Active 2.0.0 | cli-template: no domain prefix |
+| 2026-08-17 | Active 2.2.0 | Add `lpu_` for setup/remove-lpu/print-sudoers |
+| 2026-08-16 | Active 2.1.0 | Add `cf_` + `prompt_secret`; dns-cli ship unit |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

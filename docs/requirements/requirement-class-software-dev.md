@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.3.0 – cli-template class law + residual stack)  
+**Status**: Active (Version 1.5.0 – dns-adm LPU residual owner)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -21,7 +21,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 3. **MUST NOT** register an Active `requirement-class-server-maintenance.md` while class is software-development.  
 4. **MUST** retain portable harness knowledge; specialized product knowledge lives in this and peer `requirement-*.md` files.  
 5. **MUST** apply software-development SSOT/gate posture when claimed (identity, ship unit, precommit when git is used — as applicable).  
-5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law — portable process lives in harness skills (`skill-commit-check`, `skill-ssh-user-profile`).  
+5a. When git is used on a **multi-vault host**, **MUST** treat forge push identity as **product repository-user SSOT** (Config `REPO_USER` / project-repository owner), not ambient default SSH face: agents **MUST** run precommit / SSH-profile gates (pre-git report; vault bind via activate or one-shot identity for push). Host vault basenames are **not** product law.  
 6. **MUST NOT** invent hollow product docs solely to look specialized; collect real values or defer explicitly.
 
 ### 2.1 Residual collection principle (SSOT hygiene)
@@ -66,15 +66,17 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ### 2.7 Implementation Notes (this project)
 
-| Field | Value (cli-template) |
+| Field | Value (dns-cli) |
 |-------|---------------------|
-| **Project display name** | `cli-template` |
+| **Project display name** | `dns-cli` |
 | **Project class** | software-development |
 | **Class requirement basename** | `requirement-class-software-dev.md` |
 | **Primary language(s)** | `posix-sh` (`/bin/sh`) |
 | **Language role** | primary only — single-file shell ship unit under `src/` |
 | **Execution model** | **interpreted** — no compile step |
 | **Toolchain / interpreter** | POSIX `/bin/sh` (dash/bash-as-sh compatible subset); no compiler |
+| **JSON extract tools (runtime residual)** | `python3` **or** `jq` (exactly one required at run time for domain JSON; not a second language) |
+| **External HTTPS client** | `curl` (ipinfo.io + Cloudflare API; grants are whitelist surface, not this file) |
 | **Toolchain version policy** | **unconstrained** among POSIX sh implementations that pass product tests when present |
 | **Cross-compile in scope?** | no |
 | **Primary project/package tool** | **none** — no language module system; ship unit is the source |
@@ -83,10 +85,10 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Linter/formatter** | none as project law (shellcheck optional for maintainers) |
 | **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `mktemp` + `date` exist) |
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
-| **Git surface** | used when product is published |
-| **Ship unit / install** | yes — `src/cli-template` → `${USER_BIN}/cli-template` (default `~/.local/bin/cli-template`); **local-only** install (no online channel) |
-| **Product version SSOT** | `VERSION="1.0.0"` hard-assign in `src/cli-template` |
-| **Bootstrap origin** | **this product** (`cli-template`) — hop 0 Type 0 template. No live parent. |
+| **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
+| **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
+| **Product version SSOT** | `VERSION="1.3.0"` hard-assign in `src/dns-cli` |
+| **Bootstrap origin** | **A = `cli-template`** (hop 0, sibling origin). **This product is B = `dns-cli` (hop 1).** |
 
 **Residual ownership table:**
 
@@ -95,8 +97,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Project class membership | **this file** | Fixed |
 | Primary language + toolchain policy | **this file** | posix-sh, unconstrained |
 | Package/build tool + lockfile | **this file** | none / not used |
-| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | cli-template is hop 0 (no live parent) |
-| Project layout / ship path | `requirement-project-folder` | `src/` + bin targets |
+| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | this product is hop 1; origin A = cli-template |
+| Project layout / ship path | `requirement-project-folder` | `src/` + bin targets; vault pointer only |
 | Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
 | Empty argv Type N help | `requirement-shell-cli-zero-arguments` | Local-only |
 | Local self-managed lifecycle | `requirement-shell-local-self-management` | install / uninstall / where-is-me |
@@ -105,10 +107,15 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
-| Privilege / sudoers-file emit | **intentionally absent** | Not this product’s domain |
+| Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
+| Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain |
 | Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
-| Domain surface (`requirement-domain-*`) | **intentionally absent** | Type 0 bootstrap/template; not host-OS setup |
-| Online install / remote self-management / companion checksum | **intentionally absent** | Not this origin’s channel |
+| Domain surface (DNS catalog) | `requirement-domain-cloudflare-dns` | **current domain SSOT** — four pillars; consumes API law |
+| Cloudflare API (HTTPS / envelope / DNS CRUD) | `requirement-cloudflare-api` | capability law; **not** a second domain catalog |
+| External / public IPv4 lookup | `requirement-external-ipv4` | capability law; **not** a second domain catalog |
+| Application local vault (path + specify) | `requirement-application-local-vault` | default `/etc/dns-adm/vault/` + `--vault-dir` / `CF_VAULT_DIR` |
+| Cloudflare vault (schema/token/verbs) | `requirement-cloudflare-vault` | multi-account; domain-id = apex; consumes local-vault path |
+| Online install / remote self-management / companion checksum | **intentionally absent** | Local-only channel |
 
 ---
 
@@ -166,7 +173,12 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-bootstrap-chain` | This product is hop 0 / origin |
+| `requirement-bootstrap-chain` | This product is hop 1; origin A = cli-template |
+| `requirement-domain-cloudflare-dns` | Domain SSOT |
+| `requirement-cloudflare-vault` | Vault law |
+| `requirement-cloudflare-api` | HTTPS API capability |
+| `requirement-least-privilege-user` | `dns-adm` F1–F7 |
+| `requirement-three-layer-privilege-model` | Type map + Tables A/B/C |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
 | `requirement-shell-cli-zero-arguments` | Type N empty argv |
@@ -188,9 +200,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |
 | 2026-08-13 | Active 1.2.0 | Bootstrap origin = selfmanaged; folder-backup hop retired (no longer maintain bootstrap from it) |
 | 2026-08-13 | Active 1.3.0 | This product is hop 0; selfmanaged is not origin |
+| 2026-08-17 | Active 1.5.0 | Privilege residual → LPU + three-layer (`dns-adm`) |
+| 2026-08-16 | Active 1.4.0 | Specialize B = dns-cli; domain + vault residual owners; curl + python3/jq |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

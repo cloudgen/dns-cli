@@ -1,11 +1,11 @@
-# Test plan — cli-template
+# Test plan — dns-cli
 
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
-**Ship unit:** `src/cli-template`  
-**Product VERSION:** 1.0.0  
-**Last plan update:** 2026-08-13  
-**Last suite run:** PASS=80 FAIL=0 SKIP=0 (2026-08-13)
+**Ship unit (live):** `src/dns-cli`  
+**Product VERSION:** 1.3.0  
+**Last plan update:** 2026-08-17  
+**Last suite run:** PASS=240 FAIL=0 SKIP=0 (2026-08-17)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -23,8 +23,14 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | No online verbs / no SCRIPT_URL UX | have | TP-CLI-04, TP-CLI-10 |
 | Trimmed parent verbs fail closed | have | TP-CLI-13 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
-| Backup / restore / sudoers emit | n/a | Absent by design (Type 0 template; not a backup product) |
+| Backup / restore / sudoers-manager extras | n/a | Absent by design |
+| LPU `dns-adm` / Type 1 setup | todo | TP-LPU-* / TP-PRIV-* |
+| Multi-account vault (v2) | have | TP-CF-VAULT-18..33 |
+| A-record mode (stored + switch) | have | TP-CF-MODE-01..08 (09/10 partial) |
 | Online curl / companion checksum | n/a | Local-only product |
+| Cloudflare vault | have | TP-CF-VAULT-* |
+| Cloudflare DNS / ipinfo | have | TP-CF-DNS-* (stubbed curl; no public net) |
+| Live `crms.hk` as invoking user | skip | TP-CF-LIVE-* (`CF_LIVE=1`; not in `run.sh`) |
 
 ---
 
@@ -63,6 +69,146 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LC-09 | installed mode is `0755` | test_local_lifecycle | local self-management §2.3.1 | **have** |
 | TP-LC-10 | reinstall without force heals `0711` → `0755` | test_local_lifecycle | local self-management §2.3.1 | **have** |
 
+### TP-CF-VAULT (Cloudflare vault)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-VAULT-01 | dir 0700 / files 0600 | `tests/test_cf_vault.sh` | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-02 | `env -u HOME` and `HOME=/tmp` → `vault_no_home` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-03 | token redacted in show/about JSON | test_cf_vault | requirement-cloudflare-vault · output | **have** |
+| TP-CF-VAULT-04 | last-label remove fail-closed | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-05 | `--token-file` 0644 → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-06 | token absent from `vault.json` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-07 | `vault input` refuses `--json` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-08 | `vault subdomain add` + `list` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-09 | `vault clear` needs `--force`; files removed | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-10 | bad zone_id → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-11 | env does not overwrite; `vault set` rewrites | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-12 | `--token` argv rejected | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-13 | `XDG_CONFIG_HOME=/tmp` → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-14 | uninstall does not delete vault | test_cf_vault | requirement-cloudflare-vault · local-self-management | **have** |
+| TP-CF-VAULT-15 | vault.json 0644 → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-16 | unknown schema_version → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-17 | slash host-label → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-18 | two domain-ids + distinct tokens | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-19 | omit `--domain` when N≠1 and no default → `domain_required` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-20 | `vault account add` duplicate → `domain_exists` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-21 | v1 root layout → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-22 | last subdomain remove fail-closed per domain-id | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-23 | missing `user_id` → `vault_incomplete` / `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-25 | two domains same `user_id` → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-24 | same `zone_id` on two domain-ids → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-26 | `subdomain add` stores `mode=non-round-robin` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-27 | bare-string `subdomains` → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-28 | `account add` then `list` shows slot fields (no token) | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-29 | `account modify --zone-id` then `list` shows new zone_id | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-30 | `account remove --force` then `list` omits domain-id | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-31 | `vault zone add\|list\|modify\|remove` aliases `account` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-32 | subdomain add → list → modify → list → remove → list | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-33 | add/modify/remove/list JSON never include token | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-34 | new token probes `_test_<ts>` then deletes; fail `token_probe_failed` does not persist | test_cf_vault | requirement-cloudflare-vault V-M21 | **have** |
+
+### TP-AV (application local vault specify)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-AV-01 | `--vault-dir` absolute path used | `tests/test_cf_vault.sh` | requirement-application-local-vault | **have** |
+| TP-AV-02 | `CF_VAULT_DIR` env used | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-03 | `--vault-dir /tmp/…` → `vault_insecure` | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-04 | relative `--vault-dir` → `vault_insecure` | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-05 | `help` lists `--vault-dir` and `CF_VAULT_DIR` | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-06 | specified vault works when `HOME=/tmp` | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-07 | no specify + no LPU → `lpu_missing` | test_cf_vault | requirement-application-local-vault | **todo** |
+
+### TP-LPU (dns-adm account)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-LPU-01 | `setup` creates account+home+vault dir | `tests/test_cf_lpu.sh` | requirement-least-privilege-user | **todo** |
+| TP-LPU-02 | re-`setup` no-op | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-03 | default vault as other user → `lpu_required` | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-04 | `--vault-dir` without LPU still works | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **todo** |
+| TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **todo** |
+
+### TP-PRIV (Type map / fragment)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-PRIV-01 | `print-sudoers` ⊆ Table A; no dest write | `tests/test_cf_lpu.sh` | requirement-three-layer-privilege-model | **todo** |
+| TP-PRIV-02 | install-script / remove-draft / backup / restore unknown | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
+| TP-PRIV-03 | `setup` without root/sudo fails closed | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
+| TP-PRIV-04 | fragment has no ALL / no shell | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
+
+### TP-CF-DNS (Cloudflare DNS + ipinfo)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-DNS-01 | add no-op same IP | `tests/test_cf_dns.sh` | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-02 | add-implies-update different IP | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-03 | implicit non-RR N>1 → `dns_multi_record`; `status --force` still fail | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-04 | `add --force` collapse (repair, not switch) | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-05 | empty argv does not network | test_cf_dns | requirement-domain-cloudflare-dns · zero-arguments | **have** |
+| TP-CF-DNS-06 | `--ip` override; reject 127/8 | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-07 | status real resolver A + `in_sync` | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-DNS-08 | two domain-ids → `domain_required` without `--domain` | test_cf_dns | requirement-domain-cloudflare-dns | **todo** |
+
+### TP-CF-MODE (A-record mode)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-MODE-01 | new label defaults `non-round-robin` | `tests/test_cf_dns.sh` | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-02 | non-RR different IP updates in place (not second A) | test_cf_dns | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-03 | switch to RR when `ipv4_count`=1 | test_cf_dns | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-04 | RR add second distinct IPv4 | test_cf_dns | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-05 | switch when count≥2 → `dns_mode_locked` | test_cf_dns | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-06 | RR → non-RR when count is 0 or 1 | test_cf_dns | requirement-cloudflare-dns-mode | **todo** |
+| TP-CF-MODE-07 | IPv6 / AAAA rejected; not counted | test_cf_dns | requirement-cloudflare-dns-mode · external-ipv4 | **have** |
+| TP-CF-MODE-08 | RR `status` N=2 succeeds | test_cf_dns | requirement-cloudflare-dns-mode | **have** |
+| TP-CF-MODE-09 | `--force` collapse is not a switch | test_cf_dns | requirement-cloudflare-dns-mode | **todo** |
+| TP-CF-MODE-10 | empty argv does not switch | test_cf_dns | requirement-cloudflare-dns-mode · zero-arguments | **todo** |
+| TP-CF-MODE-11 | live count fail (HTTP 000/403) must not switch | test_cf_dns | requirement-cloudflare-dns-mode MODE-M8 | **todo** |
+
+### TP-CF-REQ (DNS request JSON)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-REQ-01 | accept `add` non-RR example | `tests/test_cf_dns.sh` | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-02 | accept `add` RR example | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-03 | accept `update` + RR `from_ipv4` | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-04 | accept `remove` variants | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-05 | accept both `mode` examples | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-06 | unknown action / extra key fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-07 | IPv6 or token in body fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-08 | `mode` plus `ipv4` fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+
+### TP-CF-LIVE (optional real zone — invoking user)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-LIVE-01 | skip unless `CF_LIVE=1`; refuse `dns-adm` | `tests/test_cf_live.sh` | requirement-domain-cloudflare-dns D-M15 | **skip** |
+| TP-CF-LIVE-02 | `vault account add` via `--vault-dir` as `$USER` | test_cf_live | requirement-cloudflare-vault | **skip** |
+| TP-CF-LIVE-03 | live `status` of probe FQDN | test_cf_live | requirement-domain-cloudflare-dns | **skip** |
+| TP-CF-LIVE-04 | probe `add` then `remove` (`dns-cli-tmp`) | test_cf_live | requirement-domain-cloudflare-dns D-M16 | **skip** |
+| TP-CF-LIVE-05 | `vault account remove` + operator revokes token | test_cf_live · `tests/live/teardown.sh` | requirement-domain-cloudflare-dns D-M16 | **skip** |
+
+### TP-CF-API (Cloudflare HTTPS)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-API-01 | envelope `success` false → `dns_api_failed` | `tests/test_cf_dns.sh` | requirement-cloudflare-api | **todo** |
+| TP-CF-API-02 | `--token` argv rejected | test_cf_vault | requirement-cloudflare-api · vault | **have** |
+| TP-CF-API-03 | `total_pages` > 1 still counts all A for the name | test_cf_dns | requirement-cloudflare-api | **todo** |
+
+### TP-CF-IP (public IPv4 display)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-CF-IP-01 | `--json ip --ip` works without vault | `tests/test_cf_ip.sh` | requirement-external-ipv4 | **have** |
+| TP-CF-IP-02 | `ip` hits ipinfo stub only (no Cloudflare) | test_cf_ip | requirement-external-ipv4 | **have** |
+| TP-CF-IP-03 | `ip --ip 127.0.0.1` → `ip_lookup_failed` | test_cf_ip | requirement-external-ipv4 | **have** |
+| TP-CF-IP-04 | ipinfo HTTP 429 → `ip_lookup_failed` | test_cf_ip | requirement-external-ipv4 | **have** |
+
 ---
 
 ## Rules
@@ -70,4 +216,4 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 1. Closing a **bug** finding updates the matching TP to **have**.  
 2. Do not mark TP **have** without a suite assertion (or honest skip/n/a).  
 3. Do not reintroduce online TP-CURL/TP-CSUM or TP-FOLDER-BACKUP as Core without product-mode change.  
-4. Do not add domain TP families or a `setup` verb — this product is Type 0 only.
+4. Domain proof uses **TP-CF-VAULT-***, **TP-CF-DNS-***, and **TP-CF-IP-***. LPU/setup proof uses **TP-LPU-*** / **TP-PRIV-*** (todo).

@@ -1,0 +1,309 @@
+**file**: docs/requirements/requirement-cloudflare-dns-request.md  
+**Status**: Active (Version 1.0.0) — capability law; ship unit **Gap** (no inbound submit/approve)  
+**Area**: domain  
+**Key**: `requirement-cloudflare-dns-request`  
+**Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
+
+## 1. Purpose
+
+This requirement is the **Single Source of Truth** for **Cloudflare DNS request** JSON: how many types exist, the closed schema, and **complete examples** for each type (and its mode-specific variants).
+
+There are **exactly four** [request-types](../terminologies/cloudflare-dns-request-type.md): `add`, `update`, `remove`, `mode`.
+
+`requirement-domain-cloudflare-dns.md` **consumes** these bodies when a submit/approve surface exists. Approve **maps** to existing verbs (`add` / `update` / `remove` / `vault subdomain mode`) and **MUST** follow `requirement-cloudflare-dns-mode` + `requirement-cloudflare-api`. This file is **not** a second `requirement-domain-*`, **not** vault layout, and **not** zone create.
+
+Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) · [`cloudflare-dns-request-type`](../terminologies/cloudflare-dns-request-type.md) · [`cloudflare-dns-request-basename`](../terminologies/cloudflare-dns-request-basename.md).
+
+---
+
+## 2. Core Rules / Requirements (Mandatory)
+
+### 2.1 Four types (closed)
+
+**REQ-M1.** Every inbound file **MUST** have `action` equal to exactly one of:
+
+| `action` | What it proposes | Approve dest |
+|----------|------------------|--------------|
+| `add` | Create or append **one** IPv4 A for the FQDN | DNS `add` (POST or no-op `already`) |
+| `update` | Overwrite **one** existing IPv4 A | DNS `update` (PUT; RR N>1 needs `from_ipv4`) |
+| `remove` | Delete **one** IPv4 A (or the single A) | DNS `remove` (DELETE; RR N>1 needs `ipv4`) |
+| `mode` | Switch stored A-record mode | `vault subdomain mode` — **no** DNS row mutate |
+
+**MUST NOT** invent `status`, `show`, `ip`, `aaaa`, `cname`, `collapse`, `create-zone`, or `account-add` as a DNS request-type. Read-only verbs are not submissions. `--force` collapse is **repair**, not a type. `vault account add` is **store**, not a public DNS request.
+
+**REQ-M2.** JSON `action` **MUST** equal the basename `type` field (`requirement` of [`cloudflare-dns-request-basename`](../terminologies/cloudflare-dns-request-basename.md)). Mismatch → `request_invalid`.
+
+### 2.2 Envelope (every type)
+
+**REQ-M3.** Body **MUST** be one JSON object. Required keys on **every** type:
+
+| Field | Rule |
+|-------|------|
+| `schema_version` | integer `1` only |
+| `purpose` | non-empty one-line reason |
+| `subject` | submitting OS login (path-safe); self-scope = invoker |
+| `action` | `add` \| `update` \| `remove` \| `mode` |
+| `domain_id` | apex DNS name (vault slot key) |
+| `subdomain` | LDH host-label or `@` |
+
+**MUST NOT** include `token`, `CF_API_TOKEN`, `user_id` secrets, or any AAAA / IPv6 field. Unknown keys → `request_invalid`. Token stays in the vault.
+
+**REQ-M4.** IPv4 fields (`ipv4`, `from_ipv4`) **MUST** be dotted-quad public IPv4 per `requirement-external-ipv4` IP-M4. IPv6 literal → `ip_lookup_failed` / `request_invalid`.
+
+**REQ-M5.** Optional keys allowed **only** where the type table says so: `ipv4`, `from_ipv4`, `mode`, `ttl`, `proxied`. `ttl` default **300**. `proxied` default **false**.
+
+### 2.3 Per-type fields
+
+| `action` | Required extra | Optional | Forbidden extra | Approve-time gate |
+|----------|----------------|----------|-----------------|-------------------|
+| `add` | `ipv4` | `ttl`, `proxied` | `from_ipv4`, `mode` | Stored mode: non-RR → ensure one A; RR → append if absent |
+| `update` | `ipv4` | `from_ipv4`, `ttl`, `proxied` | `mode` | RR + `ipv4_count`>1 **MUST** have `from_ipv4`; else `dns_target_required` |
+| `remove` | — | `ipv4` | `from_ipv4`, `mode`, `ttl`, `proxied` | RR + `ipv4_count`>1 **MUST** have `ipv4`; else `ip_required` |
+| `mode` | `mode` (`non-round-robin` \| `round-robin`) | — | `ipv4`, `from_ipv4`, `ttl`, `proxied` | `ipv4_count` ∈ {0, 1}; else `dns_mode_locked`. Does **not** write A rows |
+
+A `mode` request **MUST NOT** be used to add a second IPv4. Operator submits `mode` first (count 0 or 1), then a later `add`.
+
+### 2.4 Basename
+
+**REQ-M6.** Allocated name **MUST** be `{{YYYYMMDD}}-{{subject}}-{{action}}-{{n}}.json` (host local date; `n` over inbound+accepted+declined). Submitter **MUST NOT** supply `--name`.
+
+### 2.5 Complete examples (normative shape)
+
+Examples use fictional IDs and documentation IPv4s (`203.0.113.0/24`). **MUST NOT** copy live tokens.
+
+#### Type `add` — non-round-robin (default; one IPv4)
+
+Basename: `20260817-alice-add-1.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Point office to this host public IPv4",
+  "subject": "alice",
+  "action": "add",
+  "domain_id": "example.com",
+  "subdomain": "office",
+  "ipv4": "203.0.113.10",
+  "ttl": 300,
+  "proxied": false
+}
+```
+
+#### Type `add` — round-robin (append a distinct IPv4)
+
+Stored mode on `api` is already `round-robin`. Basename: `20260817-alice-add-2.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Add second A for api round-robin",
+  "subject": "alice",
+  "action": "add",
+  "domain_id": "example.com",
+  "subdomain": "api",
+  "ipv4": "203.0.113.20"
+}
+```
+
+#### Type `update` — non-round-robin (overwrite the single A)
+
+Basename: `20260817-alice-update-1.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Move office A to the new egress IPv4",
+  "subject": "alice",
+  "action": "update",
+  "domain_id": "example.com",
+  "subdomain": "office",
+  "ipv4": "203.0.113.11"
+}
+```
+
+#### Type `update` — round-robin (which A, via `from_ipv4`)
+
+Basename: `20260817-alice-update-2.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Replace one api A with a new IPv4",
+  "subject": "alice",
+  "action": "update",
+  "domain_id": "example.com",
+  "subdomain": "api",
+  "from_ipv4": "203.0.113.20",
+  "ipv4": "203.0.113.21"
+}
+```
+
+#### Type `remove` — non-round-robin (the one A)
+
+Basename: `20260817-alice-remove-1.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Drop office A; host is decommissioned",
+  "subject": "alice",
+  "action": "remove",
+  "domain_id": "example.com",
+  "subdomain": "office"
+}
+```
+
+#### Type `remove` — round-robin (delete one IPv4)
+
+Basename: `20260817-alice-remove-2.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Remove one api A after that backend left",
+  "subject": "alice",
+  "action": "remove",
+  "domain_id": "example.com",
+  "subdomain": "api",
+  "ipv4": "203.0.113.21"
+}
+```
+
+#### Type `mode` — enter round-robin (count must be 0 or 1)
+
+Basename: `20260817-alice-mode-1.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "Allow api to hold more than one IPv4",
+  "subject": "alice",
+  "action": "mode",
+  "domain_id": "example.com",
+  "subdomain": "api",
+  "mode": "round-robin"
+}
+```
+
+#### Type `mode` — return to non-round-robin (count must be 0 or 1)
+
+Basename: `20260817-alice-mode-2.json`
+
+```json
+{
+  "schema_version": 1,
+  "purpose": "api is single-homed again",
+  "subject": "alice",
+  "action": "mode",
+  "domain_id": "example.com",
+  "subdomain": "api",
+  "mode": "non-round-robin"
+}
+```
+
+### 2.6 Verify (when submit/approve is implemented)
+
+**REQ-M7.** Verify **MUST** fail closed on: unknown `action`; `action` ≠ basename type; missing required field; forbidden extra; invalid IPv4; IPv6; unknown key; `mode` value not the two canonical strings; token present; `schema_version` ≠ 1.
+
+**REQ-M8.** Approve **MUST** re-run verify, then apply the dest in §2.1. **MUST NOT** `POST /zones`. Empty argv **MUST NOT** submit or approve.
+
+### 2.7 Implementation Notes (this project)
+
+| Item | Value |
+|------|--------|
+| **Product** | `dns-cli` |
+| **Ship unit** | `src/dns-cli` **1.2.0** — request inbox **Gap** |
+| **Types** | 4: `add` `update` `remove` `mode` |
+| **Inbound (law, when implemented)** | public submission folder; JSON only |
+| **Proof** | **TP-CF-REQ-01..08** (todo) |
+
+### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
+
+- **CIAO Principle 1 – Caution**: Closed enum; no AAAA; no token in the file.  
+- **CIAO Principle 2 – Intentional**: Four named types; complete examples.  
+- **CIAO Principle 21 – Dual policies**: Portable MUST; filled examples.
+
+---
+
+## 3. Design Principles (CIAO / CIAO-Lite)
+
+- **Caution:** Four types only.  
+- **Intentional:** Examples are law, not comments.  
+- **Over-protect:** Mode switch cannot smuggle an IPv4.
+
+---
+
+## 4. Protection Rule (Sacred)
+
+**Future AI assistants, Grok, or maintainers MUST NOT**:
+
+1. Add a fifth DNS request-type without updating this file’s table **and** examples.  
+2. Put a token or AAAA in a request example.  
+3. Treat `status` / `ip` / `--force` collapse / `vault account add` as a request-type.  
+4. Use a `mode` request to create or delete A rows.  
+5. Register this file as `requirement-domain-*`.  
+6. Claim request submit/approve Implemented while the ship unit has no inbound queue.
+
+**Violating this rule is a critical request-schema regression.**
+
+---
+
+## 5. Acceptance criteria
+
+| ID | Criterion |
+|----|-----------|
+| AC-REQ1 | Verify accepts the eight complete examples in §2.5 (when implemented) |
+| AC-REQ2 | Unknown `action` or `action` ≠ basename type → `request_invalid` |
+| AC-REQ3 | `add` without `ipv4` → `request_invalid` |
+| AC-REQ4 | RR `update` without `from_ipv4` when count>1 → `dns_target_required` |
+| AC-REQ5 | RR `remove` without `ipv4` when count>1 → `ip_required` |
+| AC-REQ6 | `mode` with `ipv4` present → `request_invalid` |
+| AC-REQ7 | `mode` when `ipv4_count`≥2 → `dns_mode_locked` |
+| AC-REQ8 | IPv6 in `ipv4` / `from_ipv4` → fail closed |
+| AC-REQ9 | Stay-honest: inbound submit/approve **Gap** on 1.2.0 |
+
+---
+
+## 6. Related requirements (peer keys only)
+
+| Key | Relationship |
+|-----|--------------|
+| `requirement-domain-cloudflare-dns` | Consumes types when submit/approve is routed |
+| `requirement-cloudflare-dns-mode` | Mode values + switch gate |
+| `requirement-cloudflare-api` | Approve dest is type=A only |
+| `requirement-cloudflare-vault` | `domain_id` + stored `mode` |
+| `requirement-external-ipv4` | IPv4 validation |
+| `requirement-shell-cli-interface` | Future submit/approve argv |
+| `docs/requirements/index.md` | Registry |
+
+---
+
+## Design-time verification
+
+| TP family / ID | Suite | Status | Note |
+|----------------|-------|--------|------|
+| **TP-CF-REQ-01** | `tests/test_cf_dns.sh` | todo | parse/accept `add` non-RR example |
+| **TP-CF-REQ-02** | `tests/test_cf_dns.sh` | todo | parse/accept `add` RR example |
+| **TP-CF-REQ-03** | `tests/test_cf_dns.sh` | todo | parse/accept `update` + RR `from_ipv4` |
+| **TP-CF-REQ-04** | `tests/test_cf_dns.sh` | todo | parse/accept `remove` variants |
+| **TP-CF-REQ-05** | `tests/test_cf_dns.sh` | todo | parse/accept both `mode` examples |
+| **TP-CF-REQ-06** | `tests/test_cf_dns.sh` | todo | unknown action / extra key fail |
+| **TP-CF-REQ-07** | `tests/test_cf_dns.sh` | todo | IPv6 / token in body fail |
+| **TP-CF-REQ-08** | `tests/test_cf_dns.sh` | todo | `mode` + ipv4 extra fail |
+
+**Matrix:** `reviews/requirement-test-matrix.md`  
+**Map:** `reviews/test-plan.md`
+
+---
+
+## 7. Status history
+
+| Date | Status | Note |
+|------|--------|------|
+| 2026-08-17 | Active 1.0.0 | Four request-types + eight complete JSON examples |
+
+---
+
+**Last Updated**: 2026-08-17  
+**Owner**: project maintainers  
+**Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

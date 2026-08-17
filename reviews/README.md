@@ -1,4 +1,4 @@
-# Reviews — cli-template
+# Reviews — dns-cli
 
 Public product review surface (peer of `tests/`).
 
@@ -11,8 +11,8 @@ Public product review surface (peer of `tests/`).
 | `index.md` | Report index |
 | `reports/` | Dated review run reports |
 
-**Ship unit:** `src/cli-template` (**VERSION 1.0.0**)  
+**Ship unit:** `src/dns-cli` (**VERSION 1.2.0**)  
 **Suite:** `./tests/run.sh`  
-**Last suite baseline:** see `test-plan.md`
+**Last suite baseline:** PASS=240 FAIL=0 SKIP=0 (2026-08-17)
 
-**Review focus:** Type 0 local lifecycle; no backup/restore/sudoers-file surface.
+**Review focus:** Type 0 local lifecycle + Cloudflare vault v2 + A-record mode + `ip`; live Type 0 specify on `crms.hk` is optional (`CF_LIVE=1`). No backup/restore/sudoers-file surface.

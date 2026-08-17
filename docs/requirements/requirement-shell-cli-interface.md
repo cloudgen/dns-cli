@@ -1,14 +1,14 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 2.0.0)  
+**Status**: Active (Version 3.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of cli-template: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
+This requirement is the **project Single Source of Truth** for the **POSIX shell CLI interface** of dns-cli: command surface, privilege typing, global flags, dispatcher behavior, help/about contracts, and mode rules.
 
-It defines a **Type 0–centric local self-managed shell CLI** with **no domain verbs**. Full lifecycle rules live in `requirement-shell-local-self-management.md`.
+**Domain verb catalog, flags, help rows, and about extras** are owned by `requirement-domain-cloudflare-dns.md`. Type 1/2 map and elev tables live in `requirement-three-layer-privilege-model`. This file **lists names + argv grammar only** and **MUST NOT** duplicate full domain or F1–F7 tables. Full lifecycle rules live in `requirement-shell-local-self-management.md`.
 
 ---
 
@@ -20,9 +20,10 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help` |
-| **Type 1 – Narrow elevated host ops** | Controlled sudo | **Not in scope** |
-| **Type 2 – Dedicated system user app ops** | Dedicated app user | **Not in scope** |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `ip`, `print-sudoers` |
+| **Type 0 – Specify-vault domain** | Invoking user | `vault` / `add` / `update` / `remove` / `status`/`show` **when** `--vault-dir` / `CF_VAULT_DIR` is set — **catalog SSOT:** `requirement-domain-cloudflare-dns` |
+| **Type 1 – LPU bootstrap** | Password `sudo` / already-root | `setup`, `remove-lpu` — **SSOT:** `requirement-three-layer-privilege-model` |
+| **Type 2 – Default-vault domain** | `dns-adm` | `vault` / `add` / `update` / `remove` / `status`/`show` on the default LPU vault |
 
 ### 2.2 Global flags (portable)
 
@@ -34,7 +35,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 | `--force` | `FORCE=1` / force policy | Skip uninstall confirm or force reinstall only where documented |
 | `--global` | `FORCE_GLOBAL=1` | Install to `GLOBAL_BIN` |
 
-Additional flags **MAY** be added only when documented here (or a superseding requirement) and wired in the dispatcher.
+Additional flags **MAY** be added only when documented here **or** in the domain SSOT and wired in the dispatcher. Domain flags (`--ip`, `--domain` / `--domain-id`, `--user-id`, `--subdomain`, `--mode`, `--from`, `--ttl`, `--proxied`, `--token-file`) are owned by domain / vault / mode law. `--vault-dir` is owned by `requirement-application-local-vault`. `--mode` and `--from` semantics: `requirement-cloudflare-dns-mode`.
 
 **Forbidden flags (trimmed):** `--allow-test-local`, `--disk`, `--ram` (parent domain / sudoers).
 
@@ -45,36 +46,40 @@ Additional flags **MAY** be added only when documented here (or a superseding re
 3. **Empty argv:** **Type N → help** (`requirement-shell-cli-zero-arguments.md`).  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).  
-6. Trimmed parent verbs (`backup`, `restore`, `print-sudoers`, `print-sudoers-install-script`, `remove-project-sudoers`) **MUST** fail as unknown.
+6. Trimmed parent verbs (`backup`, `restore`, `print-sudoers-install-script`, `remove-project-sudoers`) **MUST** fail as unknown. `print-sudoers` **is** in scope (Type 0 emit; dest write is Type 1 `setup`).
 
 ### 2.4 Help surface
 
 `help` **MUST** list:
 
 - Usage line  
-- Every supported Type 0 command with one-line purpose  
+- Every **routed** Type 0 command with one-line purpose  
+- Every **routed** domain verb (domain SSOT owns the rows; do not list unrouted verbs)  
 - Global flags  
 - Honest note that this product is local-only (no curl\|sh)
 
 In JSON mode, help **MUST NOT** dump long human text; return a short structured success/note object.
 
-`help` **MUST NOT** list backup, restore, or sudoers-file verbs.
+`help` **MUST NOT** list backup, restore, or `print-sudoers-install-script` / `remove-project-sudoers`. `help` **MUST** list `setup` / `remove-lpu` / `print-sudoers` **only when** `app_main` routes them.
 
 ### 2.5 Implementation Notes (this project)
 
-| Item | Value for cli-template |
+| Item | Value for dns-cli |
 |------|-------------------------|
-| **Product / binary name** | `cli-template` (`APP_NAME`) |
-| **Primary executable** | `src/cli-template` (POSIX `/bin/sh`, single-file ship unit) |
+| **Product / binary name** | `dns-cli` (`APP_NAME`) |
+| **Primary executable (target)** | `src/dns-cli` (POSIX `/bin/sh`, single-file ship unit) |
+| **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
-| **Output SSOT** | `out_text` + wrappers (`out_info`, `out_success`, `out_warn`, `out_error`, `out_die`, `out_plain`, `out_json`, …) |
-| **Version SSOT** | `VERSION="1.0.0"` hard-assign in ship unit |
+| **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
+| **Version SSOT** | `VERSION="1.0.0"` until DNS ships; then `1.1.0` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
-| **Primary install story** | User bin: `~/.local/bin/cli-template` |
+| **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
-| **Type 1 / Type 2 commands** | None |
-| **Dedicated system user** | Not required |
-| **About** | Type 0 only; no domain fields |
+| **Type 1 / Type 2 commands** | `setup` / `remove-lpu` (Type 1); default-vault domain (Type 2) — **Gap** until routed |
+| **Dedicated system user** | `dns-adm` — `requirement-least-privilege-user` |
+| **About** | Type 0 fields **plus** domain extras owned by `requirement-domain-cloudflare-dns` (incl. `lpu_present`) |
+| **Domain catalog owner** | `requirement-domain-cloudflare-dns` |
+| **Domain implementation** | Implemented |
 
 #### Supported commands (normative for this project)
 
@@ -87,6 +92,18 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
+| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest — **Gap** |
+| `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Gap** |
+| `print-sudoers` | Type 0 | `lpu_print_sudoers` | Emit Table A fragment — **Gap** |
+| `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here |
+
+#### Argv grammar (normative)
+
+1. Global flags **MAY** appear before or after the verb.  
+2. Value flags **MUST** consume the next argv token; missing value → fail closed.  
+3. Type 0 lifecycle verbs (`install`, `uninstall`, `where-is-me`, `version`, `about`, `help`) **MUST** reject unexpected operands.  
+4. `vault` subcommand grammar: `vault set|init|show|clear` or `vault account|zone add|list|modify|remove|default|show [<domain-id>]` or `vault subdomain add|list|modify|remove|mode [<label>]`. `zone` is an alias of `account`.  
+5. Domain operands (`--domain` / `--domain-id`, `--subdomain`, `--mode`, `--from`, optional positional host-label) are defined in the domain SSOT / `requirement-cloudflare-dns-mode`.
 
 #### Global flags (normative wiring)
 
@@ -100,18 +117,18 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 #### Dispatcher acceptance criteria
 
-1. Unknown token after flag parse → `out_die` with pointer to `cli-template help`.  
-2. Zero-arg → help (not install).  
-3. Command routing table in `app_main` **must** include every row above and **no** trimmed parent verbs.  
-4. Help text **must** stay aligned with that table.
+1. Unknown token after flag parse → `out_die` / `out_die_code` with pointer to `dns-cli help`.  
+2. Zero-arg → help (not install, not DNS).  
+3. Command routing table in `app_main` **must** include every **routed** row and **no** trimmed parent verbs.  
+4. Help text **must** stay aligned with that table (no listed-but-unrouted domain verbs).
 
 #### Explicitly out of scope
 
 - Online: `version-check`, `self-update`, `self-uninstall`, channel `install` via URL  
-- Domain: `backup`, `restore`  
-- Sudoers-file: `print-sudoers`, `print-sudoers-install-script`, `remove-project-sudoers`  
-- Type 1 host-mutating setup  
-- Type 2 app runtime under a dedicated system user  
+- Parent domain: `backup`, `restore` (not Cloudflare verbs)  
+- Sudoers-manager extras: `print-sudoers-install-script`, `remove-project-sudoers`  
+
+`print-sudoers` and `setup` **are** in scope (emit vs Type 1 dest). Do not treat them as trimmed parent verbs.
 
 ### 2.6 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -119,8 +136,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 - **CIAO Principle 2 – Intentional**: Every command has one privilege type and one handler family.  
 - **CIAO Principle 5 – Single Source of Output**: Central `out_*`.  
 - **CIAO Principle 6 – Single Point of Entry**: `app_main` is the dispatcher SSOT.  
-- **CIAO Principle 9 – Three Types of Commands**: Type 0 lifecycle only.  
-- **CIAO Principle 10 – Least-Privilege User**: No invented system-user requirement for binary lifecycle.  
+- **CIAO Principle 9 – Three Types of Commands**: Type 0 lifecycle + Type 1 setup + Type 2 default-vault.  
+- **CIAO Principle 10 – Least-Privilege User**: `dns-adm` owns the default vault; binary lifecycle stays Type 0.  
 - **CIAO Principle 16 – Interactive vs Non-Interactive**: No hang in non-interactive mode.  
 - **CIAO Principle 4 / 20 – Over-protect**: Protection Rule blocks privilege and UX regressions.
 
@@ -129,7 +146,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution**: Fail closed on unknown verbs, including trimmed parent verbs.  
-- **Intentional**: Type 0 catalog is the whole product surface.  
+- **Intentional**: Privilege column plus a pointer to domain and three-layer SSOTs.  
 - **Anti-fragile**: Same dispatcher contract as parent.  
 - **Over-protect**: Do not silently restore domain verbs “because the name is cli-template.”
 
@@ -139,7 +156,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Add domain or sudoers verbs without a new Active requirement and explicit user order.  
+1. Add **additional** domain verbs without updating `requirement-domain-cloudflare-dns`, or widen F6 beyond Table A.  
 2. Change empty argv from Type N help to install-ensure.  
 3. Bypass `out_*` for user-facing messages.  
 4. Advertise an online install channel in help/about.  
@@ -153,8 +170,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Help lists install / uninstall / where-is-me / version / about / help |
-| AC-2 | Help and about omit backup / restore / print-sudoers |
+| AC-1 | Help lists install / uninstall / where-is-me / version / about / help plus **routed** domain verbs only |
+| AC-2 | Help and about omit backup / restore / print-sudoers-install-script |
 | AC-3 | Unknown and trimmed verbs exit non-zero |
 | AC-4 | Empty argv is help |
 
@@ -168,6 +185,12 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `requirement-shell-local-self-management` | install / uninstall / where-is-me |
 | `requirement-shell-output-requirements` | `out_*` |
 | `requirement-bootstrap-chain` | Trimmed surfaces |
+| `requirement-domain-cloudflare-dns` | Domain catalog owner |
+| `requirement-cloudflare-dns-mode` | `--mode` / `--from` / `vault subdomain mode` |
+| `requirement-cloudflare-dns-request` | Future submit/approve argv; four `action` values |
+| `requirement-cloudflare-vault` | Vault flags / `vault` store UX |
+| `requirement-least-privilege-user` | `dns-adm` |
+| `requirement-three-layer-privilege-model` | Type map + `setup` / `print-sudoers` |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -188,9 +211,13 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
+| 2026-08-17 | Active 3.2.0 | `vault account\|zone add\|list\|modify\|remove`; `vault subdomain modify` |
+| 2026-08-17 | Active 3.1.0 | `--mode` / `--from` / `vault subdomain mode` argv |
+| 2026-08-17 | Active 3.0.0 | Type 1 `setup`/`remove-lpu`; Type 2 default-vault; `print-sudoers` in scope |
+| 2026-08-16 | Active 2.1.0 | Pointer to domain SSOT; argv grammar; dns-cli identity |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

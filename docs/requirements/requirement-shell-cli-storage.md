@@ -1,14 +1,14 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **shell CLI storage resolution** of cli-template: volatile scratch and app-scoped cache path selection, per-user isolation, central resolver ownership, `app_main` wire, and about diagnostics.
+This requirement is the **project Single Source of Truth** for **shell CLI storage resolution** of dns-cli: volatile scratch and app-scoped cache path selection, per-user isolation, central resolver ownership, `app_main` wire, and about diagnostics.
 
-Used for **install staging** (`mktemp` under the isolated root). Not a durable backup deposit.
+Used for **install staging** (`mktemp` under the isolated root). Not a durable backup deposit. **Not** the application local vault (`requirement-application-local-vault` / `requirement-cloudflare-vault`).
 
 ---
 
@@ -51,10 +51,10 @@ First match that is available and writable:
 
 | Item | Live value |
 |------|------------|
-| **Product / binary** | `cli-template` |
-| **Resolver** | `util_resolve_storage` in `src/cli-template` |
+| **Product / binary** | `dns-cli` |
+| **Resolver** | `util_resolve_storage` in the ship unit |
 | **Call sites** | `app_main`, `app_about`, install staging |
-| **Not used for** | Durable `/var/backup` (not a product path) |
+| **Not used for** | Durable `/var/backup`; **Cloudflare vault** (separate law) |
 
 ### 2.6 Why This Requirement Exists (CIAO)
 
@@ -79,10 +79,11 @@ First match that is available and writable:
 
 1. Remove `${APP_NAME}` / `${USERNAME}` isolation.  
 2. Replace the fallback chain with a shared world-writable dump.  
-3. Scatter hard-coded `/tmp/cli-template` roots outside the resolver.  
+3. Scatter hard-coded `/tmp/dns-cli` (or leftover `/tmp/cli-template`) roots outside the resolver.  
 4. Leave the resolver dead with no call sites while claiming storage is product law.  
 5. Echo a tier path without creating it.  
-6. Treat `/var/backup` as a product storage path.
+6. Treat `/var/backup` as a product storage path.  
+7. Store API tokens or vault files under a scratch tier (`/dev/shm`, `/tmp`, XDG cache).
 
 **Violating this rule is a critical storage isolation regression.**
 
@@ -106,6 +107,7 @@ First match that is available and writable:
 | `requirement-project-folder` | Path classes |
 | `requirement-shell-cli-interface` | About fields |
 | `requirement-shell-local-self-management` | Install staging |
+| `requirement-cloudflare-vault` | Durable vault ≠ this resolver |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -116,9 +118,10 @@ First match that is available and writable:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup staging |
 | 2026-08-13 | Active 1.1.0 | cli-template: scratch only |
+| 2026-08-16 | Active 1.2.0 | Explicit: not the Cloudflare vault; dns-cli identity |
 
 ---
 
-**Last Updated**: 2026-08-13  
+**Last Updated**: 2026-08-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
