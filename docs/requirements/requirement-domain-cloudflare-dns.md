@@ -45,7 +45,7 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 
 **D-M10.** Default automated tests (`./tests/run.sh`) **MUST NOT** call live Cloudflare or ipinfo. Network fixtures only.
 
-**D-M15. Live operator verify (Type 0 specify).** A temporary real-zone check (this workspace: apex `crms.hk`) **MUST** run as the **invoking login** (this host: `leolio`) with `--vault-dir` / `CF_VAULT_DIR`. **MUST NOT** require `dns-adm` or Type 2. **MUST NOT** use the default LPU dest. The specify dir **MUST** be gitignored and **MUST NOT** be under `/tmp` or `/dev/shm`.
+**D-M15. Live operator verify (Type 0 specify).** A temporary real-zone check (this workspace: apex `crms.hk`) **MUST** run as the **invoking login** (`id -un`) with `--vault-dir` / `CF_VAULT_DIR`. **MUST NOT** require `dns-adm` or Type 2. **MUST NOT** use the default LPU dest. The specify dir **MUST** be gitignored and **MUST NOT** be under `/tmp` or `/dev/shm`.
 
 **D-M16. Probe + teardown.** Live mutate **MUST** use a dedicated host-label (default `dns-cli-tmp`), **not** `@` or `www`. After the session the operator **MUST**: delete the probe A, `vault account remove` that domain-id, remove the specify dir, and **revoke** the temporary API token in the Cloudflare dashboard. The product **MUST NOT** keep the token after teardown. Default suite **MUST NOT** run D-M15/D-M16.
 
@@ -143,7 +143,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **API** | `https://api.cloudflare.com/client/v4/zones/:zone_id/dns_records` |
 | **IP lookup** | `https://ipinfo.io` field `ip` (`--ip` override; `CF_CURL` stub for tests) |
 | **Record type** | A only (IPv4). AAAA out of scope |
-| **A-record mode** | `requirement-cloudflare-dns-mode` — default non-round-robin; **Gap** on ship unit |
+| **A-record mode** | `requirement-cloudflare-dns-mode` — default non-round-robin; stored mode **Implemented** on 1.4.0 (inbound `mode` JSON still Gap) |
 | **VERSION** | `1.4.0` (ship unit; LPU dest + inbound machine still Gap; rc heal Implemented) |
 | **Proof family** | **TP-CF-DNS-*** |
 
@@ -257,7 +257,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | Date | Status | Note |
 |------|--------|------|
 | 2026-08-17 | Active 2.5.0 | Consumes `requirement-dns-actor-table` (named machine + login hook) |
-| 2026-08-17 | Active 2.4.0 | Live Type 0 specify verify as invoking user (`crms.hk` / `leolio`); not dns-adm-only |
+| 2026-08-17 | Active 2.4.0 | Live Type 0 specify verify as invoking user (`crms.hk`); not dns-adm-only |
 | 2026-08-17 | Active 2.3.0 | Consumes `requirement-cloudflare-dns-request` (four types) |
 | 2026-08-17 | Active 2.2.0 | Vault catalog: `account`/`zone` add\|list\|modify\|remove; `subdomain modify` |
 | 2026-08-17 | Active 2.1.0 | Consumes `requirement-cloudflare-dns-mode` (default non-RR; RR multi-A; switch only when ipv4_count ∈ {0,1}) |

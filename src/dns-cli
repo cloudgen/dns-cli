@@ -50,8 +50,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.4.0"
-: "${VERSION:=1.4.0}"
+VERSION="1.4.1"
+: "${VERSION:=1.4.1}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -988,18 +988,19 @@ prompt_ask() {
     local default="${2-}"
     local current="${3-}"
 
+    : "${TTY:=0}"
+    : "${INTERACTIVE:=0}"
+
     # Never prompt in non-interactive modes
     if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ]; then
         printf '%s' "${default}"
         return 0
     fi
 
-    # Must have a real TTY (unless caller explicitly set INTERACTIVE=1)
-    if ! [ -t 0 ] || ! [ -t 1 ]; then
-        if [ "${INTERACTIVE:-0}" -ne 1 ]; then
-            printf '%s' "${default}"
-            return 0
-        fi
+    # Consume TTY SSOT (measured in app_main). INTERACTIVE=1 is a test override.
+    if [ "${TTY}" -ne 1 ] && [ "${INTERACTIVE}" -ne 1 ]; then
+        printf '%s' "${default}"
+        return 0
     fi
 
     # Show current value if present
@@ -1057,6 +1058,7 @@ prompt_yes_no() {
     # Defensive defaults - never assume globals are set
     : "${JSON:=0}"
     : "${QUIET:=0}"
+    : "${TTY:=0}"
 
     local message="$1"
 
@@ -1065,8 +1067,8 @@ prompt_yes_no() {
         return 1   # treat as "no" in non-interactive modes
     fi
 
-    # Must be interactive TTY
-    if ! [ -t 0 ] || ! [ -t 1 ]; then
+    # Consume TTY SSOT — do not retest [ -t 0 ] / [ -t 1 ] here
+    if [ "${TTY}" -ne 1 ]; then
         return 1
     fi
 
@@ -1102,10 +1104,11 @@ prompt_yes_no() {
 prompt_secret() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
+    : "${TTY:=0}"
     if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ]; then
         return 1
     fi
-    if ! [ -t 0 ] || ! [ -t 1 ]; then
+    if [ "${TTY}" -ne 1 ]; then
         return 1
     fi
     out_msg_n "${1:-Secret}: "
@@ -1764,7 +1767,7 @@ cf_vault_merge_missing() {
 
 cf_vault_require_complete() {
     if [ -z "${CFV_TOKEN}" ] || [ -z "${CFV_ZONE_ID}" ] || [ -z "${CFV_ACCOUNT_ID}" ] || [ -z "${CFV_USER_ID}" ] || [ -z "${CFV_DOMAIN}" ] || [ -z "${CFV_SUBPAIRS}" ]; then
-        if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || ! [ -t 0 ] || ! [ -t 1 ]; then
+        if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY:-0}" -ne 1 ]; then
             out_die_code vault_incomplete "Vault is incomplete (need token, user_id, zone_id, account_id, domain, subdomain)"
         fi
         return 1
@@ -2055,7 +2058,7 @@ cf_vault_cmd_set() {
 cf_vault_cmd_input() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
-    if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || ! [ -t 0 ] || ! [ -t 1 ]; then
+    if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY:-0}" -ne 1 ]; then
         out_die_code confirm_required "vault input requires an interactive TTY; use 'vault set' with flags or --token-file"
     fi
     cf_vault_load || true
@@ -2153,7 +2156,7 @@ print(json.dumps(out, separators=(",", ":")))
 cf_vault_cmd_clear() {
     cf_vault_dir
     _vdir="${CFV_DIR}"
-    if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || ! [ -t 0 ]; then
+    if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY:-0}" -ne 1 ]; then
         if [ "${FORCE}" -ne 1 ]; then
             out_die_code confirm_required "vault clear requires --force in non-interactive mode"
         fi
@@ -2494,7 +2497,7 @@ EOF
             if [ -z "${_nid}" ]; then
                 out_die_code domain_required "vault account remove requires a domain-id"
             fi
-            if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || ! [ -t 0 ]; then
+            if [ "${JSON}" -eq 1 ] || [ "${QUIET}" -eq 1 ] || [ "${TTY:-0}" -ne 1 ]; then
                 if [ "${FORCE}" -ne 1 ]; then
                     out_die_code confirm_required "vault account remove requires --force in non-interactive mode"
                 fi
@@ -3667,7 +3670,7 @@ app_about() {
     _shell=$(util_get_current_shell)
     _user=$(id -un 2>/dev/null || echo "unknown")
     _interactive="false"
-    [ -t 1 ] && _interactive="true"
+    [ "${TTY:-0}" -eq 1 ] && _interactive="true"
 
     _vdir=$(cf_vault_dir_probe || true)
     _tp="false"
@@ -3753,7 +3756,7 @@ app_about() {
     fi
     out_empty_line
     out_info "Current shell:     ${_shell}"
-    if [ -t 1 ]; then
+    if [ "${TTY:-0}" -eq 1 ]; then
         out_info "TTY / Interactive: yes"
     else
         out_info "TTY / Interactive: no"
@@ -3862,7 +3865,7 @@ app_help() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Single dispatcher for cf-cli (Type 0 lifecycle + Cloudflare domain).
+# Single dispatcher for dns-cli (Type 0 lifecycle + Cloudflare domain).
 # Empty argv = Type N help (not install-ensure, not DNS).
 #
 # ALIGNMENT:
@@ -3974,6 +3977,10 @@ app_main() {
     done
 
     COMMAND="${CF_POS1:-help}"
+
+    # Interactive capability SSOT — measure in main after flags; prompt_* consume TTY
+    TTY=0
+    [ -t 0 ] && [ -t 1 ] && TTY=1
 
     case "${COMMAND}" in
         install|uninstall|where-is-me|version|about|help)

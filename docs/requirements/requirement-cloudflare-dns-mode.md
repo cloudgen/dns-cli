@@ -101,7 +101,7 @@ The switch **MUST** rewrite only the stored `mode`. **MUST NOT** create, delete,
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.2.0** — stored mode **Implemented**; inbound `mode` JSON request **Gap** |
+| **Ship unit** | `src/dns-cli` **1.4.0** — stored mode **Implemented**; inbound `mode` JSON request **Gap** |
 | **Default mode** | `non-round-robin` |
 | **Store** | `accounts/<domain-id>/vault.json` subdomain objects (`label` + `mode`) |
 | **Switch verb** | `vault subdomain mode <label> <mode>` |

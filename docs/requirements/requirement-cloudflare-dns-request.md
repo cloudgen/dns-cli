@@ -212,7 +212,7 @@ Basename: `20260817-alice-mode-2.json`
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.2.0** — request inbox **Gap** |
+| **Ship unit** | `src/dns-cli` **1.4.0** — request inbox **Gap** |
 | **Types** | 4: `add` `update` `remove` `mode` |
 | **Inbound (law, when implemented)** | public submission folder; JSON only |
 | **Proof** | **TP-CF-REQ-01..08** (todo) |
@@ -260,7 +260,7 @@ Basename: `20260817-alice-mode-2.json`
 | AC-REQ6 | `mode` with `ipv4` present → `request_invalid` |
 | AC-REQ7 | `mode` when `ipv4_count`≥2 → `dns_mode_locked` |
 | AC-REQ8 | IPv6 in `ipv4` / `from_ipv4` → fail closed |
-| AC-REQ9 | Stay-honest: inbound submit/approve **Gap** on 1.2.0 |
+| AC-REQ9 | Stay-honest: inbound submit/approve **Gap** on 1.4.0 |
 
 ---
 

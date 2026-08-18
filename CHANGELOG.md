@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-18
+
+### Fixed
+
+- Interactive helpers and vault confirm gates consume the `TTY` SSOT measured in `app_main` (no live `[ -t` retest inside `prompt_*`).
+- Requirement Implementation Notes aligned to ship unit **1.4.1** (vault v2 / stored mode Implemented; inbound and LPU dest remain Gap).
+- Dispatcher comment leftover `cf-cli` renamed to `dns-cli`.
+
 ## [1.4.0] - 2026-08-17
 
 ### Added (ship unit 1.4.0)

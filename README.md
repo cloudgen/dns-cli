@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.4.1-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -9,7 +9,7 @@ POSIX `/bin/sh` CLI specialized from **cli-template**: Type 0 lifecycle plus a l
 
 Each subdomain has a stored **A-record mode**. The default is **non-round-robin** (one IPv4). **Round-robin** means several distinct IPv4 A rows on the same FQDN. Mode may switch only when `ipv4_count` is 0 or 1. IPv6 / AAAA are out of scope.
 
-Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.4.0**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** **are implemented**. LPU create, Type 2 default vault `/etc/dns-adm/vault/`, inbound submit/approve, and the `interactive` review loop **are not** (honest Gap).
+Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.4.1**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** **are implemented**. Prompt helpers consume the `TTY` SSOT. LPU create, Type 2 default vault `/etc/dns-adm/vault/`, inbound submit/approve, and the `interactive` review loop **are not** (honest Gap).
 
 Install **location** is still **both**:
 
@@ -31,7 +31,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 - **Zone-slot CRUD**: `vault account` / `vault zone` add \| list \| modify \| remove; list JSON never includes the token
 - **Token probe**: adding a zone token creates `_test_<UTC timestamp>` then deletes it; fail closed if the token cannot write DNS; probe label is **not** stored
 - **Two A-record modes**: default `non-round-robin`; optional `round-robin`; switch locked when `ipv4_count` ≥ 2
-- **Four DNS request types** (law): inbound JSON `add` / `update` / `remove` / `mode` — **no token in the file** (submit/approve Gap on 1.4.0)
+- **Four DNS request types** (law): inbound JSON `add` / `update` / `remove` / `mode` — **no token in the file** (submit/approve Gap on 1.4.1)
 - **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
 
 ## Quick Installation
@@ -138,7 +138,7 @@ Exactly **four** request `action` values. Read-only verbs (`status`, `ip`, `show
 | `remove` | Delete one IPv4 A | DNS `remove` (round-robin N>1 needs `ipv4`) |
 | `mode` | Switch stored mode only | `vault subdomain mode` — **no** A-row write |
 
-**Ship unit 1.4.0:** operators run `add` / `update` / `remove` / `vault subdomain mode` **directly** (Type 0 `--vault-dir` is enough). Interactive `dns-adm` **heals** the login-hook rc. The inbound folder + `submit` / `approve` / `reject` / `interactive` review loop are **Gap**. Empty argv still must not submit or approve.
+**Ship unit 1.4.1:** operators run `add` / `update` / `remove` / `vault subdomain mode` **directly** (Type 0 `--vault-dir` is enough). Interactive `dns-adm` **heals** the login-hook rc. The inbound folder + `submit` / `approve` / `reject` / `interactive` review loop are **Gap**. Empty argv still must not submit or approve.
 
 ### Actor table (who may submit / approve)
 
@@ -343,4 +343,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-08-17 — version **1.4.0** (approver rc heal Implemented; submit/approve/`interactive` review loop still Gap).
+2026-08-18 — version **1.4.1** (`TTY` SSOT in `prompt_*`; submit/approve/`interactive` review loop still Gap).

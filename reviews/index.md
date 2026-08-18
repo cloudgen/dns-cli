@@ -2,6 +2,7 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-08-18 | `reports/2026-08-18-review-requirement-coverage.md` | C-full-product requirement sufficient check | Sufficient with Gaps | law vs `src/dns-cli` 1.4.0 |
 | 2026-08-17 | `reports/2026-08-17-review-local-1.2.0.md` | local uncommitted ship unit 1.2.0 | Approve with follow-ups | PASS=235 FAIL=0 |
 | 2026-08-17 | `reports/2026-08-17-review-live-token-crms-hk.md` | live Type 0 token on `crms.hk` | Pass after `zone:dns:edit` | live PASS=9 |
 | 2026-08-17 | `reports/2026-08-17-review-live-crms-hk.md` | earlier live Type 0 as `leolio` | Pass (then revoke) | live PASS=8 |

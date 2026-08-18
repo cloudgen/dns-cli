@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.3.0)  
+**Status**: Active (Version 1.3.1)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -33,7 +33,11 @@ Rules:
 
 1. Prompt decisions **MUST** use shared `prompt_*` helpers — not ad-hoc `read` in domain logic.  
 2. After flags are parsed in `app_main`, subsequent code **MUST** see updated mode globals.  
-3. Do **not** invent a second parallel mode system per command.
+3. Do **not** invent a second parallel mode system per command.  
+4. Interactive capability **MUST** be measured in the **main process, outside functions**: after flags, `TTY=0` then `[ -t 0 ] && [ -t 1 ] && TTY=1` (or a direct setter that assigns `TTY`).  
+5. `prompt_ask` / `prompt_yes_no` / `prompt_secret` and vault confirm gates **MUST consume `TTY`**. Live `[ -t 0 ]` / `[ -t 1 ]` as a **policy gate inside those helpers** is forbidden.  
+6. A login-hook snippet that runs in the **user’s shell** (not the CLI process) **MAY** probe `[ -t` there — that is hook identity, not CLI `TTY` SSOT.  
+7. `about` **MUST** report `TTY`, not a live `[ -t` retest.
 
 ### 2.3 Behavioral matrix (this product)
 
@@ -56,7 +60,7 @@ Rules:
 |------|--------|
 | **Product** | `dns-cli` |
 | **No curl\|sh auto-install path** | Local-only; non-interactive does not mean Type O install-ensure |
-| **Prompt helpers** | `prompt_yes_no` (uninstall, vault clear); `prompt_secret` (token — **Gap** until implemented) |
+| **Prompt helpers** | `prompt_yes_no` / `prompt_ask` / `prompt_secret` consume `TTY` — **Implemented** on `src/dns-cli` 1.4.1 |
 
 ### 2.5 Why This Requirement Exists (CIAO)
 
@@ -82,7 +86,8 @@ Rules:
 1. Hang on stdin in non-interactive/json modes.  
 2. Auto-yes destructive uninstall without `--force` in non-interactive mode.  
 3. Scatter unguarded `read` calls outside `prompt_*`.  
-4. Treat non-interactive as license to skip required validation.
+4. Treat non-interactive as license to skip required validation.  
+5. Retest `[ -t 0 ]` / `[ -t 1 ]` inside `prompt_*` or vault confirm gates instead of consuming `TTY`.
 
 **Violating this rule is a critical interaction-mode regression.**
 
@@ -115,6 +120,7 @@ Rules:
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.3.1 | `TTY` measured in `app_main`; `prompt_*` consume `TTY` |
 | 2026-08-03 | Active | Interactive vs non-interactive for folder-backup |
 | 2026-08-17 | Active 1.3.0 | `account`/`zone` modify collect; `zone remove` confirm |
 | 2026-08-17 | Active 1.2.0 | account remove / remove-lpu / setup rows |
@@ -122,6 +128,6 @@ Rules:
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -2,7 +2,7 @@
 
 **Product:** dns-cli (POSIX `/bin/sh` local self-managed Cloudflare DNS CLI — Type 0/1/2 + LPU `dns-adm` as Type 2 operator **and** Type 1 approver; anyone may submit)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; **B = `dns-cli` hop 1** specialized from **A = `cli-template` hop 0**. Online / Type O / backup / restore **intentionally absent**. LPU **`dns-adm`** + Type 1 `setup` **in scope** (ship unit Gap).  
-**Updated:** 2026-08-17
+**Updated:** 2026-08-18
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
@@ -17,7 +17,7 @@
 | requirement-shell-output-requirements | Central `out_*` output SSOT + `out_die_code` | shell | Active (1.1.0) | `requirement-shell-output-requirements.md` | 2026-08-16 |
 | requirement-shell-modular-function-design | Single-file modular prefixes (`out_`/`inst_`/`app_`/`cf_`/`lpu_`) | shell | Active (2.2.0) | `requirement-shell-modular-function-design.md` | 2026-08-17 |
 | requirement-shell-idempotency | Re-run safety for install / uninstall / vault / DNS / mode switch | shell | Active (1.5.0) | `requirement-shell-idempotency.md` | 2026-08-17 |
-| requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm / vault collect / remove-lpu | shell | Active (1.3.0) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-17 |
+| requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm / vault collect / remove-lpu; `prompt_*` consume `TTY` | shell | Active (1.3.1) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-18 |
 | requirement-shell-cli-storage | Scratch/cache resolve (not vault) | shell | Active (1.2.0) | `requirement-shell-cli-storage.md` | 2026-08-16 |
 | requirement-domain-cloudflare-dns | **Domain SSOT** — A-record verbs; Type 0 live specify as invoking user | domain | Active (2.5.0) | `requirement-domain-cloudflare-dns.md` | 2026-08-17 |
 | requirement-dns-actor-table | Actor table (anyone submits; `dns-adm` approves) + login-hook procedure | architecture | Active (1.0.1) Gap | `requirement-dns-actor-table.md` | 2026-08-17 |

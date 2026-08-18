@@ -22,7 +22,7 @@ This is **not** a second `requirement-domain-*`.
 
 | Role | Who | Type | May | Must not |
 |------|-----|------|-----|----------|
-| **Submitter** | **Anyone** — any login (`id -un`; example `alice`; this host `leolio`) | **0** | `submit` a self-scoped JSON file into inbound | Submit for another identity; approve/reject (unless this login is `dns-adm` using Type 1 verbs); write Cloudflare dest; choose the dest basename; hold or print the API token |
+| **Submitter** | **Anyone** — any login (`id -un`; example `alice`) | **0** | `submit` a self-scoped JSON file into inbound | Submit for another identity; approve/reject (unless this login is `dns-adm` using Type 1 verbs); write Cloudflare dest; choose the dest basename; hold or print the API token |
 | **Subject** | Same person as the submitter | — | Appear in basename `subject` and JSON `subject` | Be another login |
 | **Approver** | LPU **`dns-adm`** | **1** (after F6, or euid 0) | Re-check JSON + name; **move** inbound → accepted/declined; on accept, apply dest (`add` / `update` / `remove` / `mode`) | Invent a second approver account; store the token in the request |
 | **Allocator** | `dns-cli` Type 0 `submit` path | **0** | Allocate `YYYYMMDD-<subject>-<action>-<n>.json` | Trust `--name` / caller dest basename |
@@ -115,7 +115,7 @@ F7 **MUST** strip this block from whichever rc files contain it.
 |------|--------|
 | **Product** | `dns-cli` |
 | **Ship unit** | `src/dns-cli` **1.4.0** — rc heal **Implemented**; submit / approve / reject / `interactive` review loop **Gap** |
-| **Submitter** | **Anyone** — any login (this host: `leolio`) |
+| **Submitter** | **Anyone** — any login (`id -un`; example `alice`) |
 | **Approver** | `dns-adm` |
 | **Type 2 operator** | `dns-adm` (same leaf) |
 | **Review verb** | `interactive` |

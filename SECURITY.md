@@ -4,7 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.4.0 (current) | Yes |
+| 1.4.1 (current) | Yes |
+| 1.4.0 | Yes |
 | 1.3.0 | Yes |
 | 1.1.x | Limited (specify vault / `ip`) |
 | 1.0.0 | Limited |

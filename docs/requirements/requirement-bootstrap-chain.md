@@ -73,7 +73,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Sudoers-manager extras (install-script / remove-draft) | **Absent** | Not this product’s domain |
 | Type 0 `print-sudoers` + Type 1 `setup` / `remove-lpu` | **Add on B** | LPU `dns-adm` — Gap |
 | Local `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package |
-| Cloudflare vault + DNS | **Add on B** | Multi-account vault + DNS — v1 Implemented; v2 Gap |
+| Cloudflare vault + DNS | **Add on B** | Multi-account vault + DNS — v2 zone-slot **Implemented** on 1.4.0; LPU default dest Gap |
 | Domain / out Protection Zones | **Keep spirit** | Do not simplify `out_*` |
 
 ### 2.5 Identity (this origin)
@@ -81,7 +81,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Concern | Value |
 |---------|---------|
 | `APP_NAME` | `dns-cli` (live Config `APP_NAME="dns-cli"` — Implemented) |
-| `VERSION` | `1.1.0` |
+| `VERSION` | `1.4.1` (live Config `VERSION="1.4.1"`) |
 | Primary install story | Local copy from running ship unit → `${USER_BIN}` (default `~/.local/bin`) |
 | README one-liner | **No** `curl \| sh` channel claim |
 
@@ -90,7 +90,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Workspace** | `/home/leolio/prjs/cf-cli` (product **dns-cli**) |
+| **Workspace** | `/home/leolio/prjs/dns-cli` |
 | **Role** | Specialized hop 1 from `cli-template`. Not a child of selfmanaged or folder-backup. |
 | **Related (not origin)** | `selfmanaged`, `folder-backup` — do not overwrite; do not maintain this product from them |
 

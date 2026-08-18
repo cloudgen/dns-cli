@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-vault.md  
-**Status**: Active (Version 2.4.0) — 1:1 domain↔API↔user-id; zone-slot CRUD + list; 1:N subdomains with mode; ship unit **1.2.0 Implemented** (LPU default dest still Gap)  
+**Status**: Active (Version 2.4.0) — 1:1 domain↔API↔user-id; zone-slot CRUD + list; 1:N subdomains with mode; ship unit **1.4.0 Implemented** (LPU default dest still Gap)  
 **Area**: domain  
 **Key**: `requirement-cloudflare-vault`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -280,7 +280,7 @@ If POST or DELETE fails → `token_probe_failed` and **MUST NOT** persist the ne
 | **APP_NAME (target)** | `dns-cli` |
 | **Vault path (target)** | Owned by `requirement-application-local-vault` (default `/etc/dns-adm/vault/`) |
 | **Live identity** | Config `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| **Vault code** | v2 multi-account Implemented on `src/dns-cli` **1.2.0**. **Gap:** default dest `/etc/dns-adm/vault/` + Type 2 `dns-adm` |
+| **Vault code** | v2 multi-account Implemented on `src/dns-cli` **1.4.0**. **Gap:** default dest `/etc/dns-adm/vault/` + Type 2 `dns-adm` |
 | **Uninstall** | **MUST NOT** delete the vault |
 | **Proof family** | **TP-CF-VAULT-*** (v1 have; v2 todo) |
 
@@ -348,7 +348,7 @@ If POST or DELETE fails → `token_probe_failed` and **MUST NOT** persist the ne
 | AC-V5 | Two host-labels persist **on one domain-id** and are selectable; removing the last remaining label on that id fails closed |
 | AC-V6 | Two domain-ids persist with **distinct** tokens; selection N≠1 without `--domain` → `domain_required` |
 | AC-V7 | v1 root `vault.json` + `token` → `vault_invalid` |
-| AC-V8 | Stay-honest: v2 layout **Implemented** on `src/dns-cli` 1.2.0; LPU default dest still Gap |
+| AC-V8 | Stay-honest: v2 layout **Implemented** on `src/dns-cli` 1.4.0; LPU default dest still Gap |
 | AC-V9 | Two slots **MAY** have different `account_id`; they **MUST** have distinct tokens and distinct `zone_id` |
 | AC-V10 | Missing `user_id` or duplicate `user_id` across two domain-ids → `vault_invalid` / `vault_incomplete` |
 | AC-V11 | Sample layout: two domain-ids, two user-ids, two tokens; one domain has ≥2 subdomain labels |

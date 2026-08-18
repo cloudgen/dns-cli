@@ -21,7 +21,7 @@ This requirement is the **Single Source of Truth** for **where** dns-cli’s **l
 - Env `CF_VAULT_DIR` (absolute)  
 Precedence: **`--vault-dir` > `CF_VAULT_DIR` > default**.
 
-Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (this host: `leolio`); **MUST NOT** require `dns-adm` to exist.
+Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (`id -un`); **MUST NOT** require `dns-adm` to exist.
 
 **AV-M3.** Specified path **MUST** be absolute. Relative → `vault_insecure`.
 
