@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-vault.md  
-**Status**: Active (Version 2.4.0) — 1:1 domain↔API↔user-id; zone-slot CRUD + list; 1:N subdomains with mode; ship unit **1.4.0 Implemented** (LPU default dest still Gap)  
+**Status**: Active (Version 2.5.0) — 1:1 domain↔API↔user-id; zone-slot CRUD + list; 1:N subdomains with mode; CI-M1a samples; ship unit **1.4.0 Implemented** (LPU default dest still Gap)  
 **Area**: domain  
 **Key**: `requirement-cloudflare-vault`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -272,6 +272,46 @@ If POST or DELETE fails → `token_probe_failed` and **MUST NOT** persist the ne
 
 **V-M10.** Distinct from host SSH forge vaults. **MUST NOT** document host SSH profile or key paths. **MUST NOT** commit secrets.
 
+### 2.6a Sample invocations (CI-M1a)
+
+Fictional hex / documentation IPv4 only. **MUST NOT** put a real token on argv.
+
+```sh
+dns-cli vault
+dns-cli vault input
+dns-cli vault set --zone-id 023e105f4ecef8ad9ca31a8372d0c353
+dns-cli vault init
+dns-cli vault show
+dns-cli --json vault show
+dns-cli vault clear
+dns-cli vault clear --force
+dns-cli vault account add example.com --user-id 100bf38cc8393103870917dd535e0628 --account-id 372e67954025e0ba6aaa6d586b9e0b59 --zone-id 023e105f4ecef8ad9ca31a8372d0c353 --subdomain home --token-file "${HOME}/.config/dns-cli/tok"
+dns-cli vault zone add example.com --user-id 100bf38cc8393103870917dd535e0628 --account-id 372e67954025e0ba6aaa6d586b9e0b59 --zone-id 023e105f4ecef8ad9ca31a8372d0c353 --subdomain home --token-file "${HOME}/.config/dns-cli/tok"
+dns-cli vault account list
+dns-cli --json vault account list
+dns-cli vault zone list
+dns-cli vault account modify example.com --zone-id 023e105f4ecef8ad9ca31a8372d0c353
+dns-cli vault zone modify example.com --zone-id 023e105f4ecef8ad9ca31a8372d0c353
+dns-cli vault account remove example.com
+dns-cli vault account remove example.com --force
+dns-cli vault zone remove example.com --force
+dns-cli vault account default example.com
+dns-cli vault zone default example.com
+dns-cli vault account show example.com
+dns-cli vault zone show example.com
+dns-cli vault subdomain add home
+dns-cli vault subdomain add office --mode round-robin
+dns-cli vault subdomain list
+dns-cli --json vault subdomain list
+dns-cli vault subdomain modify home --mode non-round-robin
+dns-cli vault subdomain modify home --label www
+dns-cli vault subdomain remove office
+dns-cli vault subdomain mode home round-robin
+dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
+```
+
+`--token-file` **MUST** be mode `0600`. `--token` on argv is forbidden. Specify vault (`--vault-dir`) stays Type 0.
+
 ### 2.7 Implementation Notes (this project)
 
 | Item | Value |
@@ -428,6 +468,7 @@ If POST or DELETE fails → `token_probe_failed` and **MUST NOT** persist the ne
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 2.5.0 | CI-M1a sample invocations for every `vault` store subcommand |
 | 2026-08-17 | Active 2.4.0 | Zone-slot CRUD: `account`/`zone` add\|list\|modify\|remove; list JSON is the test surface |
 | 2026-08-17 | Active 2.3.0 | Subdomain objects `{label, mode}`; default non-round-robin; `vault subdomain mode` |
 | 2026-08-17 | Active 2.2.0 | 1:1 domain↔token↔user-id; 1:N subdomains; dns-adm holds many user-ids |

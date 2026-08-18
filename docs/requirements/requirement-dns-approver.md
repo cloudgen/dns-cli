@@ -28,6 +28,15 @@ Who-may-submit vs who-may-approve stays on `requirement-dns-actor-table`. This f
 
 The hook snippet **MUST** match `requirement-dns-actor-table` (begin/end markers, `DNS_CLI_HOOK_RAN` set **before** `sudo -n`, identity `id -un` = `dns-adm`).
 
+### 2.2a Sample invocations (CI-M1a)
+
+```sh
+dns-cli interactive
+sudo -n /usr/local/bin/dns-cli interactive
+```
+
+`interactive` is Type 1 as `dns-adm`. Empty argv remains help. The review loop is **Gap** until routed; rc heal is Implemented.
+
 ### 2.3 Heal when interactive and invoker is the approver
 
 **APR-M4.** When the process is **interactive** (`TTY=1`) **and** `JSON` is not 1 **and** `id -un` equals `dns-adm` (or test override `CF_APPROVER_USER`):
@@ -68,7 +77,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | **Product** | `dns-cli` |
 | **Approver** | `dns-adm` |
 | **Review verb** | `interactive` (**Gap** — still unknown on 1.4.x; hook will warn until routed) |
-| **Rc heal** | **Implemented** on `src/dns-cli` (`cf_approver_heal_login_rc`) |
+| **Rc heal** | **Implemented** on `src/dns-cli` (`cf_approver_heal_login_rc`); `setup` also heals the new home (`lpu_heal_home_rc`) |
 | **Test override** | `CF_APPROVER_USER` (default `dns-adm`); `CF_TEST_HEAL_RC=1` skips TTY for suite |
 | **Proof** | **TP-CF-APR-01..06** |
 

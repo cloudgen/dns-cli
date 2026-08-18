@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.0.0) — law Active; host create **Gap**  
+**Status**: Active (Version 1.0.0) — law Active; host create **Implemented** (1.5.0)  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,6 +14,8 @@ Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `
 
 `dns-adm` **is** the approver for inbound DNS request JSON (`requirement-dns-actor-table`). Approval-subject: Cloudflare DNS request (`add` / `update` / `remove` / `mode`). **Anyone** may submit. **MUST NOT** invent a second approver account. Login-hook heal (`.bashrc` / missing `.profile`) is `requirement-dns-approver`.
 
+`dns-adm` **is not** the sudoer-JSON approver. Print sudoer file (`print-sudoers`) and JSON generate/submit roles live in `requirement-sudoer-json-file` §2.0. Sibling approver is **`sudoer-adm`**.
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -26,7 +28,7 @@ Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `
 
 **L-M3.** `--vault-dir` / `CF_VAULT_DIR` specify (owned by `requirement-application-local-vault`) **MAY** be used by the invoking user (Type 0) for QA. Specify does **not** create the LPU.
 
-**L-M4.** `ip`, `help`, `version`, `about`, `install`, `uninstall`, `where-is-me` **MUST NOT** require `dns-adm` to exist.
+**L-M4.** `ip`, `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **MUST NOT** require `dns-adm` to exist. Submit still needs sibling `sudoer-cli` / `sudoer-adm` (not this LPU).
 
 ### 2.2 Identity (F1–F3 · Shell)
 
@@ -105,9 +107,9 @@ Absent account → success no-op.
 | **F6** | `/etc/dns-adm/sudoers` |
 | **F7** | `remove-lpu` |
 | **Handlers (target)** | `lpu_setup`, `lpu_remove` |
-| **Ship unit** | **Gap** — `src/dns-cli` has no `setup` / `remove-lpu` / `dns-adm` create |
+| **Ship unit** | **Implemented** on `src/dns-cli` **1.5.0** (`lpu_setup` / `lpu_remove`; host `useradd` as root; `CF_TEST_LPU=1` stub for CI) |
 | **Approval-subject** | Cloudflare DNS request JSON (`requirement-cloudflare-dns-request`) |
-| **Proof family** | **TP-LPU-*** (todo) |
+| **Proof family** | **TP-LPU-01..02, 04..06** have (stub). **TP-LPU-03** todo (Type 2 switch) |
 
 ### 2.9 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -156,7 +158,7 @@ Absent account → success no-op.
 | AC-L3 | Default vault I/O as non-`dns-adm` context-switches or fails `lpu_required` |
 | AC-L4 | `--vault-dir` works without the LPU (QA) |
 | AC-L5 | `remove-lpu` does not run from Type 0 `uninstall` |
-| AC-L6 | Stay-honest: ship unit **Gap** until `lpu_*` exists |
+| AC-L6 | Stay-honest: `setup` Implemented on 1.5.0; Type 2 default-vault switch still Gap |
 
 ---
 
@@ -178,12 +180,12 @@ Absent account → success no-op.
 
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
-| **TP-LPU-01** | `tests/test_cf_lpu.sh` | todo | `setup` creates account+home+vault dir (fakeroot / stub) |
-| **TP-LPU-02** | `tests/test_cf_lpu.sh` | todo | re-`setup` no-op |
+| **TP-LPU-01** | `tests/test_cf_lpu.sh` | have | `setup` creates account+home+vault dir (stub) |
+| **TP-LPU-02** | `tests/test_cf_lpu.sh` | have | re-`setup` heal |
 | **TP-LPU-03** | `tests/test_cf_lpu.sh` | todo | default vault as other user → `lpu_required` or switch |
-| **TP-LPU-04** | `tests/test_cf_lpu.sh` | todo | `--vault-dir` without LPU still works |
-| **TP-LPU-05** | `tests/test_cf_lpu.sh` | todo | `uninstall` does not `userdel` |
-| **TP-LPU-06** | `tests/test_cf_lpu.sh` | todo | `remove-lpu` without `--force` in JSON → `confirm_required` |
+| **TP-LPU-04** | `tests/test_cf_lpu.sh` | have | `--vault-dir` without LPU still works |
+| **TP-LPU-05** | `tests/test_cf_lpu.sh` | have | `uninstall` does not `userdel` |
+| **TP-LPU-06** | `tests/test_cf_lpu.sh` | have | `remove-lpu` without `--force` in JSON → `confirm_required` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -194,10 +196,11 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.0.0 | Ship unit `setup` / `remove-lpu` Implemented (1.5.0); Type 2 switch still Gap |
 | 2026-08-17 | Active 1.0.0 | LPU `dns-adm` registered; host create Gap; owns **one** multi-zone vault |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

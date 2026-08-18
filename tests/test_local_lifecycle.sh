@@ -22,6 +22,7 @@ run_test_local_lifecycle() {
     assert_eq "TP-LC-01 install exit 0" 0 "$_ec"
     assert_file_exists "TP-LC-01 binary at USER_BIN" "${CI_USER_BIN}/${APP_NAME}"
     assert_contains "TP-LC-01 install success text" "$_out" "Installed"
+    assert_contains "TP-LC-01 install does not create dns-adm" "$_out" "does not create Linux user dns-adm"
 
     # TP-LC-02 installed version works
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" version 2>/dev/null)
@@ -33,6 +34,7 @@ run_test_local_lifecycle() {
     _ec=$?
     assert_eq "TP-LC-03 reinstall exit 0" 0 "$_ec"
     assert_contains "TP-LC-03 already installed" "$_out" "already installed"
+    assert_contains "TP-LC-03 reinstall does not create dns-adm" "$_out" "does not create Linux user dns-adm"
 
     # TP-LC-04 where-is-me
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${CI_USER_BIN}/${APP_NAME}" where-is-me 2>&1)

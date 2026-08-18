@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-cloudflare-dns.md  
-**Status**: Active (Version 2.5.0)  
+**Status**: Active (Version 2.6.0)  
 **Area**: domain  
 **Key**: `requirement-domain-cloudflare-dns`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -38,6 +38,37 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 | `submit` | Type 0 | Gap | Drop request JSON into inbound (`requirement-dns-actor-table`) |
 | `approve` / `reject` | Type 1 | Gap | Re-validate and move inbound → accepted/declined |
 | `interactive` | Type 1 | Gap | TTY review loop; login hook target |
+
+### 2.1a Sample invocations (CI-M1a)
+
+Documentation IPv4s only (`203.0.113.0/24`). Specify-vault samples stay Type 0.
+
+```sh
+dns-cli vault
+dns-cli ip
+dns-cli --json ip
+dns-cli ip --ip 203.0.113.10
+dns-cli add
+dns-cli add --ip 203.0.113.10
+dns-cli add --subdomain home --ip 203.0.113.10
+dns-cli add --domain example.com --subdomain home --ip 203.0.113.10
+dns-cli --vault-dir /home/alice/.config/dns-cli/vault add --ip 203.0.113.10
+dns-cli update
+dns-cli update --ip 203.0.113.20
+dns-cli update --from 203.0.113.10 --ip 203.0.113.20
+dns-cli remove
+dns-cli remove --ip 203.0.113.10
+dns-cli status
+dns-cli --json status
+dns-cli show
+dns-cli --json show
+dns-cli submit
+dns-cli approve
+dns-cli reject
+dns-cli interactive
+```
+
+`submit` / `approve` / `reject` / `interactive` are **Gap** until routed. They are **not** `submit-sudoer-request`. Help **MUST NOT** list them until `app_main` routes them.
 
 **D-M1.** Default-vault DNS/vault verbs **MUST** run as `dns-adm` (Type 2). Specified `--vault-dir` **MAY** stay Type 0. **MUST NOT** require sudo for Cloudflare HTTPS itself, write `/etc` from DNS verbs, or mutate host resolver config. `setup` / `remove-lpu` are **not** domain verbs (privilege law).
 
@@ -82,7 +113,7 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 
 ### 2.3 Specialized project help items (pillar 3)
 
-**D-M7.** Human `help` **MUST** list every **routed** domain verb plus Type 0 lifecycle. **MUST NOT** list a domain verb that `app_main` does not route. **MUST NOT** list backup, restore, or sudoers-manager extras. `setup` / `remove-lpu` / `print-sudoers` **MUST** appear only when routed.
+**D-M7.** Human `help` **MUST** list every **routed** domain verb plus Type 0 lifecycle. **MUST NOT** list a domain verb that `app_main` does not route. **MUST NOT** list backup, restore, or sudoers-manager extras. `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` **MUST** appear only when routed. Those sudoer verbs are privilege/submitter law — not a fifth DNS request-type.
 
 Staging honesty (implementation):
 
@@ -193,7 +224,8 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | ID | Criterion |
 |----|-----------|
-| AC-D1 | When DNS is routed, help lists vault / ip / add / update / remove / status / show and Type 0 lifecycle; `setup` / `remove-lpu` / `print-sudoers` only when those routes exist |
+| AC-D1 | When DNS is routed, help lists vault / ip / add / update / remove / status / show and Type 0 lifecycle; `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` only when those routes exist |
+| AC-D12 | §2.1a holds a complete `dns-cli …` sample for every domain verb in §2.1 (CI-M1a) |
 | AC-D7 | `ip` prints public IPv4 without vault or Cloudflare; `--ip` override and disallowed IPv4 fail as `ip_lookup_failed` |
 | AC-D2 | `--json add` with fixture of one A + same IP exits 0 with status `already` |
 | AC-D3 | Implicit / stored non-round-robin + two A records: `add` without `--force` and `status` (with or without `--force`) exit non-zero `dns_multi_record` (`out_json_error` `code` field) |
@@ -256,6 +288,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 2.6.0 | CI-M1a sample invocations for every domain verb (§2.1a) |
 | 2026-08-17 | Active 2.5.0 | Consumes `requirement-dns-actor-table` (named machine + login hook) |
 | 2026-08-17 | Active 2.4.0 | Live Type 0 specify verify as invoking user (`crms.hk`); not dns-adm-only |
 | 2026-08-17 | Active 2.3.0 | Consumes `requirement-cloudflare-dns-request` (four types) |

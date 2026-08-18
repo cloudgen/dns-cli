@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.5.0)  
+**Status**: Active (Version 1.7.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -89,7 +89,102 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | `FORCE_GLOBAL` | Force install/operate on global path | `0` (`install --global`) |
 | `SCRIPT_URL` / `REPO_*` / `CHECKSUM` | **Not** install source | Must not appear as required install UX |
 
-### 2.7 Implementation Notes (this project)
+### 2.7 Sample invocations (CI-M1a)
+
+Each lifecycle / diagnostics verb this file owns **MUST** keep a complete sample here.
+
+```sh
+dns-cli install
+dns-cli install --force
+sudo dns-cli install --global
+dns-cli uninstall
+dns-cli uninstall --force
+dns-cli --json uninstall
+dns-cli where-is-me
+dns-cli --json where-is-me
+dns-cli version
+dns-cli --json version
+dns-cli about
+dns-cli --json about
+dns-cli help
+```
+
+`install` copies the running ship unit only. It does **not** create `dns-adm`. `uninstall` does **not** delete the vault or `dns-adm`.
+
+### 2.7a Example path `util_*` (this product)
+
+Class B return-via-stdout. Live code is `src/dns-cli`.
+
+```sh
+# Absolute path of the running ship unit. Empty when $0 is not a file (stdin pipe).
+util_resolve_running_path() {
+    : "${0:=}"
+    _src="$0"
+    case "$_src" in
+        ""|sh|bash|dash|ash|zsh|ksh|*/sh|*/bash|*/dash|*/ash|*/zsh|*/ksh)
+            if [ ! -f "$_src" ]; then
+                printf '%s' ""
+                return 0
+            fi
+            ;;
+    esac
+    if [ ! -f "$_src" ] && [ ! -L "$_src" ]; then
+        printf '%s' ""
+        return 0
+    fi
+    if command -v readlink >/dev/null 2>&1; then
+        _resolved=$(readlink -f "$_src" 2>/dev/null || true)
+        if [ -n "$_resolved" ] && [ -e "$_resolved" ]; then
+            printf '%s' "$_resolved"
+            return 0
+        fi
+    fi
+    if command -v realpath >/dev/null 2>&1; then
+        _resolved=$(realpath "$_src" 2>/dev/null || true)
+        if [ -n "$_resolved" ] && [ -e "$_resolved" ]; then
+            printf '%s' "$_resolved"
+            return 0
+        fi
+    fi
+    _dir=$(CDPATH= cd -- "$(dirname -- "$_src")" 2>/dev/null && pwd)
+    _base=$(basename -- "$_src")
+    if [ -n "$_dir" ] && [ -f "${_dir}/${_base}" ]; then
+        printf '%s' "${_dir}/${_base}"
+        return 0
+    fi
+    printf '%s' "$_src"
+}
+
+# Privilege-correct managed bin path. Non-root prefers user-local when present.
+util_get_install_bin_path() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${FORCE_USER:=0}"
+    : "${FORCE_GLOBAL:=0}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${HOME:=/tmp}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+
+    if [ "${FORCE_USER}" -eq 1 ]; then
+        printf '%s' "${USER_BIN}/${APP_NAME}"
+        return 0
+    fi
+    if [ "${FORCE_GLOBAL}" -eq 1 ] || [ "$(id -u)" -eq 0 ]; then
+        printf '%s' "${GLOBAL_BIN}/${APP_NAME}"
+        return 0
+    fi
+    if [ -f "${USER_BIN}/${APP_NAME}" ]; then
+        printf '%s' "${USER_BIN}/${APP_NAME}"
+    elif [ -f "${GLOBAL_BIN}/${APP_NAME}" ]; then
+        printf '%s' "${GLOBAL_BIN}/${APP_NAME}"
+    else
+        printf '%s' "${USER_BIN}/${APP_NAME}"
+    fi
+}
+```
+
+### 2.8 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
@@ -102,7 +197,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | **Detect** | `inst_is_installed` / privilege-correct path helpers |
 | **Online package** | **Absent by design** (bootstrap trim) |
 
-### 2.8 Why This Requirement Exists (CIAO)
+### 2.9 Why This Requirement Exists (CIAO)
 
 - **Principle 9 – Command types**: Type 0 local lifecycle only for place/remove.  
 - **Principle 10 – Least privilege**: User bin without root when possible.  
@@ -147,6 +242,7 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 | AC-6 | Installed managed binary mode is **`0755`** (not `0711` / owner-only) after install |
 | AC-7 | Global install is executable by a non-owner account (shell script remains readable) |
 | AC-8 | Re-running `install` without `--force` heals a broken mode (`0700`/`0711` → `0755`) when writable |
+| AC-9 | `util_resolve_running_path` and `util_get_install_bin_path` have fenced examples on this file (§2.7a) |
 
 ---
 
@@ -182,11 +278,13 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 |------|--------|------|
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
+| 2026-08-18 | Active 1.7.0 | Path `util_*` examples (§2.7a); AC-9 |
+| 2026-08-18 | Active 1.6.0 | CI-M1a sample invocations for install / uninstall / where-is-me / version / about / help |
 | 2026-08-17 | Active 1.5.0 | Uninstall must not remove `dns-adm` |
 | 2026-08-16 | Active 1.4.0 | dns-cli identity; uninstall must not delete vault |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

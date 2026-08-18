@@ -108,7 +108,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
-| Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain |
+| JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Verbs `generate-sudoer-request` / `submit-sudoer-request`; `print-sudoers` is three-layer + this file’s peer; body `runas=dns-adm`; this product **MUST NOT** write `/etc/sudoers.d` |
+| Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
 | Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
 | Domain surface (DNS catalog) | `requirement-domain-cloudflare-dns` | **current domain SSOT** — four pillars; consumes API law |
 | Cloudflare API (HTTPS / envelope / DNS CRUD) | `requirement-cloudflare-api` | capability law; **not** a second domain catalog |

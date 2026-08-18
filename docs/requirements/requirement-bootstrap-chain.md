@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-bootstrap-chain.md  
-**Status**: Active (Version 5.1.0)  
+**Status**: Active (Version 5.2.0)  
 **Area**: architecture  
 **Key**: `requirement-bootstrap-chain`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -56,7 +56,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Empty argv | **Type N** help (not Type O install-ensure) |
 | Backup / restore | **Absent** — never this product’s domain |
 | Sudoers-manager extras | **Absent** (`print-sudoers-install-script`, `remove-project-sudoers`) |
-| LPU / Type 1 `setup` / Type 0 `print-sudoers` | **Present** — `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` (Gap in ship unit) |
+| LPU / Type 1 `setup` / Type 0 `print-sudoers` / generate+submit JSON sudoer | **Present** — `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` + `requirement-sudoer-json-file` (Implemented 1.5.0 / 1.6.0) |
 
 ### 2.4 Surface matrix (normative for this product)
 
@@ -71,7 +71,8 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Type O empty argv | **Absent** | Empty argv = Type N help |
 | Domain backup + restore | **Absent** | Not this product’s domain |
 | Sudoers-manager extras (install-script / remove-draft) | **Absent** | Not this product’s domain |
-| Type 0 `print-sudoers` + Type 1 `setup` / `remove-lpu` | **Add on B** | LPU `dns-adm` — Gap |
+| Type 0 `print-sudoers` + Type 1 `setup` / `remove-lpu` | **Add on B** | LPU `dns-adm` — Implemented 1.5.0 |
+| Type 0 `generate-sudoer-request` / `submit-sudoer-request` | **Add on B** | JSON sudoer submitter — Implemented 1.6.0 |
 | Local `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package |
 | Cloudflare vault + DNS | **Add on B** | Multi-account vault + DNS — v2 zone-slot **Implemented** on 1.4.0; LPU default dest Gap |
 | Domain / out Protection Zones | **Keep spirit** | Do not simplify `out_*` |
@@ -174,11 +175,12 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | 2026-08-13 | Active 2.0.0 | specialize hop; trim backup/restore/sudoers; identity **cli-template** (not host-OS setup) |
 | 2026-08-13 | Active 3.0.0 | Retired live hop folder-backup; briefly named selfmanaged → cli-template |
 | 2026-08-13 | Active 4.0.0 | **This product is hop 0.** No live parent. selfmanaged and folder-backup are not origins. |
+| 2026-08-18 | Active 5.2.0 | setup / print-sudoers Implemented; generate/submit JSON sudoer Present |
 | 2026-08-17 | Active 5.1.0 | LPU `dns-adm` + Type 1 setup on B; backup/restore still absent |
 | 2026-08-16 | Active 5.0.0 | This workspace is B = dns-cli hop 1; A = cli-template; domain present |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

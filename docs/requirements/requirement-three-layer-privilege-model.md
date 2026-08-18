@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 1.0.0) — law Active; Type 1/2 routes **Gap**  
+**Status**: Active (Version 1.3.0) — Type 1 `setup` / `remove-lpu` / `print-sudoers` **Implemented** (1.5.0); Type 0 generate/submit JSON sudoer **Implemented** (1.6.0); role table **required**; CI-M1a samples; Type 2 default-vault **Gap**  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,7 +12,7 @@ It exists because the product now creates LPU **`dns-adm`** and must say **who**
 
 Identity F1–F7 live in `requirement-least-privilege-user`. Domain verb semantics live in `requirement-domain-cloudflare-dns`. This file **MUST NOT** invent a second F1–F7 table or a second DNS catalog.
 
-This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-script`, `remove-project-sudoers`, backup/restore.
+This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-script`, `remove-project-sudoers`, backup/restore. It **is** a **sudoer-approval-submitter**: Type 0 `generate-sudoer-request` / `submit-sudoer-request` queue a JSON grant into sibling `sudoer-cli`. JSON **body** is `requirement-sudoer-json-file`.
 
 ---
 
@@ -22,9 +22,26 @@ This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-sc
 
 | Layer | Privilege | Actor | Responsibilities |
 |-------|-----------|-------|------------------|
-| **Type 0** | Invoking user | Any login | `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified |
+| **Type 0** | Invoking user | Any login | `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), `generate-sudoer-request`, `submit-sudoer-request`, vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified |
 | **Type 1** | Elevated (password `sudo` / already-root) | Host admin | `setup` (create `dns-adm` + F3/F5/F6), `remove-lpu` |
 | **Type 2** | Dedicated LPU | `dns-adm` | Default-vault `vault` + `add` / `update` / `remove` / `status` / `show` |
+
+### 2.1a Role table (print sudoer file + JSON submit)
+
+**P-M0.** This file **MUST** publish the privilege role table. Full actor rows for the JSON grant live in `requirement-sudoer-json-file` §2.0. DNS inbound roles live in `requirement-dns-actor-table`. **MUST NOT** merge those three tables into one account.
+
+| Role | Who | Type | May | Must not |
+|------|-----|------|-----|----------|
+| **Printer** | Any login | **0** | `print-sudoers` — print the **sudoer file** (Table A `sudoers(5)` text) to stdout or a user-writable path | Write F6 dest `/etc/dns-adm/sudoers`; write `/etc/sudoers.d`; write `/etc/passwd` |
+| **Generator** | Any login | **0** | `generate-sudoer-request` — independent JSON sudoer file | Write inbound or `/etc` |
+| **Submitter** | Same login as JSON `username` | **0** | `submit-sudoer-request` — queue JSON to sibling `sudoer-cli` | `mkdir` inbound; approve; write `/etc/sudoers.d` |
+| **Subject** | Same person as the submitter | — | Appear in JSON `username` | Be another login |
+| **Sibling approver** | `sudoer-adm` | **1** (sibling product) | Approve the queued JSON; dest `/etc/sudoers.d/dns-cli-<user>` | Be `dns-adm`; be this CLI |
+| **F6 installer** | Host admin | **1** | `setup` writes the printed sudoer file to `/etc/dns-adm/sudoers` | Write `/etc/sudoers.d` from this product |
+| **Type 2 operator** | `dns-adm` | **2** | Default-vault vault/DNS after a live grant | Print/submit as dest writer; approve sibling inbound |
+| **DNS approver** | `dns-adm` | **1** | DNS inbound (Gap) — `requirement-dns-actor-table` | Approve sudoer JSON |
+
+**Account map:** printer/generator/submitter = invoking login; Type 2 + DNS approver = `dns-adm`; sibling approver = `sudoer-adm`; F6 installer = euid 0.
 
 **P-M1.** Every routed command **MUST** sit in exactly one layer (or document a Type 0 entry with an explicit Type 1/2 sub-step).
 
@@ -72,13 +89,39 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 |---------|------|----------|
 | `setup` | Type 1 | Create `dns-adm` + F3 + F5 + F6 dest. Idempotent. Password `sudo` / already-root |
 | `remove-lpu` | Type 1 | F7 order in LPU law. Confirm unless `--force` |
-| `print-sudoers` | Type 0 | Emit Table A fragment to stdout (or a user-writable path). **MUST NOT** write dest. Human output **MUST** include admin steps: `visudo -c`, mode `0440`, dest `/etc/dns-adm/sudoers` |
-| `submit` | Type 0 | Inbound JSON drop — **Gap** (`requirement-dns-actor-table`) |
+| `print-sudoers` | Type 0 | **Print the sudoer file** (Table A `sudoers(5)` text) to stdout or a user-writable path. **MUST NOT** write F6 dest or `/etc/sudoers.d`. Human output **MUST** include admin steps: `visudo -c`, mode `0440`, dest `/etc/dns-adm/sudoers` |
+| `generate-sudoer-request` | Type 0 | Independent JSON grant dest (readable without sudo). **MUST NOT** write inbound or `/etc`. Body: `requirement-sudoer-json-file` |
+| `submit-sudoer-request` | Type 0 | Detect sibling `sudoer-cli` + inbound; queue the JSON grant. **MUST NOT** `mkdir` inbound or write `/etc/sudoers.d` |
+| `submit` | Type 0 | Inbound **DNS** JSON drop — **Gap** (`requirement-dns-actor-table`). Not the sudoer submit verb |
 | `approve` / `reject` / `interactive` | Type 1 | Approver move + login review — **Gap**; runas **`dns-adm`** after F6 (same LPU as Type 2 vault/DNS) |
 
 **P-M6.** `print-sudoers` **MUST** end with a newline plus extra blank line. **MUST NOT** contain tokens, keys, or passwords.
 
-**P-M7.** Trimmed parent verbs `print-sudoers-install-script` and `remove-project-sudoers` **MUST** remain unknown.
+**P-M7.** Trimmed parent verbs `print-sudoers-install-script` and `remove-project-sudoers` **MUST** remain unknown. `generate-sudoer-request` and `submit-sudoer-request` **MUST** stay routed.
+
+**P-M8.** Generate dest default `${HOME}/.config/dns-cli/sudoer-request-<user>.json`. Path operand overrides. **MUST** refuse `/etc` and `/var/sudoer-cli`. `--json` **MUST** include `path`.
+
+**P-M9.** Submit default action is **update** when `/etc/sudoers.d/dns-cli-<user>` exists; else **add**. `--add` / `--update` override. F6 dest **MUST NOT** count as that probe. Missing dest CLI / approver / inbound → fail closed; next `sudo sudoer-cli setup`.
+
+### 2.5a Sample invocations (CI-M1a)
+
+```sh
+dns-cli setup
+sudo dns-cli setup
+dns-cli remove-lpu
+sudo dns-cli remove-lpu
+sudo dns-cli remove-lpu --force
+dns-cli print-sudoers
+dns-cli print-sudoers "${HOME}/.config/dns-cli/sudoers.draft"
+dns-cli generate-sudoer-request
+dns-cli generate-sudoer-request "${HOME}/.config/dns-cli/sudoer-request-alice.json"
+dns-cli submit-sudoer-request
+dns-cli submit-sudoer-request "${HOME}/.config/dns-cli/sudoer-request-alice.json"
+dns-cli submit-sudoer-request --add
+dns-cli submit-sudoer-request --update
+```
+
+`print-sudoers` does **not** write `/etc/dns-adm/sudoers`. `generate-sudoer-request` does **not** write inbound. `submit-sudoer-request` does **not** write `/etc/sudoers.d`. DNS inbound `submit` is **not** this family.
 
 ### 2.6 Example fragment (product — review before dest install)
 
@@ -100,14 +143,19 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 | **Product** | `dns-cli` |
 | **Type 2 user** | `dns-adm` |
 | **Print command** | `print-sudoers` |
-| **Admin install-script** | **N/A** — Type 1 `setup` writes dest |
+| **Generate command** | `generate-sudoer-request` |
+| **Generate dest** | `${HOME}/.config/dns-cli/sudoer-request-<user>.json` |
+| **Submit command** | `submit-sudoer-request` |
+| **Approval dest** | `sudoer-cli` / inbound `/var/sudoer-cli/sudoer-request` |
+| **Admin install-script** | **N/A** — Type 1 `setup` writes F6 dest; sibling approve writes `/etc/sudoers.d/dns-cli-<user>` |
 | **Draft path** | stdout, or optional user-writable path argument |
-| **Installed dest** | `/etc/dns-adm/sudoers` |
+| **Installed dest (F6)** | `/etc/dns-adm/sudoers` |
+| **JSON body SSOT** | `requirement-sudoer-json-file` |
 | **Elev-table SSOT** | **this file** |
-| **Trust tier** | production = global managed binary; USER_BIN = test_local |
-| **Handlers (target)** | `lpu_setup`, `lpu_remove`, `lpu_print_sudoers` |
-| **Ship unit** | **Gap** |
-| **Proof family** | **TP-PRIV-*** (todo) |
+| **Trust tier** | production = global managed binary; USER_BIN = test_local (`--allow-test-local`) |
+| **Handlers (target)** | `lpu_setup`, `lpu_remove`, `lpu_print_sudoers`, `lpu_generate_sudoer_request`, `lpu_submit_sudoer_request` |
+| **Ship unit** | **Implemented** Type 1 + print + generate/submit on **1.6.0**; Type 2 switch Gap |
+| **Proof family** | **TP-PRIV-01..08** + **TP-SUDOER-JSON-01..03/08** have |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -135,10 +183,11 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 2. Put `useradd` in sudoers.  
 3. Write `/etc/passwd` or `/etc/sudoers.d`.  
 4. Elevate `${USER_BIN}/dns-cli` under a production Pass.  
-5. Reintroduce `print-sudoers-install-script` / `remove-project-sudoers` / backup / restore without a new user order.  
+5. Reintroduce `print-sudoers-install-script` / `remove-project-sudoers` / backup / restore without a new user order. Do **not** treat generate/submit as those extras.  
 6. Invent a live-command denylist beyond Table B.  
 7. Claim Type 1 Implemented while `setup` is absent.  
-8. Duplicate Tables A/B/C in the domain or LPU files.
+8. Duplicate Tables A/B/C in the domain or LPU files.  
+9. Drop the §2.1a role table or merge printer/submitter/`sudoer-adm` into the DNS actor table.
 
 **Violating this rule is a critical privilege / LLM-escape regression.**
 
@@ -148,11 +197,13 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 
 | ID | Criterion |
 |----|-----------|
-| AC-P1 | Help (when routed) lists `setup` / `remove-lpu` / `print-sudoers` and does not list backup/restore/install-script |
+| AC-P1 | Help (when routed) lists `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` and does not list backup/restore/install-script |
 | AC-P2 | `print-sudoers` writes no dest and matches Table A |
 | AC-P3 | `setup` uses password `sudo` or already-root — not `sudo -n` |
 | AC-P4 | Default-vault DNS as a non-`dns-adm` user needs Table A or fails `lpu_required` |
-| AC-P5 | Stay-honest Gap until routes exist |
+| AC-P5 | Stay-honest: Type 1 + generate/submit Implemented on 1.6.0; Type 2 default-vault still Gap |
+| AC-P6 | Independent generate dest is invoking-user readable; submit does not write `/etc/sudoers.d` |
+| AC-P7 | Role table present (printer / generator / submitter / sibling approver / F6 installer / Type 2); not merged with the DNS actor table |
 
 ---
 
@@ -161,6 +212,7 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 | Key | Relationship |
 |-----|--------------|
 | `requirement-least-privilege-user` | F1–F7 identity |
+| `requirement-sudoer-json-file` | JSON grant body + generate dest shape |
 | `requirement-shell-cli-interface` | Dispatch + privilege column |
 | `requirement-domain-cloudflare-dns` | Type 2 verb catalog |
 | `requirement-application-local-vault` | Specify stays Type 0 |
@@ -173,10 +225,13 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
-| **TP-PRIV-01** | `tests/test_cf_lpu.sh` | todo | `print-sudoers` ⊆ Table A; no dest write |
-| **TP-PRIV-02** | `tests/test_cf_lpu.sh` | todo | unknown: install-script / remove-project-sudoers / backup / restore |
-| **TP-PRIV-03** | `tests/test_cf_lpu.sh` | todo | `setup` without root/sudo fails closed |
-| **TP-PRIV-04** | `tests/test_cf_lpu.sh` | todo | fragment has no ALL / no shell |
+| **TP-PRIV-01** | `tests/test_cf_lpu.sh` | have | `print-sudoers` ⊆ Table A; no dest write |
+| **TP-PRIV-02** | `tests/test_cf_lpu.sh` | have | unknown: install-script / remove-project-sudoers / backup / restore |
+| **TP-PRIV-03** | `tests/test_cf_lpu.sh` | have | `setup` without root/sudo fails closed |
+| **TP-PRIV-04** | `tests/test_cf_lpu.sh` | have | fragment has no ALL / no shell |
+| **TP-PRIV-05..08** | `tests/test_cf_lpu.sh` | have | generate dest / submit fail-closed / stub inbound / refuse OS-tool |
+| **TP-SUDOER-JSON-01..03,08** | `tests/test_cf_lpu.sh` | have | JSON body identity |
+| **TP-PRIV-09** | `tests/test_cf_lpu.sh` | have | §2.1a role table (printer / generator / submitter) |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -187,10 +242,14 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.3.0 | CI-M1a sample invocations for setup / remove-lpu / print / generate / submit |
+| 2026-08-18 | Active 1.2.0 | Role table for print sudoer file + JSON submit; `print-sudoers` named as print-file |
+| 2026-08-18 | Active 1.1.0 | generate/submit JSON sudoer Implemented (1.6.0); still not a sudoers-manager |
+| 2026-08-18 | Active 1.0.0 | Type 1 + print-sudoers Implemented (1.5.0); Type 2 Gap |
 | 2026-08-17 | Active 1.0.0 | Type map + Tables A/B/C for `dns-adm`; implementation Gap |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.4.1-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.6.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -9,7 +9,7 @@ POSIX `/bin/sh` CLI specialized from **cli-template**: Type 0 lifecycle plus a l
 
 Each subdomain has a stored **A-record mode**. The default is **non-round-robin** (one IPv4). **Round-robin** means several distinct IPv4 A rows on the same FQDN. Mode may switch only when `ipv4_count` is 0 or 1. IPv6 / AAAA are out of scope.
 
-Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.4.1**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** **are implemented**. Prompt helpers consume the `TTY` SSOT. LPU create, Type 2 default vault `/etc/dns-adm/vault/`, inbound submit/approve, and the `interactive` review loop **are not** (honest Gap).
+Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.6.0**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** + Type 1 **`setup` / `remove-lpu`** + Type 0 **`print-sudoers`** + Type 0 **JSON sudoer generate/submit** (sibling `sudoer-cli`) **are implemented**. Prompt helpers consume the `TTY` SSOT. `install` (including `sudo … install`) places the program only — it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`. Type 2 default vault `/etc/dns-adm/vault/`, inbound **DNS** submit/approve, and the `interactive` review loop **are not** (honest Gap).
 
 Install **location** is still **both**:
 
@@ -31,7 +31,9 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 - **Zone-slot CRUD**: `vault account` / `vault zone` add \| list \| modify \| remove; list JSON never includes the token
 - **Token probe**: adding a zone token creates `_test_<UTC timestamp>` then deletes it; fail closed if the token cannot write DNS; probe label is **not** stored
 - **Two A-record modes**: default `non-round-robin`; optional `round-robin`; switch locked when `ipv4_count` ≥ 2
-- **Four DNS request types** (law): inbound JSON `add` / `update` / `remove` / `mode` — **no token in the file** (submit/approve Gap on 1.4.1)
+- **Four DNS request types** (law): inbound JSON `add` / `update` / `remove` / `mode` — **no token in the file** (submit/approve Gap on 1.5.0)
+- **Host LPU**: `sudo dns-cli setup` creates `dns-adm` + vault dir + sudoers dest; `remove-lpu` tears it down; `print-sudoers` **prints the sudoer file** (Table A text; does not install dest)
+- **JSON sudoer submitter**: `generate-sudoer-request` writes a local grant (`dns-cli` as `dns-adm`); `submit-sudoer-request` queues it to sibling `sudoer-cli`. This product does not write `/etc/sudoers.d`
 - **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
 
 ## Quick Installation
@@ -57,6 +59,12 @@ sudo sh src/dns-cli install
 ```
 
 This product is **local-only** for its install channel (no default `SCRIPT_URL` online install). Global vs local here means install *location*, not an online channel.
+
+`sudo dns-cli install` does **not** create Linux user **`dns-adm`**. After a global install:
+
+```sh
+sudo dns-cli setup
+```
 
 **Source repository:** [cloudgen/dns-cli](https://github.com/cloudgen/dns-cli)  
 Config identity: `REPO_USER=cloudgen`, `REPO_NAME=dns-cli` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
@@ -138,9 +146,11 @@ Exactly **four** request `action` values. Read-only verbs (`status`, `ip`, `show
 | `remove` | Delete one IPv4 A | DNS `remove` (round-robin N>1 needs `ipv4`) |
 | `mode` | Switch stored mode only | `vault subdomain mode` — **no** A-row write |
 
-**Ship unit 1.4.1:** operators run `add` / `update` / `remove` / `vault subdomain mode` **directly** (Type 0 `--vault-dir` is enough). Interactive `dns-adm` **heals** the login-hook rc. The inbound folder + `submit` / `approve` / `reject` / `interactive` review loop are **Gap**. Empty argv still must not submit or approve.
+**Ship unit 1.5.0:** operators run `add` / `update` / `remove` / `vault subdomain mode` **directly** (Type 0 `--vault-dir` is enough). `sudo dns-cli setup` creates `dns-adm`. Interactive `dns-adm` **heals** the login-hook rc. The inbound folder + `submit` / `approve` / `reject` / `interactive` review loop are **Gap**. Empty argv still must not submit or approve.
 
 ### Actor table (who may submit / approve)
+
+This table is **DNS inbound only**. Sudoer print / JSON submit uses the next table.
 
 | Role | Who | Type | May | Must not |
 |------|-----|------|-----|----------|
@@ -151,7 +161,22 @@ Exactly **four** request `action` values. Read-only verbs (`status`, `ip`, `show
 | **Type 2 operator** | **`dns-adm`** (same account) | 2 | Day-to-day vault + DNS on the default vault | — |
 | **Root session** | euid 0 | 1 | Same Type 1 verbs as `dns-adm` | Submit as another subject |
 
-**Anyone** may submit (as themselves). Only **`dns-adm`** approves. There is no `dns-apr`.
+**Anyone** may submit a **DNS** request (as themselves). Only **`dns-adm`** approves DNS inbound. There is no `dns-apr`.
+
+### Role table (print sudoer file + JSON sudoer submit)
+
+| Role | Who | Type | May | Must not |
+|------|-----|------|-----|----------|
+| **Printer** | Any login | 0 | `print-sudoers` — print the sudoer **file** (Table A text) | Write `/etc/dns-adm/sudoers` or `/etc/sudoers.d` |
+| **Generator** | Same login | 0 | `generate-sudoer-request` — local JSON grant | Write inbound or `/etc` |
+| **Submitter** | Same login (self-scope) | 0 | `submit-sudoer-request` — queue JSON to sibling `sudoer-cli` | Approve; `mkdir` inbound; write `/etc/sudoers.d` |
+| **Subject** | Same person as the submitter | — | JSON `username` | Be another login |
+| **Allocator** | Sibling `sudoer-cli` | 0 | Name the inbound file | Be this product |
+| **Sibling approver** | **`sudoer-adm`** | 1 | Move inbound; dest `/etc/sudoers.d/dns-cli-<user>` | Be `dns-adm` |
+| **F6 installer** | Host admin (`sudo dns-cli setup`) | 1 | Install the printed sudoer file to `/etc/dns-adm/sudoers` | Write `/etc/sudoers.d` from this product |
+| **Type 2 operator** | **`dns-adm`** | 2 | Run the managed binary after a live grant | Approve sudoer JSON |
+
+`dns-cli submit` is DNS inbound (Gap). `dns-cli submit-sudoer-request` is the JSON sudoer queue (Implemented). `dns-adm` ≠ `sudoer-adm`.
 
 ### Approval procedure (interactive hook after login)
 
@@ -343,4 +368,4 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
-2026-08-18 — version **1.4.1** (`TTY` SSOT in `prompt_*`; submit/approve/`interactive` review loop still Gap).
+2026-08-18 — version **1.5.0** (`sudo dns-cli setup` creates `dns-adm`; Type 2 default vault still Gap).

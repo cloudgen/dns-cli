@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-08-18
+
+### Added
+
+- Type 0 **`generate-sudoer-request`**: write a verified JSON sudoer grant (runas `dns-adm`, path `/usr/local/bin/dns-cli`, empty args) to an invoking-user-readable dest. Does not write inbound or `/etc`.
+- Type 0 **`submit-sudoer-request`**: detect sibling `sudoer-cli` + inbound; queue that JSON. Does not `mkdir` inbound or write `/etc/sudoers.d`.
+- Law **`requirement-sudoer-json-file`** 1.0.0. Mold **`LM-FILE-BASED-JSON-APPROVAL-SUBMITTER`**. Three-layer mold 2.9.0 (generate/submit are not sudoers-manager extras).
+- Flags `--allow-test-local`, `--add`, `--update` for the submitter path.
+- Suites **TP-SUDOER-JSON-01..03/08** and **TP-PRIV-05..08**.
+- Dual-mention / role-table gates: **CL-CLI-DUAL-MENTION**; **TP-CLI-14**; **TP-PRIV-09** / **TP-SUDOER-JSON-09**; **TP-CF-ACTOR-07**.
+- **CI-M1a:** every verb (and every `vault` store subcommand) has a complete `dns-cli …` invocation sample on its topic-owner REQ. **TP-CLI-15**.
+- Shipped `util_*` helpers have fenced `sh` examples on their topic-owner REQs (and owner law molds). Map: **`LM-MODULAR-FUNCTION-DESIGN`** §3.2.
+
+## [1.5.0] - 2026-08-18
+
+### Added
+
+- Type 1 **`setup`**: create Linux user `dns-adm`, F3 home (prefer `/etc/dns-adm`), F5 vault dir `0700`, F6 dest `/etc/dns-adm/sudoers` `0440` (visudo-check; backup under `/etc/sudoer-backup/`). Re-run heals. Login-hook rc heal on the new home.
+- Type 1 **`remove-lpu`**: F7 teardown (`userdel -r`); confirm or `--force`. Absent account is success no-op. Type 0 `uninstall` still does not remove the account.
+- Type 0 **`print-sudoers`**: emit Table A fragment to stdout (or a user-writable path). Does **not** write dest.
+
+### Fixed
+
+- `install` honesty line now points at `sudo dns-cli setup` (no longer says setup is absent).
+
+## [1.4.2] - 2026-08-18
+
+### Fixed
+
+- `install` / `help` stay honest: placing the CLI (including `sudo dns-cli install`) does **not** create Linux user `dns-adm`. That is Type 1 `setup` (still Gap). Incident **INC-20260818-001**.
+
 ## [1.4.1] - 2026-08-18
 
 ### Fixed

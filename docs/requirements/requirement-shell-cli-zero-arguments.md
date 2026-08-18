@@ -39,6 +39,16 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
 | `dns-cli install` | Local install ensure |
 | Flags only (e.g. `--json` with no command) | **MUST** still resolve to help (or fail with clear usage if product chooses fail-closed) — default: **help** after flag parse with no command token |
 
+### 2.2a Sample invocations (CI-M1a)
+
+```sh
+dns-cli
+dns-cli help
+dns-cli --json help
+```
+
+Empty argv **MUST** match `help` (Type N). **MUST NOT** install, call Cloudflare, or look up ipinfo.
+
 ### 2.3 Implementation Notes (this project)
 
 | Item | Value |

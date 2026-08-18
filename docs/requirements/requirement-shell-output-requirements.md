@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-output-requirements.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: shell  
 **Key**: `requirement-shell-output-requirements`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -50,6 +50,27 @@ This product owns the `out_*` family. Domain messages **MUST** use the same fami
 | `out_msg_n` | Prompt fragment without newline | stdout | Suppress under quiet/json | Never for machines |
 | `out_json` | Machine success/status object | stdout | N/A | Only when `JSON=1` |
 | `out_json_error` | Machine error object | as designed for fatal path | N/A | Only when `JSON=1` |
+| `util_json_escape` | Escape string for JSON fields (class B) | stdout capture | n/a | helper for `out_json*` only |
+
+### 2.2a Example `util_json_escape` (this product)
+
+Class B return-via-stdout. **MUST** be used only by `out_json` / `out_json_error`. Not a product message.
+
+```sh
+# Escape \, ", and common controls so JSON cannot be broken by newlines/tabs.
+util_json_escape() {
+    printf '%s' "${1-}" | awk '
+    {
+      line = $0
+      gsub(/\\/, "\\\\", line)
+      gsub(/"/, "\\\"", line)
+      gsub(/\t/, "\\t", line)
+      gsub(/\r/, "\\r", line)
+      if (NR > 1) printf "\\n"
+      printf "%s", line
+    }'
+}
+```
 
 ### 2.3 Channel contract
 
@@ -127,6 +148,7 @@ Rules:
 | AC-2 | JSON mode produces structured success/error without human interleave |
 | AC-3 | Quiet still surfaces errors |
 | AC-4 | Lifecycle messaging uses the same SSOT |
+| AC-5 | `util_json_escape` example is present on this file (§2.2a) |
 
 ---
 
@@ -148,10 +170,11 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active | Output SSOT for folder-backup |
 | 2026-08-13 | Active | Retarget to cli-template; drop domain message law |
+| 2026-08-18 | Active 1.2.0 | `util_json_escape` example (§2.2a); AC-5 |
 | 2026-08-16 | Active 1.1.0 | `out_die_code`; domain messages; dns-cli; no token |
 
 ---
 
-**Last Updated**: 2026-08-16  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -4,8 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.4.1 (current) | Yes |
-| 1.4.0 | Yes |
+| 1.6.0 (current) | Yes |
+| 1.5.0 | Yes |
+| 1.4.x | Yes |
 | 1.3.0 | Yes |
 | 1.1.x | Limited (specify vault / `ip`) |
 | 1.0.0 | Limited |
@@ -27,7 +28,7 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 | Letter | Principle | Security application |
 |--------|-----------|----------------------|
 | **C** | **Caution** | Unknown commands fail closed; install fails loud if the target is not writable. |
-| **I** | **Intentional** | Type 0 lifecycle only; no host-mutating domain; no sudoers-file emit. |
+| **I** | **Intentional** | Type 0 lifecycle + Type 1 `setup`/`remove-lpu`; Type 0 JSON sudoer generate/submit (no `/etc/sudoers.d` write). |
 | **A** | **Anti-fragile** | Isolated scratch (`APP_NAME` + `USERNAME`); atomic install place with mode **0755**. |
 | **O** | **Over-protect** | Protection Zones on `out_*` and install; no online channel UX. |
 
@@ -45,7 +46,7 @@ This section is **design posture**, not a third-party certification claim.
 
 ## Scope notes
 
-- This product does **not** emit or install `/etc/sudoers.d` fragments.  
+- This product does **not** write `/etc/sudoers.d`. `print-sudoers` / `generate-sudoer-request` stay user-readable; `submit-sudoer-request` queues JSON to sibling inbound only.  
 - This product does **not** write under `/var/backup` or restore archives.  
 - Uninstall removes only the managed binary.  
 - Local `~/.local/bin` install is user-rewritable; prefer global install on multi-user hosts when a shared CLI is desired.  

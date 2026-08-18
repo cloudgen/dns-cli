@@ -25,15 +25,18 @@
 # - requirement-cloudflare-vault.md
 # - requirement-cloudflare-api.md
 # - requirement-cloudflare-dns-mode.md
+# - requirement-sudoer-json-file.md
+# - requirement-three-layer-privilege-model.md
 # Plus CIAO Protection Zones and "DO NOT MODIFY" rules.
 #
-# Intentionally absent: backup/restore domain, sudoers emit, online channel.
+# Intentionally absent: backup/restore domain, sudoers-manager extras, online channel.
+# Present: Type 0 generate-sudoer-request / submit-sudoer-request (sibling dest).
 #
 # Philosophy: CIAO (Caution • Intentional • Anti-fragile • Over-engineered)
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.4.0"
+# VERSION: hard-assign VERSION="1.6.0"
 #
 # =============================================================================
 
@@ -48,10 +51,10 @@ APP_NAME="dns-cli"
 : "${APP_NAME:=dns-cli}"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, version, about, help.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.4.1"
-: "${VERSION:=1.4.1}"
+VERSION="1.6.0"
+: "${VERSION:=1.6.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -65,6 +68,16 @@ VERSION="1.4.1"
 : "${FORCE_REINSTALL:=0}"
 : "${DEBUG:=0}"
 : "${TTY:=0}"
+: "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
+: "${SUBMIT_ACTION:=add}"
+: "${SUBMIT_ACTION_EXPLICIT:=0}"
+: "${SUBMIT_PURPOSE:=}"
+: "${SUDOER_CLI:=}"
+: "${SUDOER_ADM_USER:=sudoer-adm}"
+: "${SUDOER_APPROVAL_APP:=sudoer-cli}"
+: "${SUDOER_INBOUND_BASENAME:=sudoer-request}"
+: "${SUDOER_QUEUE_INBOUND:=}"
+: "${SUDOERS_D_DIR:=/etc/sudoers.d}"
 
 # ----------------------------- Safe Variable Defaults ------------------------
 : "${GLOBAL_BIN:=/usr/local/bin}"
@@ -738,19 +751,6 @@ path_add_shell() {
         out_plain "→ Restart your terminal or run: source ${shell_config}"
     fi
 }
-
-# =============================================================================
-# util_sha256_file() - SHA-256 hex digest of a file (portable tool chain)
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Print the SHA-256 hex digest of file $1 to stdout for capture.
-# Tries sha256sum (GNU/Linux) → shasum -a 256 (macOS) → openssl dgst.
-# Return 1 if no tool or file unreadable.
-#
-# PRINTF/ECHO EXCEPTION (class B – return-via-stdout):
-# Digests are data returns for $(util_sha256_file …), not product UI.
-# =============================================================================
 
 util_get_install_bin_path() {
     # --- Safe Variable Defaults ----
@@ -2946,6 +2946,1005 @@ cf_approver_heal_login_rc() {
     fi
 }
 
+# =============================================================================
+# lpu_* — Type 1 setup / remove-lpu and Type 0 print-sudoers
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Create and remove Linux user dns-adm (F3 home, F5 vault dir, F6 sudoers dest)
+# and emit the Table A fragment. Host useradd is Table C (not sudoers).
+#
+# ALIGNMENT:
+# - requirement-least-privilege-user.md
+# - requirement-three-layer-privilege-model.md
+# - requirement-dns-approver.md
+# - requirement-shell-cli-interface.md
+#
+# Last reviewed: 2026-08-18
+# =============================================================================
+
+lpu_user() {
+    printf '%s' "${CF_LPU_USER:-${CF_APPROVER_USER:-dns-adm}}"
+}
+
+lpu_test_mode() {
+    : "${CF_TEST_LPU:=0}"
+    if [ "${CF_TEST_LPU}" = "1" ]; then
+        return 0
+    fi
+    return 1
+}
+
+lpu_etc_prefix() {
+    if [ -n "${CF_LPU_ROOT:-}" ]; then
+        printf '%s/etc' "${CF_LPU_ROOT}"
+        return 0
+    fi
+    printf '%s' "/etc"
+}
+
+lpu_home_preferred() {
+    printf '%s/%s' "$(lpu_etc_prefix)" "$(lpu_user)"
+}
+
+lpu_home_fallback() {
+    if [ -n "${CF_LPU_ROOT:-}" ]; then
+        printf '%s/home/%s' "${CF_LPU_ROOT}" "$(lpu_user)"
+        return 0
+    fi
+    printf '/home/%s' "$(lpu_user)"
+}
+
+lpu_sudoers_dest() {
+    if [ -n "${CF_LPU_SUDOERS:-}" ]; then
+        printf '%s' "${CF_LPU_SUDOERS}"
+        return 0
+    fi
+    printf '%s/%s/sudoers' "$(lpu_etc_prefix)" "$(lpu_user)"
+}
+
+lpu_backup_dir() {
+    if [ -n "${CF_SUDOER_BACKUP:-}" ]; then
+        printf '%s' "${CF_SUDOER_BACKUP}"
+        return 0
+    fi
+    printf '%s/sudoer-backup' "$(lpu_etc_prefix)"
+}
+
+lpu_passwd_file() {
+    if [ -n "${CF_LPU_PASSWD:-}" ]; then
+        printf '%s' "${CF_LPU_PASSWD}"
+        return 0
+    fi
+    if [ -n "${CF_LPU_ROOT:-}" ]; then
+        printf '%s/passwd' "${CF_LPU_ROOT}"
+        return 0
+    fi
+    printf '%s' ""
+}
+
+lpu_account_present() {
+    _u=$(lpu_user)
+    if lpu_test_mode; then
+        _pw=$(lpu_passwd_file)
+        if [ -n "${_pw}" ] && [ -f "${_pw}" ]; then
+            grep -q "^${_u}:" "${_pw}" 2>/dev/null
+            return $?
+        fi
+        return 1
+    fi
+    if command -v getent >/dev/null 2>&1; then
+        if getent passwd "${_u}" >/dev/null 2>&1; then
+            return 0
+        fi
+        return 1
+    fi
+    id "${_u}" >/dev/null 2>&1
+}
+
+lpu_owner_name() {
+    _p="$1"
+    if [ ! -e "${_p}" ]; then
+        printf '%s' ""
+        return 0
+    fi
+    if stat -c '%U' "${_p}" >/dev/null 2>&1; then
+        stat -c '%U' "${_p}"
+        return 0
+    fi
+    if stat -f '%Su' "${_p}" >/dev/null 2>&1; then
+        stat -f '%Su' "${_p}"
+        return 0
+    fi
+    printf '%s' ""
+}
+
+lpu_resolve_home() {
+    : "${CF_OPT_HOME:=}"
+    _u=$(lpu_user)
+    if [ -n "${CF_OPT_HOME}" ]; then
+        case "${CF_OPT_HOME}" in
+            /*)
+                LPU_HOME="${CF_OPT_HOME}"
+                LPU_HOME_REASON="override"
+                return 0
+                ;;
+            *)
+                out_die_code vault_insecure "setup --home must be an absolute path"
+                ;;
+        esac
+    fi
+    _pref=$(lpu_home_preferred)
+    if [ ! -e "${_pref}" ]; then
+        LPU_HOME="${_pref}"
+        LPU_HOME_REASON="preferred-/etc"
+        return 0
+    fi
+    _own=$(lpu_owner_name "${_pref}")
+    if [ "${_own}" = "${_u}" ] || [ "${_own}" = "root" ] || [ -z "${_own}" ]; then
+        LPU_HOME="${_pref}"
+        LPU_HOME_REASON="preferred-/etc"
+        return 0
+    fi
+    if lpu_test_mode; then
+        LPU_HOME="${_pref}"
+        LPU_HOME_REASON="preferred-/etc"
+        return 0
+    fi
+    LPU_HOME=$(lpu_home_fallback)
+    LPU_HOME_REASON="fallback-/home"
+}
+
+lpu_require_elev() {
+    _verb="$1"
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    : "${FORCE:=0}"
+    : "${CF_OPT_HOME:=}"
+    if lpu_test_mode; then
+        return 0
+    fi
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        return 0
+    fi
+    _who=$(id -un 2>/dev/null || echo "unknown")
+    _msg="${_verb} must run as root. You are ${_who} (not root). Next: sudo ${APP_NAME} ${_verb}"
+    if [ "${JSON}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
+        out_die_code lpu_required "${_msg}"
+    fi
+    _src=$(util_resolve_running_path)
+    if [ -z "${_src}" ] || [ ! -f "${_src}" ]; then
+        out_die_code lpu_required "${_msg}"
+    fi
+    out_info "Re-running ${_verb} with sudo (password prompt)."
+    if [ "${FORCE}" -eq 1 ]; then
+        if [ -n "${CF_OPT_HOME}" ]; then
+            exec sudo -p "[sudo] password for %p: " "${_src}" "${_verb}" --force --home "${CF_OPT_HOME}"
+        fi
+        exec sudo -p "[sudo] password for %p: " "${_src}" "${_verb}" --force
+    fi
+    if [ -n "${CF_OPT_HOME}" ]; then
+        exec sudo -p "[sudo] password for %p: " "${_src}" "${_verb}" --home "${CF_OPT_HOME}"
+    fi
+    exec sudo -p "[sudo] password for %p: " "${_src}" "${_verb}"
+}
+
+lpu_stub_useradd() {
+    _u=$(lpu_user)
+    _home="$1"
+    _pw=$(lpu_passwd_file)
+    if [ -z "${_pw}" ]; then
+        out_die_code lpu_exists "Test setup needs CF_LPU_ROOT or CF_LPU_PASSWD"
+    fi
+    _pdir=$(dirname "${_pw}")
+    if [ ! -d "${_pdir}" ]; then
+        mkdir -p "${_pdir}" || out_die_code vault_insecure "Cannot create ${_pdir}"
+    fi
+    if [ -f "${_pw}" ]; then
+        if grep -q "^${_u}:" "${_pw}" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    printf '%s:x:1701:1701:dns-cli LPU:%s:/bin/bash\n' "${_u}" "${_home}" >>"${_pw}"
+}
+
+lpu_host_useradd() {
+    _u=$(lpu_user)
+    _home="$1"
+    if command -v getent >/dev/null 2>&1; then
+        if ! getent group "${_u}" >/dev/null 2>&1; then
+            if ! groupadd "${_u}"; then
+                out_die_code lpu_exists "Could not create group ${_u}."
+            fi
+        fi
+    else
+        if ! groupadd "${_u}" 2>/dev/null; then
+            :
+        fi
+    fi
+    if lpu_account_present; then
+        return 0
+    fi
+    if ! useradd -d "${_home}" -s /bin/bash -g "${_u}" -c "dns-cli least-privilege user" "${_u}"; then
+        out_die_code lpu_exists "Could not create Linux user ${_u} (name or id already used). Next: getent passwd ${_u}"
+    fi
+    if command -v passwd >/dev/null 2>&1; then
+        passwd -l "${_u}" >/dev/null 2>&1 || true
+    fi
+}
+
+lpu_ensure_account() {
+    _home="$1"
+    if lpu_test_mode; then
+        lpu_stub_useradd "${_home}"
+        return 0
+    fi
+    lpu_host_useradd "${_home}"
+}
+
+lpu_chown_tree() {
+    _path="$1"
+    _u=$(lpu_user)
+    if lpu_test_mode; then
+        return 0
+    fi
+    if [ ! -e "${_path}" ]; then
+        return 0
+    fi
+    chown "${_u}:${_u}" "${_path}" || out_die_code lpu_exists "Cannot chown ${_path} to ${_u}"
+}
+
+lpu_fragment() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _u=$(lpu_user)
+    _bin="${GLOBAL_BIN}/${APP_NAME}"
+    _dest=$(lpu_sudoers_dest)
+    printf '%s\n' \
+        "# dns-cli — run managed CLI as ${_u} (review before install)" \
+        "# Generated: dns-cli print-sudoers" \
+        "# Dest: ${_dest}" \
+        "# Admin: visudo -c -f DEST && install -m 0440 DEST ${_dest}" \
+        "# Trust: production only when ${_bin} is the managed binary" \
+        "" \
+        "%sudo ALL=(${_u}) NOPASSWD: ${_bin}" \
+        ""
+}
+
+lpu_backup_f6() {
+    _dest=$(lpu_sudoers_dest)
+    if [ ! -f "${_dest}" ]; then
+        return 0
+    fi
+    _bdir=$(lpu_backup_dir)
+    case "${_bdir}" in
+        */sudoers.d|*/sudoers.d/*)
+            out_die_code vault_insecure "F6 backup must not land under /etc/sudoers.d"
+            ;;
+    esac
+    if [ ! -d "${_bdir}" ]; then
+        mkdir -p "${_bdir}" || out_die_code vault_insecure "Cannot create ${_bdir}"
+    fi
+    _stamp=$(date -u +'%Y%m%dT%H%M%SZ')
+    _n=0
+    _bak="${_bdir}/$(lpu_user).sudoers.${_stamp}"
+    while [ -e "${_bak}" ]; do
+        _n=$((_n + 1))
+        _bak="${_bdir}/$(lpu_user).sudoers.${_stamp}.${_n}"
+    done
+    if ! cp "${_dest}" "${_bak}"; then
+        out_die_code vault_insecure "Cannot backup sudoers dest to ${_bak}"
+    fi
+    chmod 0440 "${_bak}" 2>/dev/null || true
+}
+
+lpu_install_sudoers() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${FORCE:=0}"
+    _gbin="${GLOBAL_BIN}/${APP_NAME}"
+    if [ ! -x "${_gbin}" ]; then
+        if [ "${FORCE}" -ne 1 ]; then
+            out_die_code lpu_required "setup writes sudoers only when the global CLI exists at ${_gbin}. This host has no global install. Next: sudo ${APP_NAME} install   or: sudo ${APP_NAME} setup --force"
+        fi
+        out_warn "TEST MODE: no global ${_gbin}; installing sudoers dest anyway (--force)."
+    fi
+    _dest=$(lpu_sudoers_dest)
+    _ddir=$(dirname "${_dest}")
+    if [ ! -d "${_ddir}" ]; then
+        mkdir -p "${_ddir}" || out_die_code vault_insecure "Cannot create ${_ddir}"
+    fi
+    _tmp=$(mktemp "${_ddir}/.sudoers.XXXXXX") || out_die_code vault_insecure "mktemp failed for sudoers dest"
+    if ! lpu_fragment >"${_tmp}"; then
+        rm -f "${_tmp}"
+        out_die_code vault_insecure "Cannot write sudoers draft"
+    fi
+    if ! lpu_test_mode; then
+        if command -v visudo >/dev/null 2>&1; then
+            if ! visudo -c -f "${_tmp}" >/dev/null 2>&1; then
+                rm -f "${_tmp}"
+                out_die_code vault_insecure "visudo rejected the generated sudoers draft"
+            fi
+        fi
+    fi
+    lpu_backup_f6
+    if command -v install >/dev/null 2>&1; then
+        if ! install -m 0440 "${_tmp}" "${_dest}"; then
+            rm -f "${_tmp}"
+            out_die_code vault_insecure "Cannot install sudoers dest ${_dest}"
+        fi
+    else
+        if ! cp -f "${_tmp}" "${_dest}"; then
+            rm -f "${_tmp}"
+            out_die_code vault_insecure "Cannot copy sudoers dest ${_dest}"
+        fi
+        chmod 0440 "${_dest}" || true
+    fi
+    rm -f "${_tmp}"
+    if ! lpu_test_mode; then
+        chown root:root "${_dest}" 2>/dev/null || true
+    fi
+}
+
+lpu_heal_home_rc() {
+    _home="$1"
+    case "${_home}" in
+        ""|/tmp|/tmp/*|/dev/shm|/dev/shm/*)
+            return 0
+            ;;
+    esac
+    if [ ! -d "${_home}" ]; then
+        return 0
+    fi
+    _brc="${_home}/.bashrc"
+    _prf="${_home}/.profile"
+    _has_begin=0
+    _has_end=0
+    if [ -f "${_brc}" ]; then
+        grep -q '# BEGIN dns-cli login hook' "${_brc}" 2>/dev/null && _has_begin=1
+        grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
+    fi
+    if [ "${_has_begin}" -ne 1 ] || [ "${_has_end}" -ne 1 ]; then
+        _tmp=$(mktemp "${_home}/.bashrc.dns-cli.XXXXXX") || return 0
+        if [ -f "${_brc}" ]; then
+            if ! cp -p "${_brc}" "${_tmp}"; then
+                rm -f "${_tmp}"
+                return 0
+            fi
+            if ! cf_approver_hook_block >>"${_tmp}"; then
+                rm -f "${_tmp}"
+                return 0
+            fi
+        else
+            if ! cf_approver_hook_block >"${_tmp}"; then
+                rm -f "${_tmp}"
+                return 0
+            fi
+            chmod 0600 "${_tmp}" 2>/dev/null || true
+        fi
+        if ! mv -f "${_tmp}" "${_brc}"; then
+            rm -f "${_tmp}"
+            return 0
+        fi
+    fi
+    if [ ! -f "${_prf}" ]; then
+        _ptmp=$(mktemp "${_home}/.profile.dns-cli.XXXXXX") || return 0
+        if ! cf_approver_profile_block >"${_ptmp}"; then
+            rm -f "${_ptmp}"
+            return 0
+        fi
+        chmod 0600 "${_ptmp}" 2>/dev/null || true
+        if [ ! -f "${_prf}" ]; then
+            if ! mv -f "${_ptmp}" "${_prf}"; then
+                rm -f "${_ptmp}"
+                return 0
+            fi
+        else
+            rm -f "${_ptmp}"
+        fi
+    fi
+    lpu_chown_tree "${_brc}"
+    if [ -f "${_prf}" ]; then
+        lpu_chown_tree "${_prf}"
+    fi
+}
+
+lpu_print_sudoers() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    _dest=$(lpu_sudoers_dest)
+    _outpath="${CF_POS2:-}"
+    if [ -n "${_outpath}" ]; then
+        case "${_outpath}" in
+            /*) ;;
+            *)
+                out_die_code vault_insecure "print-sudoers path must be absolute"
+                ;;
+        esac
+        if [ "${_outpath}" = "${_dest}" ]; then
+            out_die_code vault_insecure "print-sudoers does not write the installed dest ${_dest}. Next: sudo ${APP_NAME} setup"
+        fi
+        lpu_fragment >"${_outpath}" || out_die_code vault_insecure "Cannot write ${_outpath}"
+    fi
+    _frag=$(lpu_fragment)
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "print-sudoers" "Table A fragment (dest not written)" \
+            "dest" "${_dest}" \
+            "wrote_path" "${_outpath}" \
+            "fragment" "${_frag}"
+        return 0
+    fi
+    out_plain "${_frag}"
+    out_plain ""
+    out_info "This printed a draft only. It did not install ${_dest}."
+    out_info "Admin: visudo -c -f DRAFT && install -m 0440 DRAFT ${_dest}"
+    out_info "Or: sudo ${APP_NAME} setup"
+    out_info "JSON grant (sibling submit): ${APP_NAME} generate-sudoer-request"
+}
+
+# =============================================================================
+# lpu_* sudoer-approval-submitter (JSON grant → sibling sudoer-cli)
+# ALIGNMENT: requirement-sudoer-json-file.md
+#             requirement-three-layer-privilege-model.md §P-M8 / P-M9
+# =============================================================================
+
+lpu_sudoers_json_text_compact() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${SUBMIT_ACTION:=add}"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _action="${SUBMIT_ACTION}"
+    case "${_action}" in
+        add|update) ;;
+        *) _action="add" ;;
+    esac
+    _path="${GLOBAL_BIN}/${APP_NAME}"
+    printf '%s\n' "{\"schema_version\":1,\"purpose\":\"Allow ${_user} to run ${APP_NAME} as dns-adm.\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"dns-adm\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[]}]}"
+}
+
+lpu_sudoers_trust_tier() {
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${APP_NAME:=dns-cli}"
+    if [ -x "${GLOBAL_BIN}/${APP_NAME}" ] && [ ! -w "${GLOBAL_BIN}/${APP_NAME}" ]; then
+        printf '%s' "production"
+        return 0
+    fi
+    if [ -x "${GLOBAL_BIN}/${APP_NAME}" ]; then
+        printf '%s' "test_local"
+        return 0
+    fi
+    printf '%s' "unmanaged"
+}
+
+lpu_sudoers_require_emit_trust() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${ALLOW_TEST_LOCAL_SUDOERS:=0}"
+    _cmd="${1:-generate-sudoer-request}"
+    _tier=$(lpu_sudoers_trust_tier)
+    if [ "${_tier}" != "production" ]; then
+        if [ "${ALLOW_TEST_LOCAL_SUDOERS}" -ne 1 ]; then
+            out_die_code sudoer_required "${_cmd} trust tier is ${_tier} (not production). Prefer: sudo ${APP_NAME} install  (global ${GLOBAL_BIN}/${APP_NAME}). To emit a test file: ${APP_NAME} ${_cmd} --allow-test-local"
+        fi
+    fi
+}
+
+lpu_sudoers_refuse_forbidden_grant() {
+    _gf="${1:-}"
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
+        out_die_code request_invalid "sudoer grant file missing"
+    fi
+    _gb=$(cat "${_gf}" 2>/dev/null || true)
+    case "${_gb}" in
+        *"/usr/bin/mkdir"*|*"/bin/mkdir"*|*"/usr/bin/cp"*|*"/bin/cp"*|*"/usr/bin/tar"*|*"/bin/tar"*|*"/bin/rm "*|*"/usr/bin/rm "*|*"/usr/bin/install"*|*"/usr/bin/chmod"*|*"/bin/chmod"*)
+            out_die_code request_invalid "refusing sudoer grant with OS-tool commands (need ${GLOBAL_BIN}/${APP_NAME} as dns-adm only)"
+            ;;
+    esac
+    case "${_gb}" in
+        *'"runas":"root"'*|*'"runas": "root"'*)
+            out_die_code request_invalid "refusing sudoer grant with runas root (need runas dns-adm)"
+            ;;
+    esac
+    return 0
+}
+
+lpu_sudoers_verify_grant() {
+    _gf="${1:-}"
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
+        out_die_code request_invalid "sudoer file missing"
+    fi
+    _gb=$(cat "${_gf}" 2>/dev/null || true)
+    case "${_gb}" in
+        *'"service":"dns-cli"'*|*'"service": "dns-cli"'*) ;;
+        *) out_die_code request_invalid "Sudoer file is incomplete: service is not dns-cli. Path: ${_gf}" ;;
+    esac
+    case "${_gb}" in
+        *'"runas":"dns-adm"'*|*'"runas": "dns-adm"'*) ;;
+        *) out_die_code request_invalid "Sudoer file is incomplete: runas is not dns-adm. Path: ${_gf}" ;;
+    esac
+    case "${_gb}" in
+        *"${GLOBAL_BIN}/${APP_NAME}"*) ;;
+        *) out_die_code request_invalid "Sudoer file is incomplete: path is not ${GLOBAL_BIN}/${APP_NAME}. Path: ${_gf}" ;;
+    esac
+    return 0
+}
+
+lpu_detect_sudoer_cli() {
+    : "${HOME:=/tmp}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${USER_BIN:=${HOME}/.local/bin}"
+    : "${SUDOER_CLI:=}"
+    if [ -n "${SUDOER_CLI}" ]; then
+        if [ -x "${SUDOER_CLI}" ]; then
+            printf '%s' "${SUDOER_CLI}"
+            return 0
+        fi
+        return 1
+    fi
+    if [ -x "${GLOBAL_BIN}/sudoer-cli" ]; then
+        printf '%s' "${GLOBAL_BIN}/sudoer-cli"
+        return 0
+    fi
+    if [ -x "${USER_BIN}/sudoer-cli" ]; then
+        printf '%s' "${USER_BIN}/sudoer-cli"
+        return 0
+    fi
+    _found=$(command -v sudoer-cli 2>/dev/null || true)
+    if [ -n "${_found}" ] && [ -x "${_found}" ]; then
+        printf '%s' "${_found}"
+        return 0
+    fi
+    return 1
+}
+
+lpu_detect_sudoer_adm() {
+    : "${SUDOER_ADM_USER:=sudoer-adm}"
+    if id "${SUDOER_ADM_USER}" >/dev/null 2>&1; then
+        printf '%s' "${SUDOER_ADM_USER}"
+        return 0
+    fi
+    return 1
+}
+
+lpu_detect_sudoer_inbound() {
+    : "${SUDOER_ADM_USER:=sudoer-adm}"
+    : "${SUDOER_QUEUE_INBOUND:=}"
+    : "${SUDOER_APPROVAL_APP:=sudoer-cli}"
+    : "${SUDOER_INBOUND_BASENAME:=sudoer-request}"
+    : "${SUDOER_PUBLIC_ROOT:=/var/${SUDOER_APPROVAL_APP}}"
+    if [ -n "${SUDOER_QUEUE_INBOUND}" ] && [ -d "${SUDOER_QUEUE_INBOUND}" ]; then
+        printf '%s' "${SUDOER_QUEUE_INBOUND}"
+        return 0
+    fi
+    _home=""
+    if command -v getent >/dev/null 2>&1; then
+        _home=$(getent passwd "${SUDOER_ADM_USER}" 2>/dev/null | cut -d: -f6)
+    fi
+    if [ -z "${_home}" ] && [ -r /etc/passwd ]; then
+        _home=$(awk -F: -v u="${SUDOER_ADM_USER}" '$1==u {print $6; exit}' /etc/passwd 2>/dev/null)
+    fi
+    for _cand in \
+        "${SUDOER_PUBLIC_ROOT}/${SUDOER_INBOUND_BASENAME}" \
+        ${_home:+"${_home}/${SUDOER_INBOUND_BASENAME}"} \
+        ${_home:+"${_home}/sudoer-approving"}
+    do
+        if [ -n "${_cand}" ] && [ -d "${_cand}" ]; then
+            printf '%s' "${_cand}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+lpu_sudoer_queue_root_from_inbound() {
+    _in="${1:-}"
+    [ -n "${_in}" ] || return 1
+    _base=$(basename -- "${_in}")
+    if [ -n "${SUDOER_QUEUE_INBOUND}" ] && [ "${_in}" = "${SUDOER_QUEUE_INBOUND}" ]; then
+        dirname -- "${_in}"
+        return 0
+    fi
+    if [ "${_base}" = "${SUDOER_INBOUND_BASENAME:-sudoer-request}" ]; then
+        _real="${_in}"
+        if command -v readlink >/dev/null 2>&1; then
+            _resolved=$(readlink -f "${_in}" 2>/dev/null || true)
+            [ -n "${_resolved}" ] && _real="${_resolved}"
+        fi
+        dirname -- "${_real}"
+        return 0
+    fi
+    return 1
+}
+
+lpu_probe_sibling_host_sudoers() {
+    : "${APP_NAME:=dns-cli}"
+    : "${SUDOERS_D_DIR:=/etc/sudoers.d}"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _p="${SUDOERS_D_DIR}/${APP_NAME}-${_user}"
+    if [ -f "${_p}" ]; then
+        printf '%s' "${_p}"
+        return 0
+    fi
+    return 1
+}
+
+lpu_default_sudoer_request_path() {
+    : "${APP_NAME:=dns-cli}"
+    : "${HOME:=/tmp}"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    printf '%s' "${HOME}/.config/${APP_NAME}/sudoer-request-${_user}.json"
+}
+
+lpu_sudoers_verify_sibling_convert() {
+    _gf="${1:-}"
+    : "${APP_NAME:=dns-cli}"
+    _cli=""
+    if _cli=$(lpu_detect_sudoer_cli); then
+        :
+    else
+        return 1
+    fi
+    _help=$("${_cli}" help 2>/dev/null || true)
+    case "${_help}" in
+        *json-to-sudoers*) ;;
+        *) return 1 ;;
+    esac
+    _stor="${EFFECTIVE_STORAGE_DIR:-${TMPDIR:-/tmp}}"
+    _outf=$(mktemp "${_stor}/.sudoer-conv.XXXXXX") || return 1
+    if ! "${_cli}" json-to-sudoers --file "${_gf}" --out "${_outf}" >/dev/null 2>&1; then
+        rm -f "${_outf}"
+        out_die_code request_invalid "sudoer-cli json-to-sudoers failed for ${_gf}. The file is not safe to submit."
+    fi
+    _txt=$(cat "${_outf}" 2>/dev/null || true)
+    rm -f "${_outf}"
+    case "${_txt}" in
+        *"(dns-adm)"*) ;;
+        *) out_die_code request_invalid "sudoer-cli convert dropped runas dns-adm from ${_gf}. Do not submit this file." ;;
+    esac
+    case "${_txt}" in
+        *"${APP_NAME}"*) ;;
+        *) out_die_code request_invalid "sudoer-cli convert dropped ${APP_NAME} from ${_gf}. Do not submit this file." ;;
+    esac
+    return 0
+}
+
+lpu_generate_sudoer_request() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${HOME:=/tmp}"
+    : "${SUBMIT_ACTION:=add}"
+    : "${SUBMIT_ACTION_EXPLICIT:=0}"
+    _out_path="${1:-}"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _host_present="false"
+    if lpu_probe_sibling_host_sudoers >/dev/null; then
+        _host_present="true"
+    fi
+    if [ "${SUBMIT_ACTION_EXPLICIT}" -ne 1 ]; then
+        if [ "${_host_present}" = "true" ]; then
+            SUBMIT_ACTION="update"
+        else
+            SUBMIT_ACTION="add"
+        fi
+    fi
+    case "${SUBMIT_ACTION}" in
+        add|update) ;;
+        *) out_die_code request_invalid "generate-sudoer-request action must be add or update (got ${SUBMIT_ACTION})" ;;
+    esac
+    lpu_sudoers_require_emit_trust "generate-sudoer-request"
+    if [ -z "${_out_path}" ]; then
+        _out_path=$(lpu_default_sudoer_request_path)
+    fi
+    case "${_out_path}" in
+        /etc|/etc/*)
+            out_die_code vault_insecure "generate-sudoer-request refuses to write under /etc (Type 0). Use a path under \$HOME or /dev/shm."
+            ;;
+        /var/sudoer-cli|/var/sudoer-cli/*)
+            out_die_code vault_insecure "generate-sudoer-request does not write inbound. Write a local file, then: ${APP_NAME} submit-sudoer-request <path>"
+            ;;
+    esac
+    if [ -e "${_out_path}" ] && [ -L "${_out_path}" ]; then
+        out_die_code vault_insecure "refusing symlink dest: ${_out_path}"
+    fi
+    if [ -d "${_out_path}" ]; then
+        out_die_code vault_insecure "generate dest is a directory: ${_out_path}"
+    fi
+    _dir=$(dirname -- "${_out_path}")
+    if [ ! -d "${_dir}" ]; then
+        mkdir -p "${_dir}" || out_die_code vault_insecure "Cannot create ${_dir}"
+    fi
+    lpu_sudoers_json_text_compact >"${_out_path}" || out_die_code vault_insecure "Cannot write ${_out_path}"
+    chmod 0644 "${_out_path}" 2>/dev/null || true
+    if [ ! -r "${_out_path}" ]; then
+        out_die_code vault_insecure "generated sudoer file is not readable: ${_out_path}"
+    fi
+    lpu_sudoers_refuse_forbidden_grant "${_out_path}"
+    lpu_sudoers_verify_grant "${_out_path}"
+    _convert="skipped"
+    if lpu_sudoers_verify_sibling_convert "${_out_path}"; then
+        _convert="ok"
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "generate-sudoer-request" "written" \
+            "path" "${_out_path}" \
+            "readable" "true" \
+            "verified" "true" \
+            "convert_checked" "$([ "${_convert}" = "ok" ] && echo true || echo false)" \
+            "action" "${SUBMIT_ACTION}" \
+            "host_fragment_present" "${_host_present}" \
+            "user" "${_user}"
+        return 0
+    fi
+    out_success "Wrote verified sudoer file to ${_out_path}"
+    out_info "Grant allows: ${APP_NAME} as dns-adm (action=${SUBMIT_ACTION})"
+    out_info "Review the file, then submit it:"
+    out_info "   ${APP_NAME} submit-sudoer-request ${_out_path}"
+}
+
+lpu_submit_sudoer_request() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${HOME:=/tmp}"
+    : "${SUDOER_ADM_USER:=sudoer-adm}"
+    : "${SUBMIT_PURPOSE:=}"
+    : "${SUBMIT_ACTION:=add}"
+    : "${SUBMIT_ACTION_EXPLICIT:=0}"
+    _src_file="${1:-}"
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _purpose="${SUBMIT_PURPOSE}"
+    if [ -z "${_purpose}" ]; then
+        _purpose="Allow ${_user} to run ${APP_NAME} as dns-adm."
+    fi
+    _host_path=""
+    _host_present="false"
+    if _host_path=$(lpu_probe_sibling_host_sudoers); then
+        _host_present="true"
+    else
+        _host_path=""
+    fi
+    _action_source="explicit"
+    if [ "${SUBMIT_ACTION_EXPLICIT}" -ne 1 ]; then
+        _action_source="detected"
+        if [ "${_host_present}" = "true" ]; then
+            SUBMIT_ACTION="update"
+        else
+            SUBMIT_ACTION="add"
+        fi
+    fi
+    case "${SUBMIT_ACTION}" in
+        add|update) ;;
+        *) out_die_code request_invalid "submit-sudoer-request action must be add or update (got ${SUBMIT_ACTION})" ;;
+    esac
+    if [ -n "${_src_file}" ]; then
+        if [ ! -f "${_src_file}" ]; then
+            out_die_code request_invalid "sudoers file not found: ${_src_file}"
+        fi
+        if [ -L "${_src_file}" ]; then
+            out_die_code vault_insecure "refusing symlink sudoers input: ${_src_file}"
+        fi
+        lpu_sudoers_refuse_forbidden_grant "${_src_file}"
+    fi
+    _cli=""
+    if _cli=$(lpu_detect_sudoer_cli); then
+        :
+    else
+        out_die_code sudoer_required "sudoer-cli not found (set SUDOER_CLI or install sudoer-cli to ${GLOBAL_BIN:-/usr/local/bin}/sudoer-cli). Submit is Type 0 compose — this CLI does not write /etc. Next: sudo sudoer-cli setup"
+    fi
+    _adm=""
+    if _adm=$(lpu_detect_sudoer_adm); then
+        :
+    else
+        out_die_code sudoer_required "sudoer-adm not found (id ${SUDOER_ADM_USER} failed). Next: sudo sudoer-cli setup"
+    fi
+    : "${SUDOER_PUBLIC_ROOT:=/var/${SUDOER_APPROVAL_APP:-sudoer-cli}}"
+    _inbound=""
+    if _inbound=$(lpu_detect_sudoer_inbound); then
+        :
+    else
+        out_die_code sudoer_required "sudoer inbound queue not found (preferred ${SUDOER_PUBLIC_ROOT}/sudoer-request). Next: sudo sudoer-cli setup"
+    fi
+    if [ ! -w "${_inbound}" ]; then
+        out_die_code sudoer_required "sudoer inbound not writable: ${_inbound}. Check mode 3773 on public inbound (owner ${_adm})."
+    fi
+    _tmp=""
+    _cleanup_tmp=0
+    if [ -n "${_src_file}" ]; then
+        _tmp="${_src_file}"
+    else
+        lpu_sudoers_require_emit_trust "submit-sudoer-request"
+        _stor="${EFFECTIVE_STORAGE_DIR:-${TMPDIR:-/tmp}}"
+        _tmp=$(mktemp "${_stor}/.sudoer.XXXXXX") || out_die_code vault_insecure "cannot write temp sudoer JSON"
+        lpu_sudoers_json_text_compact >"${_tmp}" || out_die_code vault_insecure "cannot write temp sudoer JSON ${_tmp}"
+        _cleanup_tmp=1
+    fi
+    lpu_sudoers_refuse_forbidden_grant "${_tmp}"
+    lpu_sudoers_verify_grant "${_tmp}"
+    lpu_sudoers_verify_sibling_convert "${_tmp}" || true
+    if _qr=$(lpu_sudoer_queue_root_from_inbound "${_inbound}"); then
+        SUDOER_CLI_QUEUE_ROOT="${_qr}"
+        export SUDOER_CLI_QUEUE_ROOT
+        if [ -n "${SUDOER_QUEUE_INBOUND}" ] && [ "${_inbound}" = "${SUDOER_QUEUE_INBOUND}" ]; then
+            LPU_HOME="${_qr}"
+            export LPU_HOME
+        fi
+    fi
+    _verb="add-sudoer-request"
+    if [ "${SUBMIT_ACTION}" = "update" ]; then
+        _verb="update-sudoer-request"
+    fi
+    _stor="${EFFECTIVE_STORAGE_DIR:-${TMPDIR:-/tmp}}"
+    _errf=$(mktemp "${_stor}/.sudoer-err.XXXXXX") || out_die_code vault_insecure "mktemp failed"
+    _out=""
+    _rc=0
+    if [ "${JSON}" -eq 1 ]; then
+        _out=$("${_cli}" --json "${_verb}" --file "${_tmp}" --purpose "${_purpose}" --service "${APP_NAME}" 2>"${_errf}")
+        _rc=$?
+    else
+        _out=$("${_cli}" "${_verb}" --file "${_tmp}" --purpose "${_purpose}" --service "${APP_NAME}" 2>"${_errf}")
+        _rc=$?
+    fi
+    _err=$(cat "${_errf}" 2>/dev/null || true)
+    rm -f "${_errf}"
+    if [ "${_cleanup_tmp}" -eq 1 ]; then
+        rm -f "${_tmp}"
+    fi
+    if [ "${_rc}" -ne 0 ]; then
+        if [ -n "${_err}" ]; then
+            out_die_code sudoer_required "sudoer-cli ${_verb} failed: ${_err}"
+        fi
+        out_die_code sudoer_required "sudoer-cli ${_verb} failed (exit ${_rc})"
+    fi
+    _rid=$(printf '%s\n' "${_out}" | sed -n 's/.*"request_id":"\([^"]*\)".*/\1/p')
+    if [ -z "${_rid}" ]; then
+        _rid=$(printf '%s\n' "${_out}" | sed -n 's/.*request_id=\([^[:space:]]*\).*/\1/p')
+    fi
+    if [ -n "${_rid}" ] && [ -r "${_inbound}/${_rid}" ]; then
+        lpu_sudoers_verify_grant "${_inbound}/${_rid}"
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "submit-sudoer-request" "submitted" \
+            "request_id" "${_rid}" \
+            "action" "${SUBMIT_ACTION}" \
+            "action_source" "${_action_source}" \
+            "host_fragment_present" "${_host_present}" \
+            "host_fragment_path" "${_host_path}" \
+            "service" "${APP_NAME}" \
+            "user" "${_user}" \
+            "sudoer_cli" "${_cli}" \
+            "sudoer_adm" "${_adm}" \
+            "inbound" "${_inbound}"
+        return 0
+    fi
+    out_success "Submitted ${SUBMIT_ACTION} request via ${_cli}"
+    if [ -n "${_rid}" ]; then
+        out_info "request_id=${_rid}"
+    fi
+    out_info "inbound=${_inbound}  (approver: ${_adm})"
+    out_info "This CLI did not write /etc. Approver must approve the request."
+    return 0
+}
+
+lpu_setup() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${FORCE:=0}"
+    lpu_require_elev "setup"
+    lpu_resolve_home
+    _u=$(lpu_user)
+    _home="${LPU_HOME}"
+    _reason="${LPU_HOME_REASON}"
+    _existed=0
+    if lpu_account_present; then
+        _existed=1
+    fi
+    lpu_ensure_account "${_home}"
+    if [ ! -d "${_home}" ]; then
+        mkdir -p "${_home}" || out_die_code vault_insecure "Cannot create home ${_home}"
+    fi
+    chmod 0755 "${_home}" || true
+    lpu_chown_tree "${_home}"
+    _vault="${_home}/vault"
+    if [ ! -d "${_vault}" ]; then
+        mkdir -p "${_vault}" || out_die_code vault_insecure "Cannot create vault dir ${_vault}"
+    fi
+    chmod 0700 "${_vault}" || out_die_code vault_insecure "Cannot chmod 0700 ${_vault}"
+    lpu_chown_tree "${_vault}"
+    lpu_install_sudoers
+    lpu_heal_home_rc "${_home}"
+    _dest=$(lpu_sudoers_dest)
+    if [ "${JSON}" -eq 1 ]; then
+        _st="healed"
+        if [ "${_existed}" -eq 0 ]; then
+            _st="created"
+        fi
+        if [ "${_existed}" -eq 0 ]; then
+            _created="true"
+        else
+            _created="false"
+        fi
+        out_json "setup" "LPU ${_u} ready" \
+            "user" "${_u}" \
+            "home" "${_home}" \
+            "home_reason" "${_reason}" \
+            "vault_dir" "${_vault}" \
+            "sudoers" "${_dest}" \
+            "created" "${_created}" \
+            "status" "${_st}"
+        return 0
+    fi
+    if [ "${_existed}" -eq 1 ]; then
+        out_success "Linux user ${_u} already exists (heal only)"
+    else
+        out_success "Created Linux user ${_u}"
+    fi
+    out_info "Home: ${_home} (${_reason})"
+    out_info "Vault dir: ${_vault} (mode 0700)"
+    out_info "Sudoers dest: ${_dest} (mode 0440)"
+}
+
+lpu_remove() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${FORCE:=0}"
+    : "${TTY:=0}"
+    lpu_require_elev "remove-lpu"
+    if [ "${FORCE}" -ne 1 ]; then
+        if [ "${JSON}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
+            out_die_code confirm_required "remove-lpu requires --force in non-interactive mode"
+        fi
+        if ! prompt_yes_no "Remove Linux user $(lpu_user) and home"; then
+            out_die_code confirm_required "remove-lpu cancelled"
+        fi
+    fi
+    _u=$(lpu_user)
+    if ! lpu_account_present; then
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "remove-lpu" "already absent" \
+                "user" "${_u}" \
+                "status" "already_absent"
+            return 0
+        fi
+        out_success "Linux user ${_u} is not present (nothing to remove)"
+        return 0
+    fi
+    lpu_backup_f6
+    _dest=$(lpu_sudoers_dest)
+    if [ -f "${_dest}" ]; then
+        rm -f "${_dest}" || out_die_code vault_insecure "Cannot remove ${_dest}"
+    fi
+    if lpu_test_mode; then
+        _pw=$(lpu_passwd_file)
+        if [ -n "${_pw}" ] && [ -f "${_pw}" ]; then
+            _tmp=$(mktemp "${_pw}.XXXXXX") || out_die_code vault_insecure "mktemp failed"
+            grep -v "^${_u}:" "${_pw}" >"${_tmp}" || true
+            mv -f "${_tmp}" "${_pw}"
+        fi
+        lpu_resolve_home
+        if [ -n "${LPU_HOME:-}" ] && [ -d "${LPU_HOME}" ]; then
+            rm -rf "${LPU_HOME}"
+        fi
+    else
+        if ! userdel -r "${_u}"; then
+            out_die_code lpu_exists "userdel -r ${_u} failed"
+        fi
+        if command -v groupdel >/dev/null 2>&1; then
+            groupdel "${_u}" 2>/dev/null || true
+        fi
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "remove-lpu" "removed" \
+            "user" "${_u}" \
+            "status" "removed"
+        return 0
+    fi
+    out_success "Removed Linux user ${_u}"
+}
+
 cf_dns_add() {
     cf_dns_ensure_ready
     cf_select_label
@@ -3394,8 +4393,16 @@ util_resolve_running_path() {
 # Do NOT use chmod +x alone after mktemp (0600|0111 → 0711 breaks multi-user exec).
 INST_MANAGED_MODE="0755"
 
-# Last reviewed: 2026-08-09 — mode 0755 multi-user (requirement-shell-local-self-management §2.3.1)
+# Last reviewed: 2026-08-18 — stay-honest: install does not create dns-adm (INC-20260818-001)
 # =============================================================================
+inst_note_install_does_not_create_lpu() {
+    : "${JSON:=0}"
+    : "${APP_NAME:=dns-cli}"
+    if [ "${JSON}" -eq 0 ]; then
+        out_info "Install places the CLI only. It does not create Linux user dns-adm. Next: sudo ${APP_NAME} setup"
+    fi
+}
+
 inst_local_install() {
     : "${APP_NAME:=dns-cli}"
     : "${HOME:=/tmp}"
@@ -3429,6 +4436,7 @@ inst_local_install() {
             # Mode heal: prior chmod +x after mktemp left 0711/0700; keep multi-user runnable.
             chmod "${INST_MANAGED_MODE}" "${_target}" 2>/dev/null || true
             out_success "${APP_NAME} already installed at ${_target}"
+            inst_note_install_does_not_create_lpu
             if [ "${_target_dir}" = "${USER_BIN}" ] && [ "${JSON}" -eq 0 ]; then
                 out_info "Local install is user-rewritable. Global install: sudo ${APP_NAME} install  (${GLOBAL_BIN})"
             fi
@@ -3488,6 +4496,7 @@ inst_local_install() {
     fi
 
     out_success "Installed ${APP_NAME} to ${_target}"
+    inst_note_install_does_not_create_lpu
     if [ "${_target_dir}" = "${USER_BIN}" ]; then
         # Best-effort PATH integration for user bin (function, not external)
         path_add_shell 2>/dev/null || true
@@ -3641,7 +4650,7 @@ app_about() {
     : "${JSON:=0}"
     : "${QUIET:=0}"
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.4.0}"
+    : "${VERSION:=1.5.0}"
     : "${REPO_USER:=cloudgen}"
     : "${REPO_NAME:=dns-cli}"
     : "${SCRIPT_URL:=}"
@@ -3671,6 +4680,11 @@ app_about() {
     _user=$(id -un 2>/dev/null || echo "unknown")
     _interactive="false"
     [ "${TTY:-0}" -eq 1 ] && _interactive="true"
+
+    _lpu="false"
+    if lpu_account_present; then
+        _lpu="true"
+    fi
 
     _vdir=$(cf_vault_dir_probe || true)
     _tp="false"
@@ -3723,7 +4737,8 @@ app_about() {
             "user_id_set" "${_uid_set}" \
             "domain" "${_vdom}" \
             "domain_count" "${_dc}" \
-            "subdomain_count" "${_sc}"
+            "subdomain_count" "${_sc}" \
+            "lpu_present" "${_lpu}"
         return 0
     fi
 
@@ -3749,6 +4764,7 @@ app_about() {
     fi
     out_empty_line
     out_info "Current user:      ${_user}"
+    out_info "LPU dns-adm:       ${_lpu}"
     if [ "$(id -u)" -eq 0 ]; then
         out_success "Execution context: root"
     else
@@ -3810,6 +4826,15 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
+    out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"
+    out_plain "  generate-sudoer-request [path]"
+    out_plain "                       Write a local JSON grant you can review (not inbound)"
+    out_plain "  submit-sudoer-request [file]"
+    out_plain "                       Queue JSON into sibling sudoer-cli inbound"
+    out_empty_line
+    out_info "Host account (elevated — password sudo or already root):"
+    out_plain "  setup                Create Linux user dns-adm, vault dir, sudoers dest"
+    out_plain "  remove-lpu           Remove dns-adm (confirm or --force)"
     out_empty_line
     out_info "Cloudflare DNS (Type 0 domain):"
     out_plain "  vault input                 Interactive TTY wizard (zone, account, domain, subdomain, token)"
@@ -3838,16 +4863,25 @@ app_help() {
     out_plain "  --domain / --domain-id  Apex domain-id"
     out_plain "  --token-file PATH    0600 file with API token (never --token)"
     out_plain "  --vault-dir PATH     Local application vault directory (absolute; not scratch)"
+    out_plain "  --home PATH          setup home override (absolute)"
     out_plain "  --zone-id / --account-id   Fill or rewrite vault fields"
+    out_plain "  --allow-test-local   Allow generate/submit when only local/unmanaged (TEST MODE)"
+    out_plain "  --add                Force submit-sudoer-request action=add"
+    out_plain "  --update             Force submit-sudoer-request action=update"
     out_empty_line
     out_info "Environment:"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  REPO_USER / REPO_NAME  repository identity (not an install channel)"
     out_plain "  CF_API_TOKEN / CF_USER_ID / CF_ZONE_ID / CF_ACCOUNT_ID / CF_DOMAIN / CF_SUBDOMAIN  fill missing only"
     out_plain "  CF_VAULT_DIR         Override local application vault (absolute; --vault-dir wins)"
+    out_plain "  SUDOER_CLI / SUDOER_QUEUE_INBOUND / SUDOER_ADM_USER  sibling submitter detect"
+    out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode generate / submit"
     out_empty_line
     out_info "Examples:"
     out_plain "  ${APP_NAME} install"
+    out_plain "  sudo ${APP_NAME} setup"
+    out_plain "  ${APP_NAME} generate-sudoer-request"
+    out_plain "  ${APP_NAME} submit-sudoer-request"
     out_plain "  ${APP_NAME} vault input"
     out_plain "  ${APP_NAME} vault account add example.org --user-id … --zone-id … --account-id … --subdomain home --token-file ./tok"
     out_plain "  ${APP_NAME} ip"
@@ -3857,7 +4891,10 @@ app_help() {
     out_plain "  ${APP_NAME} uninstall --force"
     out_empty_line
     out_info "Empty argv shows help (Type N — local-only; no curl|sh; no Cloudflare call)."
-    out_info "No backup, restore, sudoers-file, or host setup verbs."
+    out_info "install copies the program only; it does not create Linux user dns-adm."
+    out_info "Create dns-adm with: sudo ${APP_NAME} setup"
+    out_info "No backup, restore, or sudoers-manager extras."
+    out_info "JSON sudoer queue is Type 0 compose with sibling sudoer-cli (does not write /etc)."
 }
 
 # =============================================================================
@@ -3902,6 +4939,7 @@ app_main() {
     CF_OPT_MODE=""
     CF_OPT_FROM=""
     CF_OPT_LABEL=""
+    CF_OPT_HOME=""
     CF_VAULT_ACTION=""
     CF_VAULT_SUB_OP=""
     CF_VAULT_SUB_LABEL=""
@@ -3933,7 +4971,10 @@ app_main() {
             --debug)    DEBUG=1 ;;
             --force)    FORCE=1; FORCE_REINSTALL=1 ;;
             --global)   FORCE_GLOBAL=1; export FORCE_GLOBAL ;;
-            --ip|--subdomain|--zone-id|--account-id|--domain|--domain-id|--user-id|--ttl|--proxied|--token-file|--vault-dir|--mode|--from|--label)
+            --allow-test-local) ALLOW_TEST_LOCAL_SUDOERS=1; export ALLOW_TEST_LOCAL_SUDOERS ;;
+            --add)      SUBMIT_ACTION="add"; SUBMIT_ACTION_EXPLICIT=1 ;;
+            --update)   SUBMIT_ACTION="update"; SUBMIT_ACTION_EXPLICIT=1 ;;
+            --ip|--subdomain|--zone-id|--account-id|--domain|--domain-id|--user-id|--ttl|--proxied|--token-file|--vault-dir|--mode|--from|--label|--home)
                 _flg="$1"
                 shift
                 if [ $# -lt 1 ]; then
@@ -3954,6 +4995,7 @@ app_main() {
                     --mode) CF_OPT_MODE="$1" ;;
                     --from) CF_OPT_FROM="$1" ;;
                     --label) CF_OPT_LABEL="$1" ;;
+                    --home) CF_OPT_HOME="$1" ;;
                 esac
                 ;;
             --*)
@@ -3983,9 +5025,14 @@ app_main() {
     [ -t 0 ] && [ -t 1 ] && TTY=1
 
     case "${COMMAND}" in
-        install|uninstall|where-is-me|version|about|help)
+        install|uninstall|where-is-me|version|about|help|setup|remove-lpu)
             if [ "${CF_POSN}" -gt 1 ]; then
                 out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
+            fi
+            ;;
+        print-sudoers|generate-sudoer-request|submit-sudoer-request)
+            if [ "${CF_POSN}" -gt 2 ]; then
+                out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
             fi
             ;;
         vault)
@@ -4032,6 +5079,11 @@ app_main() {
         install)      inst_local_install ;;
         uninstall)    inst_local_uninstall ;;
         where-is-me)  app_where_is_me ;;
+        setup)        lpu_setup ;;
+        remove-lpu)   lpu_remove ;;
+        print-sudoers) lpu_print_sudoers ;;
+        generate-sudoer-request) lpu_generate_sudoer_request "${CF_POS2:-}" ;;
+        submit-sudoer-request) lpu_submit_sudoer_request "${CF_POS2:-}" ;;
         vault)        cf_vault_dispatch ;;
         ip)           cf_ip_show ;;
         add)          cf_dns_add ;;

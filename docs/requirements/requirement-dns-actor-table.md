@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-actor-table.md  
-**Status**: Active (Version 1.0.1) — capability law; ship unit **Gap** (no submit/approve/interactive routes)  
+**Status**: Active (Version 1.0.3) — capability law; ship unit **Gap** (no submit/approve/interactive routes); CI-M1a samples; sudoer roles stay off this table  
 **Area**: architecture  
 **Key**: `requirement-dns-actor-table`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -10,7 +10,7 @@ This requirement is the **Single Source of Truth** for the **dns-cli actor table
 
 The **machine** (folder = state, JSON = proposal, four request types) is owned with `requirement-domain-cloudflare-dns` and `requirement-cloudflare-dns-request`. This file owns **who** and the **approval procedure**. Privilege Types are `requirement-three-layer-privilege-model`. Type 2 vault operator identity is `requirement-least-privilege-user` (`dns-adm`).
 
-This is **not** a second `requirement-domain-*`.
+This is **not** a second `requirement-domain-*`. It is **not** the sudoer print/submit role table (`requirement-sudoer-json-file` §2.0 / `requirement-three-layer-privilege-model` §2.1a). DNS `submit` ≠ `submit-sudoer-request`. Approver `dns-adm` ≠ sibling `sudoer-adm`.
 
 ---
 
@@ -31,6 +31,8 @@ This is **not** a second `requirement-domain-*`.
 **ACT-M2.** **`dns-adm` is the approver.** The same LPU is Type 2 for default-vault DNS and Type 1 for approve / `interactive`. **MUST NOT** invent a second account (`dns-apr` or similar).
 
 **ACT-M3.** The API token **MUST** stay in the vault (0600 file). Request JSON **MUST NOT** include a `token` key (`requirement-cloudflare-dns-request`).
+
+**ACT-M3a.** This table **MUST NOT** absorb printer / generator / `submit-sudoer-request` / `sudoer-adm`. Those roles stay on `requirement-sudoer-json-file` §2.0.
 
 ### 2.2 Account map
 
@@ -85,6 +87,21 @@ Procedure:
 9. `--force` **MUST NOT** auto-accept. `--json` / non-TTY `interactive` → fail closed.
 
 **ACT-M5.** `submit` / `approve` / `reject` / `interactive` **MUST NOT** appear in `help` until `app_main` routes them. Until then they **MUST** fail as unknown (fail closed).
+
+### 2.5a Sample invocations (CI-M1a)
+
+These verbs are **Gap** on the ship unit. The argv is still law. They are **not** `submit-sudoer-request`.
+
+```sh
+dns-cli submit
+dns-cli submit /home/alice/.config/dns-cli/dns-request.json
+dns-cli approve
+dns-cli reject
+dns-cli interactive
+sudo -n /usr/local/bin/dns-cli interactive
+```
+
+`submit` is Type 0 self-scope. `approve` / `reject` / `interactive` are Type 1 as `dns-adm` (or euid 0). Empty argv remains help.
 
 ### 2.6 Complete login-hook snippet (normative sample)
 
@@ -180,7 +197,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | `requirement-dns-approver` | Hook heal / `.bashrc` / `.profile` create |
 | `requirement-domain-cloudflare-dns` | Consumes this table; names the machine |
 | `requirement-cloudflare-dns-request` | Request JSON types |
-| `requirement-three-layer-privilege-model` | Type 0 submit / Type 1 approve |
+| `requirement-three-layer-privilege-model` | Type 0 submit / Type 1 approve; sudoer print/submit role table is §2.1a there |
+| `requirement-sudoer-json-file` | Sibling sudoer JSON roles — not this table |
 | `requirement-least-privilege-user` | `dns-adm` is Type 2, not LPA |
 | `requirement-shell-cli-interface` | Dispatch; help honesty |
 | `requirement-shell-cli-zero-arguments` | Empty argv = help |
@@ -199,6 +217,7 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | **TP-CF-ACTOR-04** | `tests/test_cli.sh` | have | `interactive` unknown |
 | **TP-CF-ACTOR-05** | `tests/test_cli.sh` | have | help omits those verbs |
 | **TP-CF-ACTOR-06** | `tests/test_cli.sh` | have | empty argv is help (peer TP-CLI-07) |
+| **TP-CF-ACTOR-07** | `tests/test_cli.sh` | have | MUST NOT absorb printer / `submit-sudoer-request` / `sudoer-adm` |
 
 **Map:** `reviews/test-plan.md`
 
@@ -208,6 +227,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.0.3 | CI-M1a sample invocations for submit / approve / reject / interactive |
+| 2026-08-18 | Active 1.0.2 | Point at sudoer print/submit role table; do not merge |
 | 2026-08-17 | Active 1.0.1 | Approver is `dns-adm`; anyone may submit; no `dns-apr` |
 | 2026-08-17 | Active 1.0.0 | Actor table + login hook law; ship unit Gap |
 

@@ -2,6 +2,8 @@
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-08-18 | `reports/2026-08-18-review-sudoer-json-submitter.md` | Missing JSON sudoer submitter (file-based JSON type) | **Pass** — generate/submit Implemented 1.6.0; DNS inbound still Gap | PASS=344 FAIL=0 |
+| 2026-08-18 | `reports/2026-08-18-review-product-gap.md` | Product gap INC-20260818-001 (create path vs dest/switch) | **Revise** — setup Implemented 1.5.0; dest/switch/host-run open | PASS=317; host `dns-adm` absent |
 | 2026-08-18 | `reports/2026-08-18-review-requirement-coverage.md` | C-full-product requirement sufficient check | Sufficient with Gaps | law vs `src/dns-cli` 1.4.0 |
 | 2026-08-17 | `reports/2026-08-17-review-local-1.2.0.md` | local uncommitted ship unit 1.2.0 | Approve with follow-ups | PASS=235 FAIL=0 |
 | 2026-08-17 | `reports/2026-08-17-review-live-token-crms-hk.md` | live Type 0 token on `crms.hk` | Pass after `zone:dns:edit` | live PASS=9 |

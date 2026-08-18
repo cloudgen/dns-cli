@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.2.0)  
+**Status**: Active (Version 1.3.0)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -56,6 +56,52 @@ First match that is available and writable:
 | **Call sites** | `app_main`, `app_about`, install staging |
 | **Not used for** | Durable `/var/backup`; **Cloudflare vault** (separate law) |
 
+### 2.5a Example storage `util_*` (this product)
+
+Class B return-via-stdout. Live code is `src/dns-cli`. Vault files **MUST NOT** use this resolver.
+
+```sh
+# Isolated scratch/cache root. Create chosen tier before echo. Fail closed.
+util_resolve_storage() {
+    : "${USERNAME:=unknown}"
+    : "${APP_NAME:=dns-cli}"
+    : "${HOME:=/tmp}"
+    : "${XDG_CACHE_HOME:=${HOME}/.cache}"
+
+    _storage_candidate=""
+    if [ -d "/dev/shm" ] && [ -w "/dev/shm" ]; then
+        _storage_candidate="/dev/shm/${APP_NAME}-${USERNAME}"
+    elif [ -w "/tmp" ]; then
+        _storage_candidate="/tmp/${APP_NAME}-${USERNAME}"
+    else
+        : "${STORAGE_DIR:=${XDG_CACHE_HOME}/${APP_NAME}-${USERNAME}}"
+        _storage_candidate="${STORAGE_DIR}"
+    fi
+
+    if ! mkdir -p "${_storage_candidate}" 2>/dev/null; then
+        out_die "Cannot create storage directory ${_storage_candidate}"
+    fi
+    echo "${_storage_candidate}"
+    unset _storage_candidate
+    return 0
+}
+
+# Best-effort shell name for about. Prefer parent when this process is sh/the app.
+util_get_current_shell() {
+    local shell="unknown"
+    shell=$(ps -p $$ -o comm= 2>/dev/null | tr -d '()' || echo "unknown")
+    if [ "$shell" = "${APP_NAME}" ] || [ "$shell" = "sh" ] || \
+       [ "$shell" = "dash" ] || [ "$shell" = "ash" ]; then
+        local parent_pid
+        parent_pid=$(ps -p $$ -o ppid= 2>/dev/null | tr -d ' ')
+        if [ -n "$parent_pid" ]; then
+            shell=$(ps -p "$parent_pid" -o comm= 2>/dev/null | tr -d '()' || echo "$shell")
+        fi
+    fi
+    printf '%s' "$shell"
+}
+```
+
 ### 2.6 Why This Requirement Exists (CIAO)
 
 - **Caution:** Multi-user isolation.  
@@ -97,6 +143,7 @@ First match that is available and writable:
 | AC-2 | Priority matches §2.2 |
 | AC-3 | `app_main` sets `EFFECTIVE_STORAGE_DIR` / `TMPDIR` early |
 | AC-4 | About JSON includes `effective_storage` |
+| AC-5 | `util_resolve_storage` and `util_get_current_shell` have fenced examples on this file (§2.5a) |
 
 ---
 
@@ -118,10 +165,11 @@ First match that is available and writable:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup staging |
 | 2026-08-13 | Active 1.1.0 | cli-template: scratch only |
+| 2026-08-18 | Active 1.3.0 | Storage `util_*` examples (§2.5a); AC-5 |
 | 2026-08-16 | Active 1.2.0 | Explicit: not the Cloudflare vault; dns-cli identity |
 
 ---
 
-**Last Updated**: 2026-08-16  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

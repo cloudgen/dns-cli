@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-external-ipv4.md  
-**Status**: Active (Version 1.1.0)  
+**Status**: Active (Version 1.2.0)  
 **Area**: shell  
 **Key**: `requirement-external-ipv4`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -33,6 +33,17 @@ This requirement is the **Single Source of Truth** for **external (public) IPv4*
 **IP-M9.** IPv6 / AAAA **MUST NOT** be looked up, accepted as `--ip`, displayed as a DNS target, or counted as [subdomain IPv4 count](../terminologies/subdomain-ipv4-count.md). This product is **IPv4-only**. An IPv6 literal **MUST** fail `ip_lookup_failed`. Peer: `requirement-cloudflare-dns-mode` MODE-M3.
 
 **IP-M10.** All user output via `out_*`. The lookup GET **MUST NOT** carry the API token (no `curl --config` vault header on ipinfo).
+
+### 2.0a Sample invocations (CI-M1a)
+
+```sh
+dns-cli ip
+dns-cli --json ip
+dns-cli ip --ip 203.0.113.10
+dns-cli --json ip --ip 203.0.113.10
+```
+
+`ip` **MUST NOT** require the vault or call Cloudflare. `dns-cli ip --ip 127.0.0.1` **MUST** fail `ip_lookup_failed`.
 
 ### 2.1 Implementation Notes (this project)
 
@@ -136,6 +147,7 @@ This requirement is the **Single Source of Truth** for **external (public) IPv4*
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.2.0 | CI-M1a sample invocations for `ip` |
 | 2026-08-17 | Active 1.1.0 | IPv6 / AAAA MUST NOT (not merely out of scope) |
 | 2026-08-17 | Active 1.0.0 | Split lookup/display law from domain catalog; `ip` already Implemented |
 

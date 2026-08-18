@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-dns-mode.md  
-**Status**: Active (Version 1.0.0) — capability law; ship unit **Gap** (v1 still implicit non-round-robin)  
+**Status**: Active (Version 1.0.1) — stored mode Implemented on 1.4.0; inbound `mode` JSON Gap; CI-M1a samples  
 **Area**: domain  
 **Key**: `requirement-cloudflare-dns-mode`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -70,7 +70,7 @@ N∈{0, 1} while still stored as `round-robin` is a **reduced** set — **not** 
 
 ### 2.6 Mode switch
 
-**MODE-M7.** A [mode switch](../terminologies/cloudflare-dns-mode-switch.md) **MUST** be an **explicit** operator action (`vault subdomain mode <label> <mode>` or documented equivalent). **MUST NOT** happen as a side effect of `add` / `update` / `remove`.
+**MODE-M7.** A mode switch **MUST** be an **explicit** operator action (`vault subdomain mode <label> <mode>` or documented equivalent). **MUST NOT** happen as a side effect of `add` / `update` / `remove`.
 
 **MODE-M8.** Switch **MUST** fail `dns_mode_locked` unless `ipv4_count` ∈ {0, 1}. A **normal** subdomain with two or more IPv4s **cannot** change mode. To leave round-robin when N≥2, first remove A rows until count is 0 or 1, **then** switch.
 
@@ -95,6 +95,21 @@ The switch **MUST** rewrite only the stored `mode`. **MUST NOT** create, delete,
 **MODE-M12.** Empty argv **MUST NOT** switch mode or query Cloudflare.
 
 **MODE-M13.** User output via `out_*`. JSON for DNS verbs **SHOULD** include `mode` and `ipv4_count`. **MUST NOT** print the API token.
+
+### 2.7a Sample invocations (CI-M1a)
+
+```sh
+dns-cli vault subdomain mode home non-round-robin
+dns-cli vault subdomain mode home round-robin
+dns-cli vault subdomain modify home --mode round-robin
+dns-cli add --ip 203.0.113.10
+dns-cli add --ip 203.0.113.20
+dns-cli update --from 203.0.113.10 --ip 203.0.113.30
+dns-cli remove --ip 203.0.113.20
+dns-cli status
+```
+
+Switch **MUST** fail `dns_mode_locked` when `ipv4_count` ≥ 2. `--force` collapse is **not** a switch.
 
 ### 2.8 Implementation Notes (this project)
 
@@ -205,10 +220,11 @@ The switch **MUST** rewrite only the stored `mode`. **MUST NOT** create, delete,
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.0.1 | CI-M1a sample invocations for `vault subdomain mode` + mode-aware add/update/remove/status |
 | 2026-08-17 | Active 1.0.0 | Independent mode SSOT; default non-RR; switch only when ipv4_count ∈ {0,1}; IPv4 only |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

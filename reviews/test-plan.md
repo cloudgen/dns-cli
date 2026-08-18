@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.4.0  
-**Last plan update:** 2026-08-17  
-**Last suite run:** PASS=266 FAIL=0 SKIP=0 (2026-08-17)
+**Product VERSION:** 1.6.0  
+**Last plan update:** 2026-08-18  
+**Last suite run:** PASS=425 FAIL=0 SKIP=0 (2026-08-18)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -24,7 +24,10 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Trimmed parent verbs fail closed | have | TP-CLI-13 |
 | Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
 | Backup / restore / sudoers-manager extras | n/a | Absent by design |
-| LPU `dns-adm` / Type 1 setup | todo | TP-LPU-* / TP-PRIV-* |
+| LPU `dns-adm` / Type 1 setup | have | TP-LPU-* / TP-PRIV-01..04 |
+| JSON sudoer generate / submit | have | TP-SUDOER-JSON-* / TP-PRIV-05..09 |
+| Dual mention (CI-M1) | have | TP-CLI-14 |
+| Role tables stay split | have | TP-PRIV-09 · TP-SUDOER-JSON-09 · TP-CF-ACTOR-07 |
 | Multi-account vault (v2) | have | TP-CF-VAULT-18..33 |
 | A-record mode (stored + switch) | have | TP-CF-MODE-01..08 (09/10 partial) |
 | Online curl / companion checksum | n/a | Local-only product |
@@ -53,6 +56,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-11 | env -u HOME version | test_cli | class / defensive | **have** |
 | TP-CLI-12 | storage isolation | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | backup/restore/sudoers verbs unknown | test_cli | requirement-bootstrap-chain · interface | **have** |
+| TP-CLI-14 | Dual mention: each routed verb in ≥2 REQs (CLI + topic-owner) | test_cli | requirement-shell-cli-interface CI-M1 | **have** |
+| TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 
 ### TP-CF-ACTOR (submit / approve actors)
 
@@ -64,6 +69,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-ACTOR-04 | `interactive` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
 | TP-CF-ACTOR-05 | help omits those verbs | test_cli | requirement-dns-actor-table · interface | **have** |
 | TP-CF-ACTOR-06 | empty argv is help | test_cli (TP-CLI-07) | requirement-dns-actor-table · zero-arguments | **have** |
+| TP-CF-ACTOR-07 | actor table MUST NOT absorb printer / submit-sudoer-request / sudoer-adm | test_cli | requirement-dns-actor-table ACT-M3a | **have** |
 
 ### TP-CF-APR (approver hook heal)
 
@@ -146,21 +152,36 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-LPU-01 | `setup` creates account+home+vault dir | `tests/test_cf_lpu.sh` | requirement-least-privilege-user | **todo** |
-| TP-LPU-02 | re-`setup` no-op | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-01 | `setup` creates account+home+vault dir | `tests/test_cf_lpu.sh` | requirement-least-privilege-user | **have** |
+| TP-LPU-02 | re-`setup` no-op | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-03 | default vault as other user → `lpu_required` | test_cf_lpu | requirement-least-privilege-user | **todo** |
-| TP-LPU-04 | `--vault-dir` without LPU still works | test_cf_lpu | requirement-least-privilege-user | **todo** |
-| TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **todo** |
-| TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-04 | `--vault-dir` without LPU still works | test_cf_lpu | requirement-least-privilege-user | **have** |
+| TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **have** |
+| TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
 
 ### TP-PRIV (Type map / fragment)
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-PRIV-01 | `print-sudoers` ⊆ Table A; no dest write | `tests/test_cf_lpu.sh` | requirement-three-layer-privilege-model | **todo** |
-| TP-PRIV-02 | install-script / remove-draft / backup / restore unknown | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
-| TP-PRIV-03 | `setup` without root/sudo fails closed | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
-| TP-PRIV-04 | fragment has no ALL / no shell | test_cf_lpu | requirement-three-layer-privilege-model | **todo** |
+| TP-PRIV-01 | `print-sudoers` ⊆ Table A; no dest write | `tests/test_cf_lpu.sh` | requirement-three-layer-privilege-model | **have** |
+| TP-PRIV-02 | install-script / remove-draft / backup / restore unknown | test_cf_lpu | requirement-three-layer-privilege-model | **have** |
+| TP-PRIV-03 | `setup` without root/sudo fails closed | test_cf_lpu | requirement-three-layer-privilege-model | **have** |
+| TP-PRIV-04 | fragment has no ALL / no shell | test_cf_lpu | requirement-three-layer-privilege-model | **have** |
+| TP-PRIV-05 | generate refuses `/etc`; dest is local | test_cf_lpu | requirement-sudoer-json-file · three-layer | **have** |
+| TP-PRIV-06 | submit missing dest CLI fail-closed | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-PRIV-07 | submit stub inbound; no `/etc/sudoers.d` write | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-PRIV-08 | refuse OS-tool / runas-root grant | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-PRIV-09 | three-layer §2.1a role table present (printer / generator / submitter) | test_cf_lpu | requirement-three-layer-privilege-model AC-P7 | **have** |
+
+### TP-SUDOER-JSON (JSON grant body)
+
+| TP-ID | Intent | Suite | Primary requirement(s) | Status |
+|-------|--------|-------|------------------------|--------|
+| TP-SUDOER-JSON-01 | generate path is only `/usr/local/bin/dns-cli` | `tests/test_cf_lpu.sh` | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-02 | no mkdir/cp/tar/rm/install/chmod in JSON | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-03 | runas `dns-adm`; args `[]`; service `dns-cli` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-08 | generate dest readable without sudo | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-09 | §2.0 role table (printer / generator / submitter / sudoer-adm) | test_cf_lpu | requirement-sudoer-json-file AC-11 | **have** |
 
 ### TP-CF-DNS (Cloudflare DNS + ipinfo)
 
@@ -238,4 +259,4 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 1. Closing a **bug** finding updates the matching TP to **have**.  
 2. Do not mark TP **have** without a suite assertion (or honest skip/n/a).  
 3. Do not reintroduce online TP-CURL/TP-CSUM or TP-FOLDER-BACKUP as Core without product-mode change.  
-4. Domain proof uses **TP-CF-VAULT-***, **TP-CF-DNS-***, and **TP-CF-IP-***. LPU/setup proof uses **TP-LPU-*** / **TP-PRIV-*** (todo).
+4. Domain proof uses **TP-CF-VAULT-***, **TP-CF-DNS-***, and **TP-CF-IP-***. LPU/setup proof uses **TP-LPU-*** / **TP-PRIV-***. JSON sudoer submitter uses **TP-SUDOER-JSON-*** / **TP-PRIV-05..09**. Dual mention uses **TP-CLI-14**. Actor-table split uses **TP-CF-ACTOR-07**.
