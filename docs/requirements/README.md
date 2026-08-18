@@ -14,13 +14,13 @@ Authoritative specialized product law for **dns-cli** lives here.
 | Ship unit (live) | `src/dns-cli` |
 | Default install | `~/.local/bin/dns-cli` |
 | Install mode | **Local-only** |
-| LPU | `dns-adm` — `requirement-least-privilege-user` — **Gap** |
-| Type map / elev | `requirement-three-layer-privilege-model` — **Gap** |
-| Domain SSOT | `requirement-domain-cloudflare-dns` — v1 Implemented; v2 domain-id **Gap** |
+| LPU | `dns-adm` — `requirement-least-privilege-user` — **Implemented** |
+| Type map / elev | `requirement-three-layer-privilege-model` — **Implemented** |
+| Domain SSOT | `requirement-domain-cloudflare-dns` — v2 Implemented |
 | A-record mode | `requirement-cloudflare-dns-mode` — default non-round-robin; stored mode **Implemented** |
-| DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Gap** |
+| DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0) |
 | External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
-| Application local vault (path + specify) | `requirement-application-local-vault` — specify Implemented; default `/etc/dns-adm/vault/` **Gap** |
+| Application local vault (path + specify) | `requirement-application-local-vault` — specify + default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` **Implemented** (1.8.0) |
 | Vault law (schema / verbs) | `requirement-cloudflare-vault` 2.4.0 — zone-slot add/list/modify/remove; `{label, mode}`; v2 **Implemented** (1.2.0) |
 | Cloudflare API | `requirement-cloudflare-api` 1.2.0 — Implemented (ship-unit subset; A only) |
 
@@ -37,4 +37,4 @@ Authoritative specialized product law for **dns-cli** lives here.
 - **Implement** delivers code that **traces** to these requirements.  
 - **Review** verifies delivery against requirements and CIAO checklists.
 
-v2 vault CRUD, stored A-record mode, and implicit/default non-round-robin DNS are **Implemented** on `src/dns-cli` **1.2.0**. LPU `dns-adm`, Type 1 `setup`, and default `/etc/dns-adm/vault/` are **Gap**.
+v2 vault CRUD, stored A-record mode, Type 1 `setup`, default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`, Type 2 `sudo -u dns-adm` switch, and inbound DNS `submit` / `approve` / `reject` / `interactive` are **Implemented**.

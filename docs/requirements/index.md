@@ -1,17 +1,17 @@
 # Requirements index
 
 **Product:** dns-cli (POSIX `/bin/sh` local self-managed Cloudflare DNS CLI — Type 0/1/2 + LPU `dns-adm` as Type 2 operator **and** Type 1 approver; anyone may submit)  
-**Workspace state:** Specialized product law (left genesis); **software-development** class; **B = `dns-cli` hop 1** specialized from **A = `cli-template` hop 0**. Online / Type O / backup / restore **intentionally absent**. LPU **`dns-adm`** Type 1 `setup` **Implemented** (1.5.0); Type 0 JSON sudoer generate/submit **Implemented** (1.6.0); Type 2 default vault still Gap.  
+**Workspace state:** Specialized product law (left genesis); **software-development** class; **B = `dns-cli` hop 1** specialized from **A = `cli-template` hop 0**. Online / Type O / backup / restore **intentionally absent**. LPU **`dns-adm`** Type 1 `setup` **Implemented**; Type 0 JSON sudoer generate/submit is **`type-2-switch`**; `setup` writes **`login-hook-elev`** inbound (1.8.1); submit-vs-setup door (1.8.2); Type 2 default dest is `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` (1.8.0); Type 2 switch **Implemented** (1.8.2). Inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented** (1.9.0).  
 **Updated:** 2026-08-18
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
 | requirement-class-software-dev | Software-development class law + residual stack (posix-sh, local-only, curl + python3/jq); LPU residual owner | class | Active (1.5.0) | `requirement-class-software-dev.md` | 2026-08-17 |
 | requirement-bootstrap-chain | Bootstrap origin A = cli-template (hop 0); this product B = dns-cli (hop 1); LPU + JSON sudoer submitter on B | architecture | Active (5.2.0) | `requirement-bootstrap-chain.md` | 2026-08-18 |
-| requirement-project-folder | Project layout (`src/dns-cli`), install bins; LPU home + vault pointer | architecture | Active (2.2.0) | `requirement-project-folder.md` | 2026-08-17 |
-| requirement-least-privilege-user | LPU `dns-adm` F1–F7; owns default multi-account vault | architecture | Active (1.0.0) Implemented | `requirement-least-privilege-user.md` | 2026-08-18 |
-| requirement-three-layer-privilege-model | Type 0/1/2 map + role table + Tables A/B/C; print sudoer file + JSON generate/submit | architecture | Active (1.3.0) Type 1 + submitter Implemented | `requirement-three-layer-privilege-model.md` | 2026-08-18 |
-| requirement-sudoer-json-file | JSON sudoer grant + **role table** (printer / submitter / sibling `sudoer-adm`); generate dest + Type 0 submit | architecture | Active (1.2.0) Implemented | `requirement-sudoer-json-file.md` | 2026-08-18 |
+| requirement-project-folder | Project layout (`src/dns-cli`), install bins; LPU home + vault pointer | architecture | Active (2.3.0) | `requirement-project-folder.md` | 2026-08-18 |
+| requirement-least-privilege-user | LPU `dns-adm` F1–F7; Type 2 switch; DNS inbound F4/F5 trio | architecture | Active (1.6.0) Implemented | `requirement-least-privilege-user.md` | 2026-08-18 |
+| requirement-three-layer-privilege-model | Type 0/1/2 map + role table + Tables A/B/C; Type 2 switch; three dests (P-M12) | architecture | Active (1.7.0) Type 1 + two-kind submitter + Type 2 switch Implemented | `requirement-three-layer-privilege-model.md` | 2026-08-18 |
+| requirement-sudoer-json-file | Two JSON kinds + three dests (SJ-M4); Type 0 submit is switch only | architecture | Active (1.5.0) Implemented | `requirement-sudoer-json-file.md` | 2026-08-18 |
 | requirement-shell-cli-interface | Shell CLI interface; **dual mention** + **CI-M1a samples** on topic-owners | shell | Active (3.5.0) | `requirement-shell-cli-interface.md` | 2026-08-18 |
 | requirement-shell-cli-zero-arguments | Empty argv Type N help (local-only; no DNS/vault mutate) | shell | Active | `requirement-shell-cli-zero-arguments.md` | 2026-08-16 |
 | requirement-shell-local-self-management | Local install / uninstall / where-is-me; **mode 0755**; path `util_*` examples | shell | Active (1.7.0) | `requirement-shell-local-self-management.md` | 2026-08-18 |
@@ -21,13 +21,13 @@
 | requirement-shell-interactive-vs-noninteractive | Interactive vs non-interactive / confirm / vault collect / remove-lpu; `prompt_*` consume `TTY` | shell | Active (1.3.1) | `requirement-shell-interactive-vs-noninteractive.md` | 2026-08-18 |
 | requirement-shell-cli-storage | Scratch/cache resolve (not vault); storage `util_*` examples | shell | Active (1.3.0) | `requirement-shell-cli-storage.md` | 2026-08-18 |
 | requirement-domain-cloudflare-dns | **Domain SSOT** — A-record verbs; Type 0 live specify as invoking user | domain | Active (2.6.0) | `requirement-domain-cloudflare-dns.md` | 2026-08-18 |
-| requirement-dns-actor-table | Actor table (anyone submits DNS JSON; `dns-adm` approves) + login-hook; sudoer roles are a different table | architecture | Active (1.0.3) Gap | `requirement-dns-actor-table.md` | 2026-08-18 |
+| requirement-dns-actor-table | Actor table (anyone submits DNS JSON; `dns-adm` approves) + login-hook; sudoer roles are a different table | architecture | Active (1.1.0) Implemented | `requirement-dns-actor-table.md` | 2026-08-18 |
 | requirement-dns-approver | Approver `dns-adm`; interactive login hook; heal `.bashrc` / create `.profile` | architecture | Active (1.0.0) | `requirement-dns-approver.md` | 2026-08-17 |
 | requirement-cloudflare-dns-mode | Per-subdomain A-record mode (default non-RR; RR multi-A; switch only when ipv4_count ∈ {0,1}; IPv4 only) | domain | Active (1.0.1) | `requirement-cloudflare-dns-mode.md` | 2026-08-18 |
-| requirement-cloudflare-dns-request | Four inbound JSON types (`add`/`update`/`remove`/`mode`) + complete examples | domain | Active (1.0.0) Gap | `requirement-cloudflare-dns-request.md` | 2026-08-17 |
+| requirement-cloudflare-dns-request | Four inbound JSON types (`add`/`update`/`remove`/`mode`) + complete examples | domain | Active (1.1.0) Implemented | `requirement-cloudflare-dns-request.md` | 2026-08-18 |
 | requirement-external-ipv4 | External/public IPv4 lookup, `--ip`, vault-free `ip` display; IPv6 MUST NOT | shell | Active (1.2.0) | `requirement-external-ipv4.md` | 2026-08-18 |
-| requirement-application-local-vault | Local application vault path; default `/etc/dns-adm/vault/`; `--vault-dir` / `CF_VAULT_DIR` specify | shell | Active (2.1.0) | `requirement-application-local-vault.md` | 2026-08-17 |
-| requirement-cloudflare-vault | One LPU vault; zone-slot `account`/`zone` add\|list\|modify\|remove; `{label, mode}` | domain | Active (2.5.0) Implemented (LPU dest Gap) | `requirement-cloudflare-vault.md` | 2026-08-18 |
+| requirement-application-local-vault | Local vault path; Type-2 default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; `--vault-dir` / `CF_VAULT_DIR` specify | shell | Active (2.3.0) | `requirement-application-local-vault.md` | 2026-08-18 |
+| requirement-cloudflare-vault | One LPU vault; 1:1 domain↔token; Type-2 dest LPU-home vaults child; zone-slot CRUD; Type 2 switch | domain | Active (2.8.0) Implemented | `requirement-cloudflare-vault.md` | 2026-08-18 |
 | requirement-cloudflare-api | Cloudflare HTTPS API (token, envelope, zone GET, DNS A CRUD; no AAAA) | domain | Active (1.2.0) | `requirement-cloudflare-api.md` | 2026-08-17 |
 
 ## Intentionally absent (by design)
@@ -55,6 +55,6 @@
 6. **Class gate:** software-development requires exactly one Active `requirement-class-software-dev.md` (this registry includes it).  
 7. **Domain SSOT:** exactly one Active `requirement-domain-*` (`requirement-domain-cloudflare-dns`). Do not add a second Active domain catalog.  
 8. **Do not reintroduce** backup, restore, sudoers-manager extras, or online install without explicit user order and registry update. `print-sudoers` + `setup` + `generate-sudoer-request` + `submit-sudoer-request` are **authorized** via the LPU / three-layer / sudoer-json rows.  
-9. v1 single-account vault/DNS on `src/dns-cli` is **Implemented** (implicit non-round-robin). LPU create, Type 2 default-vault, v2 multi-account layout, and stored A-record mode are **Gap** — do not claim those Implemented.
+9. v1/v2 vault/DNS, LPU create, Type 2 default dest, Type 2 switch, and inbound DNS `submit` / `approve` / `reject` / `interactive` on `src/dns-cli` are **Implemented**. Do not re-label those Gap.
 
 When adding a requirement: append a row, create the file under `docs/requirements/`, keep Status in sync with the file header.

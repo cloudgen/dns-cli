@@ -34,15 +34,15 @@
 | Bootstrap chain | `requirement-bootstrap-chain.md` | cli-template is hop 0 (no live parent) |
 | Project folder | `requirement-project-folder.md` | `src/`, bins; no `/var/backup` |
 | CLI interface | `requirement-shell-cli-interface.md` | Type 0/1/2 commands, flags, dispatch; **CI-M1** every verb in ≥2 REQs |
-| LPU | `requirement-least-privilege-user.md` | `dns-adm` F1–F7; `setup` Implemented 1.5.0; Type 2 dest Gap |
-| Three-layer | `requirement-three-layer-privilege-model.md` | Tables A/B/C + **§2.1a role table**; print sudoer file / generate+submit Implemented; Type 2 switch Gap |
+| LPU | `requirement-least-privilege-user.md` | `dns-adm` F1–F7; `setup` Implemented; F5 dest `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; Type 2 switch Implemented |
+| Three-layer | `requirement-three-layer-privilege-model.md` | Tables A/B/C + **§2.1a role table**; print sudoer file / generate+submit Implemented; Type 2 switch Implemented |
 | JSON sudoer file | `requirement-sudoer-json-file.md` | **§2.0 role table** (printer / submitter / `sudoer-adm`); generate dest + submit; `runas=dns-adm` |
 | Empty argv Type N | `requirement-shell-cli-zero-arguments.md` | Empty = help |
 | Local self-management | `requirement-shell-local-self-management.md` | install/uninstall; mode 0755 |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*`; JSON errors |
 | Modular design | `requirement-shell-modular-function-design.md` | `cf_` domain prefix |
-| Application local vault | `requirement-application-local-vault.md` | default `/etc/dns-adm/vault/`; `--vault-dir` / `CF_VAULT_DIR` |
-| Cloudflare vault | `requirement-cloudflare-vault.md` | zone-slot `account`/`zone` add/list/modify/remove; v2 Implemented, LPU dest Gap |
+| Application local vault | `requirement-application-local-vault.md` | default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; `--vault-dir` / `CF_VAULT_DIR` |
+| Cloudflare vault | `requirement-cloudflare-vault.md` | zone-slot `account`/`zone` add/list/modify/remove; v2 + default dest + Type 2 switch Implemented |
 | Cloudflare API | `requirement-cloudflare-api.md` | Bearer, envelope, zone GET, DNS A CRUD; no AAAA |
 | A-record mode | `requirement-cloudflare-dns-mode.md` | default non-RR; RR multi-A; switch only at ipv4_count 0/1 |
 | DNS request JSON | `requirement-cloudflare-dns-request.md` | four types + examples; inbound Gap |

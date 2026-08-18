@@ -63,11 +63,11 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-CF-ACTOR-01 | `submit` unknown until routed | `tests/test_cli.sh` | requirement-dns-actor-table | **have** |
-| TP-CF-ACTOR-02 | `approve` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
-| TP-CF-ACTOR-03 | `reject` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
-| TP-CF-ACTOR-04 | `interactive` unknown until routed | test_cli | requirement-dns-actor-table | **have** |
-| TP-CF-ACTOR-05 | help omits those verbs | test_cli | requirement-dns-actor-table · interface | **have** |
+| TP-CF-ACTOR-01 | `submit` routed; no file fails closed | `tests/test_cli.sh` | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-02 | `approve` routed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-03 | `reject` routed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-04 | `interactive` routed; `--json` fail closed | test_cli | requirement-dns-actor-table | **have** |
+| TP-CF-ACTOR-05 | help lists those verbs | test_cli | requirement-dns-actor-table · interface | **have** |
 | TP-CF-ACTOR-06 | empty argv is help | test_cli (TP-CLI-07) | requirement-dns-actor-table · zero-arguments | **have** |
 | TP-CF-ACTOR-07 | actor table MUST NOT absorb printer / submit-sudoer-request / sudoer-adm | test_cli | requirement-dns-actor-table ACT-M3a | **have** |
 
@@ -102,7 +102,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
 | TP-CF-VAULT-01 | dir 0700 / files 0600 | `tests/test_cf_vault.sh` | requirement-cloudflare-vault | **have** |
-| TP-CF-VAULT-02 | `env -u HOME` and `HOME=/tmp` → `vault_no_home` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-02 | no specify + no LPU (`HOME=/tmp` / `env -u HOME`) → `lpu_missing` | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-03 | token redacted in show/about JSON | test_cf_vault | requirement-cloudflare-vault · output | **have** |
 | TP-CF-VAULT-04 | last-label remove fail-closed | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-05 | `--token-file` 0644 → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
@@ -113,7 +113,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-VAULT-10 | bad zone_id → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-11 | env does not overwrite; `vault set` rewrites | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-12 | `--token` argv rejected | test_cf_vault | requirement-cloudflare-vault | **have** |
-| TP-CF-VAULT-13 | `XDG_CONFIG_HOME=/tmp` → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
+| TP-CF-VAULT-13 | `XDG_CONFIG_HOME=/tmp` without specify → `lpu_missing` | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-14 | uninstall does not delete vault | test_cf_vault | requirement-cloudflare-vault · local-self-management | **have** |
 | TP-CF-VAULT-15 | vault.json 0644 → `vault_insecure` | test_cf_vault | requirement-cloudflare-vault | **have** |
 | TP-CF-VAULT-16 | unknown schema_version → `vault_invalid` | test_cf_vault | requirement-cloudflare-vault | **have** |
@@ -146,15 +146,15 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-AV-04 | relative `--vault-dir` → `vault_insecure` | test_cf_vault | requirement-application-local-vault | **have** |
 | TP-AV-05 | `help` lists `--vault-dir` and `CF_VAULT_DIR` | test_cf_vault | requirement-application-local-vault | **have** |
 | TP-AV-06 | specified vault works when `HOME=/tmp` | test_cf_vault | requirement-application-local-vault | **have** |
-| TP-AV-07 | no specify + no LPU → `lpu_missing` | test_cf_vault | requirement-application-local-vault | **todo** |
+| TP-AV-07 | no specify + no LPU → `lpu_missing` | test_cf_vault | requirement-application-local-vault | **have** |
 
 ### TP-LPU (dns-adm account)
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-LPU-01 | `setup` creates account+home+vault dir | `tests/test_cf_lpu.sh` | requirement-least-privilege-user | **have** |
+| TP-LPU-01 | `setup` creates account+home+`${home}/.local/vaults/dns-cli` | `tests/test_cf_lpu.sh` | requirement-least-privilege-user | **have** |
 | TP-LPU-02 | re-`setup` no-op | test_cf_lpu | requirement-least-privilege-user | **have** |
-| TP-LPU-03 | default vault as other user → `lpu_required` | test_cf_lpu | requirement-least-privilege-user | **todo** |
+| TP-LPU-03 | default vault as other user → `lpu_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-04 | `--vault-dir` without LPU still works | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **have** |
 | TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
@@ -179,9 +179,17 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 |-------|--------|-------|------------------------|--------|
 | TP-SUDOER-JSON-01 | generate path is only `/usr/local/bin/dns-cli` | `tests/test_cf_lpu.sh` | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-02 | no mkdir/cp/tar/rm/install/chmod in JSON | test_cf_lpu | requirement-sudoer-json-file | **have** |
-| TP-SUDOER-JSON-03 | runas `dns-adm`; args `[]`; service `dns-cli` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-03 | default generate is `type-2-switch`; runas `dns-adm`; args `[]`; service `dns-cli` | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-08 | generate dest readable without sudo | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-09 | §2.0 role table (printer / generator / submitter / sudoer-adm) | test_cf_lpu | requirement-sudoer-json-file AC-11 | **have** |
+| TP-SUDOER-JSON-10 | generate writes `kind` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-11 | `--kind login-hook-elev` → username `dns-adm`, runas `root`, args `interactive` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-12 | Type 0 submit of hook kind fails closed | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-13 | setup auto-submits hook kind when sibling stub present | test_cf_lpu | requirement-sudoer-json-file · LPU | **have** |
+| TP-SUDOER-JSON-16 | dest Type 0 `self_scope` does not block setup inbound write | test_cf_lpu | requirement-sudoer-json-file SJ-M3 | **have** |
+| TP-SUDOER-JSON-14 | setup skips auto-submit when sibling missing | test_cf_lpu | requirement-sudoer-json-file · LPU | **have** |
+| TP-SUDOER-JSON-15 | law names both kinds | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-17 | law names switch dest ≠ hook dest ≠ F6 | test_cf_lpu | requirement-sudoer-json-file | **have** |
 
 ### TP-CF-DNS (Cloudflare DNS + ipinfo)
 
@@ -216,14 +224,14 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-CF-REQ-01 | accept `add` non-RR example | `tests/test_cf_dns.sh` | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-02 | accept `add` RR example | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-03 | accept `update` + RR `from_ipv4` | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-04 | accept `remove` variants | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-05 | accept both `mode` examples | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-06 | unknown action / extra key fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-07 | IPv6 or token in body fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
-| TP-CF-REQ-08 | `mode` plus `ipv4` fail | test_cf_dns | requirement-cloudflare-dns-request | **todo** |
+| TP-CF-REQ-01 | accept `add` non-RR example | `tests/test_cf_request.sh` | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-02 | accept `add` RR example | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-03 | accept `update` + RR `from_ipv4` | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-04 | accept `remove` variants | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-05 | accept both `mode` examples | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-06 | unknown action / extra key fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-07 | IPv6 or token in body fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-08 | `mode` plus `ipv4` fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
 
 ### TP-CF-LIVE (optional real zone — invoking user)
 

@@ -108,13 +108,13 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
-| JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Verbs `generate-sudoer-request` / `submit-sudoer-request`; `print-sudoers` is three-layer + this file’s peer; body `runas=dns-adm`; this product **MUST NOT** write `/etc/sudoers.d` |
+| JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Two kinds: `type-2-switch` (Type 0 submit) and `login-hook-elev` (setup auto-queue); `print-sudoers` is three-layer + this file’s peer; this product **MUST NOT** write `/etc/sudoers.d` |
 | Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
 | Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
 | Domain surface (DNS catalog) | `requirement-domain-cloudflare-dns` | **current domain SSOT** — four pillars; consumes API law |
 | Cloudflare API (HTTPS / envelope / DNS CRUD) | `requirement-cloudflare-api` | capability law; **not** a second domain catalog |
 | External / public IPv4 lookup | `requirement-external-ipv4` | capability law; **not** a second domain catalog |
-| Application local vault (path + specify) | `requirement-application-local-vault` | default `/etc/dns-adm/vault/` + `--vault-dir` / `CF_VAULT_DIR` |
+| Application local vault (path + specify) | `requirement-application-local-vault` | default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` + `--vault-dir` / `CF_VAULT_DIR` |
 | Cloudflare vault (schema/token/verbs) | `requirement-cloudflare-vault` | multi-account; domain-id = apex; consumes local-vault path |
 | Online install / remote self-management / companion checksum | **intentionally absent** | Local-only channel |
 

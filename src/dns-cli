@@ -36,7 +36,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.6.0"
+# VERSION: hard-assign VERSION="1.9.0"
 #
 # =============================================================================
 
@@ -51,10 +51,10 @@ APP_NAME="dns-cli"
 : "${APP_NAME:=dns-cli}"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, version, about, help.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, submit/approve/reject/interactive DNS inbound, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.6.0"
-: "${VERSION:=1.6.0}"
+VERSION="1.9.0"
+: "${VERSION:=1.9.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -72,12 +72,21 @@ VERSION="1.6.0"
 : "${SUBMIT_ACTION:=add}"
 : "${SUBMIT_ACTION_EXPLICIT:=0}"
 : "${SUBMIT_PURPOSE:=}"
+: "${SUDOER_REQUEST_KIND:=type-2-switch}"
+: "${LOGIN_HOOK_SUDOER_STATUS:=skipped}"
+: "${TYPE2_ARGC:=0}"
+: "${DNS_CLI_TYPE2:=0}"
 : "${SUDOER_CLI:=}"
 : "${SUDOER_ADM_USER:=sudoer-adm}"
 : "${SUDOER_APPROVAL_APP:=sudoer-cli}"
 : "${SUDOER_INBOUND_BASENAME:=sudoer-request}"
 : "${SUDOER_QUEUE_INBOUND:=}"
 : "${SUDOERS_D_DIR:=/etc/sudoers.d}"
+: "${DNS_INBOUND_BASENAME:=dns-request}"
+: "${DNS_ACCEPTED_BASENAME:=dns-accepted}"
+: "${DNS_DECLINED_BASENAME:=dns-declined}"
+: "${DNS_QUEUE_ROOT:=}"
+: "${DNS_QUEUE_INBOUND:=}"
 
 # ----------------------------- Safe Variable Defaults ------------------------
 : "${GLOBAL_BIN:=/usr/local/bin}"
@@ -1163,7 +1172,6 @@ cf_vault_specified_root() {
 
 cf_vault_dir_probe() {
     : "${APP_NAME:=dns-cli}"
-    : "${CF_HOME_MISSING:=0}"
     if _spec=$(cf_vault_specified_root); then
         case "${_spec}" in
             /*) ;;
@@ -1179,17 +1187,15 @@ cf_vault_dir_probe() {
         printf '%s' "${_spec}"
         return 0
     fi
-    if [ "${CF_HOME_MISSING}" -eq 1 ] || [ -z "${HOME-}" ] || [ "${HOME}" = "/tmp" ]; then
+    if ! lpu_account_present; then
         printf '%s' ""
         return 1
     fi
-    if [ -n "${XDG_CONFIG_HOME-}" ]; then
-        _vb="${XDG_CONFIG_HOME}"
-    else
-        _vb="${HOME}/.config"
-    fi
-    _vd="${_vb}/${APP_NAME}"
-    if cf_vault_path_forbidden "${_vd}" || cf_vault_path_forbidden "${_vb}"; then
+    _vd=$(lpu_default_vault_dir) || {
+        printf '%s' ""
+        return 1
+    }
+    if cf_vault_path_forbidden "${_vd}"; then
         printf '%s' ""
         return 1
     fi
@@ -1198,9 +1204,9 @@ cf_vault_dir_probe() {
 }
 
 # ALIGNMENT: requirement-application-local-vault.md (AV-M*)
+# Specify wins; else LPU-home .local/vaults/${APP_NAME}; else lpu_missing.
 cf_vault_dir() {
     : "${APP_NAME:=dns-cli}"
-    : "${CF_HOME_MISSING:=0}"
     if _spec=$(cf_vault_specified_root); then
         case "${_spec}" in
             /*) ;;
@@ -1214,17 +1220,15 @@ cf_vault_dir() {
         CFV_DIR="${_spec}"
         return 0
     fi
-    if [ "${CF_HOME_MISSING}" -eq 1 ] || [ -z "${HOME-}" ] || [ "${HOME}" = "/tmp" ]; then
-        out_die_code vault_no_home "HOME is unset, empty, or /tmp; refusing vault I/O"
+    if ! lpu_account_present; then
+        out_die_code lpu_missing "dns-adm is not on this host. Next: sudo ${APP_NAME} setup  (or --vault-dir for QA)"
     fi
-    if [ -n "${XDG_CONFIG_HOME-}" ]; then
-        _vb="${XDG_CONFIG_HOME}"
-    else
-        _vb="${HOME}/.config"
+    _vd=$(lpu_default_vault_dir) || out_die_code vault_no_home "dns-adm exists but home is empty; refusing vault I/O"
+    if cf_vault_path_forbidden "${_vd}"; then
+        out_die_code vault_insecure "LPU vault path is under /tmp or /dev/shm: ${_vd}"
     fi
-    _vd="${_vb}/${APP_NAME}"
-    if cf_vault_path_forbidden "${_vd}" || cf_vault_path_forbidden "${_vb}"; then
-        out_die_code vault_insecure "Vault path is under /tmp or /dev/shm: ${_vd}"
+    if ! lpu_invoker_is_lpu; then
+        lpu_type2_die_required
     fi
     CFV_DIR="${_vd}"
 }
@@ -3042,6 +3046,122 @@ lpu_account_present() {
     id "${_u}" >/dev/null 2>&1
 }
 
+# Live F3 home from passwd (stub or host). Empty = fail.
+lpu_live_home() {
+    _u=$(lpu_user)
+    _line=""
+    if lpu_test_mode; then
+        _pw=$(lpu_passwd_file)
+        if [ -n "${_pw}" ] && [ -f "${_pw}" ]; then
+            _line=$(grep "^${_u}:" "${_pw}" 2>/dev/null || true)
+        fi
+    elif command -v getent >/dev/null 2>&1; then
+        _line=$(getent passwd "${_u}" 2>/dev/null || true)
+    fi
+    if [ -z "${_line}" ]; then
+        return 1
+    fi
+    _home=$(printf '%s\n' "${_line}" | cut -d: -f6)
+    if [ -z "${_home}" ]; then
+        return 1
+    fi
+    printf '%s' "${_home}"
+    return 0
+}
+
+# Type-2 dest: {{SYSTEM_USER_HOME}}/.local/vaults/{{APP_NAME}}
+lpu_default_vault_dir() {
+    : "${APP_NAME:=dns-cli}"
+    _home=$(lpu_live_home) || return 1
+    printf '%s/.local/vaults/%s' "${_home}" "${APP_NAME}"
+    return 0
+}
+
+lpu_invoker_is_lpu() {
+    _me=$(id -un 2>/dev/null || echo "unknown")
+    _lpu=$(lpu_user)
+    if [ "${_me}" = "${_lpu}" ]; then
+        return 0
+    fi
+    return 1
+}
+
+lpu_type2_command() {
+    case "${1:-}" in
+        vault|add|update|remove|status|show)
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+lpu_type2_save_argv() {
+    TYPE2_ARGC=0
+    for _t2a in "$@"; do
+        TYPE2_ARGC=$((TYPE2_ARGC + 1))
+        eval "TYPE2_ARGV_${TYPE2_ARGC}=\"\${_t2a}\""
+    done
+}
+
+lpu_type2_die_required() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _lpu=$(lpu_user)
+    _who=$(id -un 2>/dev/null || echo "unknown")
+    _gbin="${GLOBAL_BIN}/${APP_NAME}"
+    if [ ! -x "${_gbin}" ]; then
+        out_die_code lpu_required "Default vault work must run as ${_lpu}. You are ${_who}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} install"
+    fi
+    out_die_code lpu_required "Default vault work must run as ${_lpu}. You are ${_who}. sudo -n -u ${_lpu} ${_gbin} is not available. Next: ${APP_NAME} generate-sudoer-request then ${APP_NAME} submit-sudoer-request  (or --vault-dir for QA)"
+}
+
+# P-M4 / L-M2: unspecified vault/DNS as a non-dns-adm login must
+# sudo -n -u dns-adm the managed global binary, or fail lpu_required.
+# Specify (--vault-dir / CF_VAULT_DIR) stays Type 0 and does not switch.
+lpu_type2_maybe_reexec() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${COMMAND:=}"
+    : "${DNS_CLI_TYPE2:=0}"
+    if ! lpu_type2_command "${COMMAND}"; then
+        return 0
+    fi
+    if cf_vault_specified_root >/dev/null; then
+        return 0
+    fi
+    if lpu_invoker_is_lpu; then
+        return 0
+    fi
+    if ! lpu_account_present; then
+        out_die_code lpu_missing "dns-adm is not on this host. Next: sudo ${APP_NAME} setup  (or --vault-dir for QA)"
+    fi
+    if [ "${DNS_CLI_TYPE2}" = "1" ]; then
+        lpu_type2_die_required
+    fi
+    if lpu_test_mode; then
+        lpu_type2_die_required
+    fi
+    _lpu=$(lpu_user)
+    _gbin="${GLOBAL_BIN}/${APP_NAME}"
+    if [ ! -x "${_gbin}" ]; then
+        lpu_type2_die_required
+    fi
+    if ! sudo -n -u "${_lpu}" -- "${_gbin}" version >/dev/null 2>&1; then
+        lpu_type2_die_required
+    fi
+    DNS_CLI_TYPE2=1
+    export DNS_CLI_TYPE2
+    : "${TYPE2_ARGC:=0}"
+    _i=1
+    set --
+    while [ "${_i}" -le "${TYPE2_ARGC}" ]; do
+        eval "set -- \"\$@\" \"\$TYPE2_ARGV_${_i}\""
+        _i=$((_i + 1))
+    done
+    exec sudo -n -u "${_lpu}" -- "${_gbin}" "$@"
+    lpu_type2_die_required
+}
+
 lpu_owner_name() {
     _p="$1"
     if [ ! -e "${_p}" ]; then
@@ -3389,18 +3509,35 @@ lpu_print_sudoers() {
 #             requirement-three-layer-privilege-model.md §P-M8 / P-M9
 # =============================================================================
 
+lpu_sudoers_normalize_kind() {
+    _k="${1:-${SUDOER_REQUEST_KIND:-type-2-switch}}"
+    case "${_k}" in
+        type-2-switch|login-hook-elev) printf '%s' "${_k}" ;;
+        *) out_die_code request_invalid "sudoer request kind must be type-2-switch or login-hook-elev (got ${_k})" ;;
+    esac
+}
+
 lpu_sudoers_json_text_compact() {
     : "${APP_NAME:=dns-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${SUBMIT_ACTION:=add}"
-    _user=$(id -un 2>/dev/null || echo "unknown")
+    _kind=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
     _action="${SUBMIT_ACTION}"
     case "${_action}" in
         add|update) ;;
         *) _action="add" ;;
     esac
     _path="${GLOBAL_BIN}/${APP_NAME}"
-    printf '%s\n' "{\"schema_version\":1,\"purpose\":\"Allow ${_user} to run ${APP_NAME} as dns-adm.\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"dns-adm\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[]}]}"
+    _lpu=$(lpu_user)
+    if [ "${_kind}" = "login-hook-elev" ]; then
+        _user="${_lpu}"
+        _purpose="Allow ${_lpu} login hook to run ${APP_NAME} interactive via sudo -n."
+        printf '%s\n' "{\"schema_version\":1,\"kind\":\"login-hook-elev\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[\"interactive\"]}]}"
+        return 0
+    fi
+    _user=$(id -un 2>/dev/null || echo "unknown")
+    _purpose="Allow ${_user} to run ${APP_NAME} as ${_lpu}."
+    printf '%s\n' "{\"schema_version\":1,\"kind\":\"type-2-switch\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"${_lpu}\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[]}]}"
 }
 
 lpu_sudoers_trust_tier() {
@@ -3430,6 +3567,27 @@ lpu_sudoers_require_emit_trust() {
     fi
 }
 
+lpu_sudoers_detect_kind_from_body() {
+    _gb="${1:-}"
+    case "${_gb}" in
+        *'"kind":"login-hook-elev"'*|*'"kind": "login-hook-elev"'*)
+            printf '%s' "login-hook-elev"
+            return 0
+            ;;
+        *'"kind":"type-2-switch"'*|*'"kind": "type-2-switch"'*)
+            printf '%s' "type-2-switch"
+            return 0
+            ;;
+    esac
+    case "${_gb}" in
+        *'"runas":"root"'*|*'"runas": "root"'*)
+            printf '%s' "unknown"
+            return 0
+            ;;
+    esac
+    printf '%s' "type-2-switch"
+}
+
 lpu_sudoers_refuse_forbidden_grant() {
     _gf="${1:-}"
     : "${APP_NAME:=dns-cli}"
@@ -3438,16 +3596,42 @@ lpu_sudoers_refuse_forbidden_grant() {
         out_die_code request_invalid "sudoer grant file missing"
     fi
     _gb=$(cat "${_gf}" 2>/dev/null || true)
+    _kind=$(lpu_sudoers_detect_kind_from_body "${_gb}")
     case "${_gb}" in
         *"/usr/bin/mkdir"*|*"/bin/mkdir"*|*"/usr/bin/cp"*|*"/bin/cp"*|*"/usr/bin/tar"*|*"/bin/tar"*|*"/bin/rm "*|*"/usr/bin/rm "*|*"/usr/bin/install"*|*"/usr/bin/chmod"*|*"/bin/chmod"*)
-            out_die_code request_invalid "refusing sudoer grant with OS-tool commands (need ${GLOBAL_BIN}/${APP_NAME} as dns-adm only)"
+            out_die_code request_invalid "refusing sudoer grant with OS-tool commands (need ${GLOBAL_BIN}/${APP_NAME} only)"
             ;;
     esac
     case "${_gb}" in
-        *'"runas":"root"'*|*'"runas": "root"'*)
-            out_die_code request_invalid "refusing sudoer grant with runas root (need runas dns-adm)"
+        *'"args":["setup"'*|*'"args": ["setup"'*|*'"args":["remove-lpu"'*|*'"args": ["remove-lpu"'*)
+            out_die_code request_invalid "refusing sudoer grant of setup / remove-lpu"
             ;;
     esac
+    if [ "${_kind}" = "unknown" ]; then
+        out_die_code request_invalid "refusing sudoer grant: runas root without kind=login-hook-elev"
+    fi
+    if [ "${_kind}" = "type-2-switch" ]; then
+        case "${_gb}" in
+            *'"runas":"root"'*|*'"runas": "root"'*)
+                out_die_code request_invalid "refusing type-2-switch grant with runas root (need runas dns-adm)"
+                ;;
+        esac
+    fi
+    if [ "${_kind}" = "login-hook-elev" ]; then
+        case "${_gb}" in
+            *'"runas":"root"'*|*'"runas": "root"'*) ;;
+            *) out_die_code request_invalid "refusing login-hook-elev grant without runas root" ;;
+        esac
+        case "${_gb}" in
+            *'"args":[]'*|*'"args": []'*)
+                out_die_code request_invalid "refusing login-hook-elev grant with empty args (need interactive only; whole CLI as root is forbidden)"
+                ;;
+        esac
+        case "${_gb}" in
+            *'"interactive"'*) ;;
+            *) out_die_code request_invalid "refusing login-hook-elev grant: args must be interactive only" ;;
+        esac
+    fi
     return 0
 }
 
@@ -3455,21 +3639,41 @@ lpu_sudoers_verify_grant() {
     _gf="${1:-}"
     : "${APP_NAME:=dns-cli}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
+    _lpu=$(lpu_user)
     if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
         out_die_code request_invalid "sudoer file missing"
     fi
     _gb=$(cat "${_gf}" 2>/dev/null || true)
+    _kind=$(lpu_sudoers_detect_kind_from_body "${_gb}")
     case "${_gb}" in
         *'"service":"dns-cli"'*|*'"service": "dns-cli"'*) ;;
         *) out_die_code request_invalid "Sudoer file is incomplete: service is not dns-cli. Path: ${_gf}" ;;
     esac
     case "${_gb}" in
-        *'"runas":"dns-adm"'*|*'"runas": "dns-adm"'*) ;;
-        *) out_die_code request_invalid "Sudoer file is incomplete: runas is not dns-adm. Path: ${_gf}" ;;
-    esac
-    case "${_gb}" in
         *"${GLOBAL_BIN}/${APP_NAME}"*) ;;
         *) out_die_code request_invalid "Sudoer file is incomplete: path is not ${GLOBAL_BIN}/${APP_NAME}. Path: ${_gf}" ;;
+    esac
+    if [ "${_kind}" = "unknown" ]; then
+        out_die_code request_invalid "Sudoer file is incomplete: unknown kind. Path: ${_gf}"
+    fi
+    if [ "${_kind}" = "login-hook-elev" ]; then
+        case "${_gb}" in
+            *'"runas":"root"'*|*'"runas": "root"'*) ;;
+            *) out_die_code request_invalid "Sudoer file is incomplete: login-hook-elev runas is not root. Path: ${_gf}" ;;
+        esac
+        case "${_gb}" in
+            *'"username":"'"${_lpu}"'"'*|*'"username": "'"${_lpu}"'"'*) ;;
+            *) out_die_code request_invalid "Sudoer file is incomplete: login-hook-elev username is not ${_lpu}. Path: ${_gf}" ;;
+        esac
+        case "${_gb}" in
+            *'"interactive"'*) ;;
+            *) out_die_code request_invalid "Sudoer file is incomplete: login-hook-elev args must be interactive. Path: ${_gf}" ;;
+        esac
+        return 0
+    fi
+    case "${_gb}" in
+        *'"runas":"'"${_lpu}"'"'*|*'"runas": "'"${_lpu}"'"'*) ;;
+        *) out_die_code request_invalid "Sudoer file is incomplete: type-2-switch runas is not ${_lpu}. Path: ${_gf}" ;;
     esac
     return 0
 }
@@ -3541,6 +3745,29 @@ lpu_detect_sudoer_inbound() {
     return 1
 }
 
+lpu_alloc_inbound_request_id() {
+    _in="${1:-}"
+    _user="${2:-}"
+    _svc="${3:-}"
+    _act="${4:-}"
+    [ -n "${_in}" ] && [ -d "${_in}" ] || return 1
+    [ -n "${_user}" ] && [ -n "${_svc}" ] && [ -n "${_act}" ] || return 1
+    _root=$(dirname -- "${_in}")
+    _ad=$(date +%Y%m%d)
+    _n=1
+    while [ "${_n}" -le 999 ]; do
+        _id="sudoer-${_ad}-${_svc}-${_user}-${_act}-${_n}.json"
+        if [ ! -e "${_in}/${_id}" ] && \
+           [ ! -e "${_root}/sudoer-approved/${_id}" ] && \
+           [ ! -e "${_root}/sudoer-rejected/${_id}" ]; then
+            printf '%s' "${_id}"
+            return 0
+        fi
+        _n=$((_n + 1))
+    done
+    return 1
+}
+
 lpu_sudoer_queue_root_from_inbound() {
     _in="${1:-}"
     [ -n "${_in}" ] || return 1
@@ -3564,7 +3791,10 @@ lpu_sudoer_queue_root_from_inbound() {
 lpu_probe_sibling_host_sudoers() {
     : "${APP_NAME:=dns-cli}"
     : "${SUDOERS_D_DIR:=/etc/sudoers.d}"
-    _user=$(id -un 2>/dev/null || echo "unknown")
+    _user="${1:-}"
+    if [ -z "${_user}" ]; then
+        _user=$(id -un 2>/dev/null || echo "unknown")
+    fi
     _p="${SUDOERS_D_DIR}/${APP_NAME}-${_user}"
     if [ -f "${_p}" ]; then
         printf '%s' "${_p}"
@@ -3576,6 +3806,12 @@ lpu_probe_sibling_host_sudoers() {
 lpu_default_sudoer_request_path() {
     : "${APP_NAME:=dns-cli}"
     : "${HOME:=/tmp}"
+    _kind=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
+    if [ "${_kind}" = "login-hook-elev" ]; then
+        _lpu=$(lpu_user)
+        printf '%s' "${HOME}/.config/${APP_NAME}/sudoer-request-${_lpu}-login-hook.json"
+        return 0
+    fi
     _user=$(id -un 2>/dev/null || echo "unknown")
     printf '%s' "${HOME}/.config/${APP_NAME}/sudoer-request-${_user}.json"
 }
@@ -3596,16 +3832,31 @@ lpu_sudoers_verify_sibling_convert() {
     esac
     _stor="${EFFECTIVE_STORAGE_DIR:-${TMPDIR:-/tmp}}"
     _outf=$(mktemp "${_stor}/.sudoer-conv.XXXXXX") || return 1
+    _kind=$(lpu_sudoers_detect_kind_from_body "$(cat "${_gf}" 2>/dev/null || true)")
     if ! "${_cli}" json-to-sudoers --file "${_gf}" --out "${_outf}" >/dev/null 2>&1; then
         rm -f "${_outf}"
+        if [ "${_kind}" = "login-hook-elev" ]; then
+            return 1
+        fi
         out_die_code request_invalid "sudoer-cli json-to-sudoers failed for ${_gf}. The file is not safe to submit."
     fi
     _txt=$(cat "${_outf}" 2>/dev/null || true)
     rm -f "${_outf}"
-    case "${_txt}" in
-        *"(dns-adm)"*) ;;
-        *) out_die_code request_invalid "sudoer-cli convert dropped runas dns-adm from ${_gf}. Do not submit this file." ;;
-    esac
+    if [ "${_kind}" = "login-hook-elev" ]; then
+        case "${_txt}" in
+            *"(root)"*) ;;
+            *) return 1 ;;
+        esac
+        case "${_txt}" in
+            *interactive*) ;;
+            *) return 1 ;;
+        esac
+    else
+        case "${_txt}" in
+            *"(dns-adm)"*) ;;
+            *) out_die_code request_invalid "sudoer-cli convert dropped runas dns-adm from ${_gf}. Do not submit this file." ;;
+        esac
+    fi
     case "${_txt}" in
         *"${APP_NAME}"*) ;;
         *) out_die_code request_invalid "sudoer-cli convert dropped ${APP_NAME} from ${_gf}. Do not submit this file." ;;
@@ -3620,9 +3871,15 @@ lpu_generate_sudoer_request() {
     : "${SUBMIT_ACTION:=add}"
     : "${SUBMIT_ACTION_EXPLICIT:=0}"
     _out_path="${1:-}"
+    SUDOER_REQUEST_KIND=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
+    export SUDOER_REQUEST_KIND
     _user=$(id -un 2>/dev/null || echo "unknown")
+    _probe_user="${_user}"
+    if [ "${SUDOER_REQUEST_KIND}" = "login-hook-elev" ]; then
+        _probe_user=$(lpu_user)
+    fi
     _host_present="false"
-    if lpu_probe_sibling_host_sudoers >/dev/null; then
+    if lpu_probe_sibling_host_sudoers "${_probe_user}" >/dev/null; then
         _host_present="true"
     fi
     if [ "${SUBMIT_ACTION_EXPLICIT}" -ne 1 ]; then
@@ -3676,14 +3933,20 @@ lpu_generate_sudoer_request() {
             "verified" "true" \
             "convert_checked" "$([ "${_convert}" = "ok" ] && echo true || echo false)" \
             "action" "${SUBMIT_ACTION}" \
+            "kind" "${SUDOER_REQUEST_KIND}" \
             "host_fragment_present" "${_host_present}" \
             "user" "${_user}"
         return 0
     fi
     out_success "Wrote verified sudoer file to ${_out_path}"
-    out_info "Grant allows: ${APP_NAME} as dns-adm (action=${SUBMIT_ACTION})"
-    out_info "Review the file, then submit it:"
-    out_info "   ${APP_NAME} submit-sudoer-request ${_out_path}"
+    if [ "${SUDOER_REQUEST_KIND}" = "login-hook-elev" ]; then
+        out_info "Grant kind=login-hook-elev: $(lpu_user) may sudo -n ${APP_NAME} interactive (action=${SUBMIT_ACTION})"
+        out_info "Type 0 submit-sudoer-request will refuse this file. Setup auto-queues it when sibling sudoer-cli exists."
+    else
+        out_info "Grant kind=type-2-switch: ${_user} may run ${APP_NAME} as $(lpu_user) (action=${SUBMIT_ACTION})"
+        out_info "Review the file, then submit it:"
+        out_info "   ${APP_NAME} submit-sudoer-request ${_out_path}"
+    fi
 }
 
 lpu_submit_sudoer_request() {
@@ -3728,7 +3991,19 @@ lpu_submit_sudoer_request() {
             out_die_code vault_insecure "refusing symlink sudoers input: ${_src_file}"
         fi
         lpu_sudoers_refuse_forbidden_grant "${_src_file}"
+        _src_kind=$(lpu_sudoers_detect_kind_from_body "$(cat "${_src_file}" 2>/dev/null || true)")
+        if [ "${_src_kind}" = "login-hook-elev" ]; then
+            out_die_code request_invalid "submit-sudoer-request is Type 0 (current login, no sudo, type-2-switch only). login-hook-elev is Type 1 setup (password sudo). Dest Type 0 self-scope does not apply to setup."
+        fi
+        if [ "${_src_kind}" = "unknown" ]; then
+            out_die_code request_invalid "submit-sudoer-request refused unknown sudoer kind"
+        fi
     fi
+    if [ "${SUDOER_REQUEST_KIND:-type-2-switch}" = "login-hook-elev" ]; then
+        out_die_code request_invalid "submit-sudoer-request is Type 0 (current login, no sudo, type-2-switch only). login-hook-elev is Type 1 setup (password sudo). Dest Type 0 self-scope does not apply to setup."
+    fi
+    SUDOER_REQUEST_KIND="type-2-switch"
+    export SUDOER_REQUEST_KIND
     _cli=""
     if _cli=$(lpu_detect_sudoer_cli); then
         :
@@ -3814,6 +4089,7 @@ lpu_submit_sudoer_request() {
             "host_fragment_present" "${_host_present}" \
             "host_fragment_path" "${_host_path}" \
             "service" "${APP_NAME}" \
+            "kind" "type-2-switch" \
             "user" "${_user}" \
             "sudoer_cli" "${_cli}" \
             "sudoer_adm" "${_adm}" \
@@ -3826,6 +4102,79 @@ lpu_submit_sudoer_request() {
     fi
     out_info "inbound=${_inbound}  (approver: ${_adm})"
     out_info "This CLI did not write /etc. Approver must approve the request."
+    return 0
+}
+
+lpu_submit_login_hook_sudoer_request() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${SUDOER_ADM_USER:=sudoer-adm}"
+    LOGIN_HOOK_SUDOER_STATUS="skipped"
+    LOGIN_HOOK_SUDOER_REQUEST_ID=""
+    _lpu=$(lpu_user)
+    SUDOER_REQUEST_KIND="login-hook-elev"
+    export SUDOER_REQUEST_KIND
+    _cli=""
+    if ! _cli=$(lpu_detect_sudoer_cli); then
+        LOGIN_HOOK_SUDOER_STATUS="skipped"
+        return 0
+    fi
+    _adm=""
+    if ! _adm=$(lpu_detect_sudoer_adm); then
+        LOGIN_HOOK_SUDOER_STATUS="skipped"
+        return 0
+    fi
+    _inbound=""
+    if ! _inbound=$(lpu_detect_sudoer_inbound); then
+        LOGIN_HOOK_SUDOER_STATUS="skipped"
+        return 0
+    fi
+    if [ ! -w "${_inbound}" ]; then
+        LOGIN_HOOK_SUDOER_STATUS="skipped"
+        return 0
+    fi
+    if [ "${SUBMIT_ACTION_EXPLICIT:-0}" -ne 1 ]; then
+        if lpu_probe_sibling_host_sudoers "${_lpu}" >/dev/null; then
+            SUBMIT_ACTION="update"
+        else
+            SUBMIT_ACTION="add"
+        fi
+    fi
+    # Dest approval reviews the JSON in inbound. Dest Type 0 add-sudoer-request
+    # compares username to id -un (self_scope). That is a blockage, not dest
+    # approval. Type 1 setup writes inbound itself.
+    _rid=$(lpu_alloc_inbound_request_id "${_inbound}" "${_lpu}" "${APP_NAME}" "${SUBMIT_ACTION}") || {
+        LOGIN_HOOK_SUDOER_STATUS="failed"
+        LOGIN_HOOK_SUDOER_ERROR="cannot allocate dest request_id under ${_inbound}"
+        return 0
+    }
+    _stor="${EFFECTIVE_STORAGE_DIR:-${TMPDIR:-/tmp}}"
+    _tmp=$(mktemp "${_stor}/.sudoer-hook.XXXXXX") || {
+        LOGIN_HOOK_SUDOER_STATUS="failed"
+        LOGIN_HOOK_SUDOER_ERROR="cannot create temp hook JSON"
+        return 0
+    }
+    lpu_sudoers_json_text_compact >"${_tmp}" || {
+        rm -f "${_tmp}"
+        LOGIN_HOOK_SUDOER_STATUS="failed"
+        LOGIN_HOOK_SUDOER_ERROR="cannot write temp hook JSON"
+        return 0
+    }
+    lpu_sudoers_refuse_forbidden_grant "${_tmp}"
+    lpu_sudoers_verify_grant "${_tmp}"
+    _dest="${_inbound}/${_rid}"
+    if ! mv "${_tmp}" "${_dest}"; then
+        rm -f "${_tmp}"
+        LOGIN_HOOK_SUDOER_STATUS="failed"
+        LOGIN_HOOK_SUDOER_ERROR="cannot write ${_dest}"
+        return 0
+    fi
+    chmod 0640 "${_dest}" 2>/dev/null || true
+    if id "${_lpu}" >/dev/null 2>&1; then
+        chown "${_lpu}:${_lpu}" "${_dest}" 2>/dev/null || chown "${_lpu}" "${_dest}" 2>/dev/null || true
+    fi
+    LOGIN_HOOK_SUDOER_STATUS="submitted"
+    LOGIN_HOOK_SUDOER_REQUEST_ID="${_rid}"
     return 0
 }
 
@@ -3848,7 +4197,13 @@ lpu_setup() {
     fi
     chmod 0755 "${_home}" || true
     lpu_chown_tree "${_home}"
-    _vault="${_home}/vault"
+    _vaults="${_home}/.local/vaults"
+    _vault="${_vaults}/${APP_NAME}"
+    if [ ! -d "${_vaults}" ]; then
+        mkdir -p "${_vaults}" || out_die_code vault_insecure "Cannot create vaults root ${_vaults}"
+    fi
+    chmod 0700 "${_vaults}" || out_die_code vault_insecure "Cannot chmod 0700 ${_vaults}"
+    lpu_chown_tree "${_vaults}"
     if [ ! -d "${_vault}" ]; then
         mkdir -p "${_vault}" || out_die_code vault_insecure "Cannot create vault dir ${_vault}"
     fi
@@ -3856,6 +4211,8 @@ lpu_setup() {
     lpu_chown_tree "${_vault}"
     lpu_install_sudoers
     lpu_heal_home_rc "${_home}"
+    cf_req_install_trio
+    lpu_submit_login_hook_sudoer_request
     _dest=$(lpu_sudoers_dest)
     if [ "${JSON}" -eq 1 ]; then
         _st="healed"
@@ -3874,7 +4231,9 @@ lpu_setup() {
             "vault_dir" "${_vault}" \
             "sudoers" "${_dest}" \
             "created" "${_created}" \
-            "status" "${_st}"
+            "status" "${_st}" \
+            "login_hook_sudoer" "${LOGIN_HOOK_SUDOER_STATUS}" \
+            "login_hook_sudoer_request_id" "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}"
         return 0
     fi
     if [ "${_existed}" -eq 1 ]; then
@@ -3885,6 +4244,25 @@ lpu_setup() {
     out_info "Home: ${_home} (${_reason})"
     out_info "Vault dir: ${_vault} (mode 0700)"
     out_info "Sudoers dest: ${_dest} (mode 0440)"
+    case "${LOGIN_HOOK_SUDOER_STATUS}" in
+        submitted)
+            out_info "Queued login-hook-elev sudoer request (dns-adm sudo -n ${APP_NAME} interactive)"
+            if [ -n "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}" ]; then
+                out_info "login_hook request_id=${LOGIN_HOOK_SUDOER_REQUEST_ID}"
+            fi
+            out_info "Type 1 setup (sudo) wrote inbound. Dest approval reviews the JSON (does not test who submitted)."
+            ;;
+        failed)
+            if [ -n "${LOGIN_HOOK_SUDOER_ERROR:-}" ]; then
+                out_warn "Could not write login-hook-elev JSON to inbound: ${LOGIN_HOOK_SUDOER_ERROR}"
+            else
+                out_warn "Could not write login-hook-elev JSON to inbound"
+            fi
+            ;;
+        *)
+            out_info "Login-hook sudoer request skipped (sudoer-cli / sudoer-adm / inbound not present). Next: sudo sudoer-cli setup"
+            ;;
+    esac
 }
 
 lpu_remove() {
@@ -4796,6 +5174,575 @@ app_about() {
 }
 
 # =============================================================================
+# cf_req_* — DNS inbound file-based JSON approval
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Type 0 submit drops a self-scoped Cloudflare DNS request into inbound.
+# Type 1 approve/reject/interactive re-check and move the file. Accept applies
+# dest via existing vault DNS/mode verbs.
+#
+# ALIGNMENT:
+# - requirement-dns-actor-table.md
+# - requirement-cloudflare-dns-request.md
+# - requirement-domain-cloudflare-dns.md
+# - requirement-dns-approver.md
+#
+# Last reviewed: 2026-08-18
+# =============================================================================
+
+cf_req_public_root() {
+    : "${APP_NAME:=dns-cli}"
+    if [ -n "${DNS_QUEUE_ROOT:-}" ]; then
+        printf '%s' "${DNS_QUEUE_ROOT}"
+        return 0
+    fi
+    if [ -n "${CF_LPU_ROOT:-}" ]; then
+        printf '%s/var/%s' "${CF_LPU_ROOT}" "${APP_NAME}"
+        return 0
+    fi
+    printf '/var/%s' "${APP_NAME}"
+}
+
+cf_req_detect_inbound() {
+    : "${DNS_INBOUND_BASENAME:=dns-request}"
+    if [ -n "${DNS_QUEUE_INBOUND:-}" ] && [ -d "${DNS_QUEUE_INBOUND}" ]; then
+        printf '%s' "${DNS_QUEUE_INBOUND}"
+        return 0
+    fi
+    _root=$(cf_req_public_root)
+    if [ -d "${_root}/${DNS_INBOUND_BASENAME}" ]; then
+        printf '%s' "${_root}/${DNS_INBOUND_BASENAME}"
+        return 0
+    fi
+    return 1
+}
+
+cf_req_sibling_dir() {
+    _in="$1"
+    _name="$2"
+    printf '%s/%s' "$(dirname -- "${_in}")" "${_name}"
+}
+
+cf_req_install_trio() {
+    : "${APP_NAME:=dns-cli}"
+    : "${DNS_INBOUND_BASENAME:=dns-request}"
+    : "${DNS_ACCEPTED_BASENAME:=dns-accepted}"
+    : "${DNS_DECLINED_BASENAME:=dns-declined}"
+    _root=$(cf_req_public_root)
+    _u=$(lpu_user)
+    if [ ! -d "${_root}" ]; then
+        mkdir -p "${_root}" || out_die_code vault_insecure "Cannot create ${_root}"
+    fi
+    chmod 0755 "${_root}" || true
+    for _n in "${DNS_INBOUND_BASENAME}" "${DNS_ACCEPTED_BASENAME}" "${DNS_DECLINED_BASENAME}"; do
+        if [ ! -d "${_root}/${_n}" ]; then
+            mkdir -p "${_root}/${_n}" || out_die_code vault_insecure "Cannot create ${_root}/${_n}"
+        fi
+    done
+    chmod 3773 "${_root}/${DNS_INBOUND_BASENAME}" || true
+    chmod 0700 "${_root}/${DNS_ACCEPTED_BASENAME}" || true
+    chmod 0700 "${_root}/${DNS_DECLINED_BASENAME}" || true
+    if ! lpu_test_mode; then
+        lpu_chown_tree "${_root}"
+    fi
+    _home="${LPU_HOME:-}"
+    if [ -z "${_home}" ]; then
+        _home=$(lpu_live_home) || _home=""
+    fi
+    if [ -n "${_home}" ] && [ -d "${_home}" ]; then
+        _view="${_home}/${DNS_INBOUND_BASENAME}"
+        if [ ! -e "${_view}" ]; then
+            ln -s "${_root}/${DNS_INBOUND_BASENAME}" "${_view}" 2>/dev/null || true
+        fi
+    fi
+}
+
+cf_req_alloc_id() {
+    _in="$1"
+    _subject="$2"
+    _act="$3"
+    [ -n "${_in}" ] && [ -d "${_in}" ] || return 1
+    [ -n "${_subject}" ] && [ -n "${_act}" ] || return 1
+    _root=$(dirname -- "${_in}")
+    : "${DNS_ACCEPTED_BASENAME:=dns-accepted}"
+    : "${DNS_DECLINED_BASENAME:=dns-declined}"
+    _ad=$(date +%Y%m%d)
+    _n=1
+    while [ "${_n}" -le 999 ]; do
+        _id="${_ad}-${_subject}-${_act}-${_n}.json"
+        if [ ! -e "${_in}/${_id}" ] && \
+           [ ! -e "${_root}/${DNS_ACCEPTED_BASENAME}/${_id}" ] && \
+           [ ! -e "${_root}/${DNS_DECLINED_BASENAME}/${_id}" ]; then
+            printf '%s' "${_id}"
+            return 0
+        fi
+        _n=$((_n + 1))
+    done
+    return 1
+}
+
+cf_req_parse_basename() {
+    _bn="$1"
+    CF_REQ_BN_DATE=""
+    CF_REQ_BN_SUBJECT=""
+    CF_REQ_BN_ACTION=""
+    CF_REQ_BN_N=""
+    case "${_bn}" in
+        *.json) ;;
+        *) return 1 ;;
+    esac
+    _stem="${_bn%.json}"
+    CF_REQ_BN_DATE=$(printf '%s' "${_stem}" | cut -d- -f1)
+    CF_REQ_BN_SUBJECT=$(printf '%s' "${_stem}" | cut -d- -f2)
+    CF_REQ_BN_ACTION=$(printf '%s' "${_stem}" | cut -d- -f3)
+    CF_REQ_BN_N=$(printf '%s' "${_stem}" | cut -d- -f4)
+    printf '%s' "${CF_REQ_BN_DATE}" | grep -Eq '^[0-9]{8}$' || return 1
+    [ -n "${CF_REQ_BN_SUBJECT}" ] && [ -n "${CF_REQ_BN_ACTION}" ] && [ -n "${CF_REQ_BN_N}" ] || return 1
+    case "${CF_REQ_BN_ACTION}" in
+        add|update|remove|mode) ;;
+        *) return 1 ;;
+    esac
+    return 0
+}
+
+cf_req_field() {
+    _jf="$1"
+    _key="$2"
+    cf_json_get "${_jf}" "${_key}" 2>/dev/null || true
+}
+
+cf_req_verify() {
+    _jf="$1"
+    _who="${2:-}"
+    : "${APP_NAME:=dns-cli}"
+    if [ ! -f "${_jf}" ]; then
+        out_die_code request_invalid "DNS request file not found: ${_jf}"
+    fi
+    if [ -L "${_jf}" ]; then
+        out_die_code vault_insecure "refusing symlink DNS request: ${_jf}"
+    fi
+    _bn=$(basename -- "${_jf}")
+    if ! cf_req_parse_basename "${_bn}"; then
+        out_die_code request_invalid "DNS request basename is not YYYYMMDD-subject-action-n.json: ${_bn}"
+    fi
+    _uk=$(python3 -c '
+import json,sys
+allowed={"schema_version","purpose","subject","action","domain_id","subdomain","ipv4","from_ipv4","mode","ttl","proxied"}
+forbidden=("token","CF_API_TOKEN","user_id","api_token")
+path=sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    data=json.load(fh)
+if not isinstance(data, dict):
+    print("not-object")
+    raise SystemExit(2)
+for k in data:
+    if k in forbidden:
+        print("secret:"+k)
+        raise SystemExit(3)
+    if k not in allowed:
+        print("unknown:"+k)
+        raise SystemExit(3)
+print("ok")
+' "${_jf}")
+    _prc=$?
+    if [ "${_prc}" -ne 0 ]; then
+        case "${_uk}" in
+            secret:*)
+                out_die_code request_invalid "DNS request must not contain a token or user_id. Path: ${_jf}"
+                ;;
+            unknown:*)
+                out_die_code request_invalid "DNS request has an unknown key. Path: ${_jf}"
+                ;;
+        esac
+        out_die_code request_invalid "DNS request is not a JSON object. Path: ${_jf}"
+    fi
+    _sv=$(cf_req_field "${_jf}" "schema_version")
+    if [ "${_sv}" != "1" ]; then
+        out_die_code request_invalid "DNS request schema_version must be 1. Path: ${_jf}"
+    fi
+    _purpose=$(cf_req_field "${_jf}" "purpose")
+    _subject=$(cf_req_field "${_jf}" "subject")
+    _action=$(cf_req_field "${_jf}" "action")
+    _dom=$(cf_req_field "${_jf}" "domain_id")
+    _sub=$(cf_req_field "${_jf}" "subdomain")
+    if [ -z "${_purpose}" ] || [ -z "${_subject}" ] || [ -z "${_action}" ] || [ -z "${_dom}" ] || [ -z "${_sub}" ]; then
+        out_die_code request_invalid "DNS request is missing a required field (purpose, subject, action, domain_id, subdomain). Path: ${_jf}"
+    fi
+    case "${_action}" in
+        add|update|remove|mode) ;;
+        *)
+            out_die_code request_invalid "DNS request action must be add, update, remove, or mode. Path: ${_jf}"
+            ;;
+    esac
+    if [ "${_action}" != "${CF_REQ_BN_ACTION}" ]; then
+        out_die_code request_invalid "DNS request action ${_action} does not match basename type ${CF_REQ_BN_ACTION}. Path: ${_jf}"
+    fi
+    if [ "${_subject}" != "${CF_REQ_BN_SUBJECT}" ]; then
+        out_die_code request_invalid "DNS request subject ${_subject} does not match basename ${CF_REQ_BN_SUBJECT}. Path: ${_jf}"
+    fi
+    if [ -n "${_who}" ] && [ "${_subject}" != "${_who}" ]; then
+        out_die_code request_invalid "DNS request is self-scope only. subject ${_subject} is not ${_who}. Path: ${_jf}"
+    fi
+    _ipv4=$(cf_req_field "${_jf}" "ipv4")
+    _from=$(cf_req_field "${_jf}" "from_ipv4")
+    _mode=$(cf_req_field "${_jf}" "mode")
+    _ttl=$(cf_req_field "${_jf}" "ttl")
+    _prox=$(cf_req_field "${_jf}" "proxied")
+    case "${_ipv4}${_from}" in
+        *:*)
+            out_die_code request_invalid "DNS request IPv4 fields must not be IPv6. Path: ${_jf}"
+            ;;
+    esac
+    case "${_action}" in
+        add)
+            if [ -z "${_ipv4}" ]; then
+                out_die_code request_invalid "DNS add request needs ipv4. Path: ${_jf}"
+            fi
+            if [ -n "${_from}" ] || [ -n "${_mode}" ]; then
+                out_die_code request_invalid "DNS add request must not include from_ipv4 or mode. Path: ${_jf}"
+            fi
+            if ! cf_ipv4_ok "${_ipv4}"; then
+                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+            fi
+            ;;
+        update)
+            if [ -z "${_ipv4}" ]; then
+                out_die_code request_invalid "DNS update request needs ipv4. Path: ${_jf}"
+            fi
+            if [ -n "${_mode}" ]; then
+                out_die_code request_invalid "DNS update request must not include mode. Path: ${_jf}"
+            fi
+            if ! cf_ipv4_ok "${_ipv4}"; then
+                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+            fi
+            if [ -n "${_from}" ] && ! cf_ipv4_ok "${_from}"; then
+                out_die_code request_invalid "DNS request from_ipv4 is not a public IPv4: ${_from}"
+            fi
+            ;;
+        remove)
+            if [ -n "${_from}" ] || [ -n "${_mode}" ] || [ -n "${_ttl}" ] || [ -n "${_prox}" ]; then
+                out_die_code request_invalid "DNS remove request must not include from_ipv4, mode, ttl, or proxied. Path: ${_jf}"
+            fi
+            if [ -n "${_ipv4}" ] && ! cf_ipv4_ok "${_ipv4}"; then
+                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+            fi
+            ;;
+        mode)
+            if [ -z "${_mode}" ]; then
+                out_die_code request_invalid "DNS mode request needs mode. Path: ${_jf}"
+            fi
+            case "${_mode}" in
+                non-round-robin|round-robin) ;;
+                *)
+                    out_die_code request_invalid "DNS mode must be non-round-robin or round-robin. Path: ${_jf}"
+                    ;;
+            esac
+            if [ -n "${_ipv4}" ] || [ -n "${_from}" ] || [ -n "${_ttl}" ] || [ -n "${_prox}" ]; then
+                out_die_code request_invalid "DNS mode request must not include ipv4, from_ipv4, ttl, or proxied. Path: ${_jf}"
+            fi
+            ;;
+    esac
+    CF_REQ_PURPOSE="${_purpose}"
+    CF_REQ_SUBJECT="${_subject}"
+    CF_REQ_ACTION="${_action}"
+    CF_REQ_DOMAIN="${_dom}"
+    CF_REQ_SUBDOMAIN="${_sub}"
+    CF_REQ_IPV4="${_ipv4}"
+    CF_REQ_FROM="${_from}"
+    CF_REQ_MODE="${_mode}"
+    CF_REQ_TTL="${_ttl}"
+    CF_REQ_PROXIED="${_prox}"
+    return 0
+}
+
+cf_req_require_approver() {
+    _verb="$1"
+    : "${APP_NAME:=dns-cli}"
+    _lpu=$(lpu_user)
+    _who=$(id -un 2>/dev/null || echo "unknown")
+    if lpu_test_mode; then
+        return 0
+    fi
+    if [ "${_who}" = "${_lpu}" ]; then
+        return 0
+    fi
+    if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        return 0
+    fi
+    out_die_code lpu_required "${_verb} must run as ${_lpu}. You are ${_who}. Next: sudo -u ${_lpu} ${APP_NAME} ${_verb}  or log in as ${_lpu}"
+}
+
+cf_req_apply() {
+    : "${APP_NAME:=dns-cli}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    _act="${CF_REQ_ACTION}"
+    CF_OPT_DOMAIN="${CF_REQ_DOMAIN}"
+    CF_OPT_DOMAIN_ID="${CF_REQ_DOMAIN}"
+    CF_OPT_SUBDOMAIN="${CF_REQ_SUBDOMAIN}"
+    if [ -n "${CF_REQ_TTL}" ]; then
+        CF_OPT_TTL="${CF_REQ_TTL}"
+    fi
+    if [ -n "${CF_REQ_PROXIED}" ]; then
+        CF_OPT_PROXIED="${CF_REQ_PROXIED}"
+    fi
+    if [ -n "${CF_REQ_IPV4}" ]; then
+        CF_OPT_IP="${CF_REQ_IPV4}"
+    fi
+    if [ -n "${CF_REQ_FROM}" ]; then
+        CF_OPT_FROM="${CF_REQ_FROM}"
+    fi
+    if [ -n "${CF_REQ_MODE}" ]; then
+        CF_OPT_MODE="${CF_REQ_MODE}"
+    fi
+    if lpu_test_mode || lpu_invoker_is_lpu; then
+        case "${_act}" in
+            add) cf_dns_add ;;
+            update) cf_dns_update ;;
+            remove) cf_dns_remove ;;
+            mode)
+                CF_VAULT_SUB_OP="mode"
+                CF_VAULT_SUB_LABEL="${CF_REQ_SUBDOMAIN}"
+                CF_VAULT_SUB_MODE="${CF_REQ_MODE}"
+                cf_vault_cmd_subdomain
+                ;;
+        esac
+        return 0
+    fi
+    _gbin="${GLOBAL_BIN}/${APP_NAME}"
+    _lpu=$(lpu_user)
+    if [ ! -x "${_gbin}" ]; then
+        out_die_code lpu_required "Approve apply must run as ${_lpu}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} install"
+    fi
+    set -- --json
+    if [ -n "${CF_OPT_VAULT_DIR:-}" ]; then
+        set -- "$@" --vault-dir "${CF_OPT_VAULT_DIR}"
+    fi
+    case "${_act}" in
+        add)
+            set -- "$@" add --domain "${CF_REQ_DOMAIN}" --subdomain "${CF_REQ_SUBDOMAIN}" --ip "${CF_REQ_IPV4}"
+            ;;
+        update)
+            set -- "$@" update --domain "${CF_REQ_DOMAIN}" --subdomain "${CF_REQ_SUBDOMAIN}" --ip "${CF_REQ_IPV4}"
+            if [ -n "${CF_REQ_FROM}" ]; then
+                set -- "$@" --from "${CF_REQ_FROM}"
+            fi
+            ;;
+        remove)
+            set -- "$@" remove --domain "${CF_REQ_DOMAIN}" --subdomain "${CF_REQ_SUBDOMAIN}"
+            if [ -n "${CF_REQ_IPV4}" ]; then
+                set -- "$@" --ip "${CF_REQ_IPV4}"
+            fi
+            ;;
+        mode)
+            set -- "$@" vault subdomain mode "${CF_REQ_SUBDOMAIN}" "${CF_REQ_MODE}" --domain "${CF_REQ_DOMAIN}"
+            ;;
+    esac
+    if ! sudo -n -u "${_lpu}" -- "${_gbin}" "$@"; then
+        out_die_code lpu_required "Could not apply the DNS request as ${_lpu}. Next: ${APP_NAME} generate-sudoer-request then ${APP_NAME} submit-sudoer-request"
+    fi
+}
+
+cf_req_submit() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    _src="${1:-}"
+    _who=$(id -un 2>/dev/null || echo "unknown")
+    if [ -z "${_src}" ]; then
+        out_die_code request_invalid "submit needs a DNS request JSON file. Next: write a file then ${APP_NAME} submit /path/to/file.json"
+    fi
+    _in=""
+    if ! _in=$(cf_req_detect_inbound); then
+        out_die_code sudoer_required "DNS inbound queue not found. Next: sudo ${APP_NAME} setup"
+    fi
+    if [ ! -w "${_in}" ]; then
+        out_die_code sudoer_required "DNS inbound is not writable: ${_in}. Next: sudo ${APP_NAME} setup"
+    fi
+    _tmp="${_src}"
+    _bn=$(basename -- "${_src}")
+    if ! cf_req_parse_basename "${_bn}"; then
+        _act=$(cf_req_field "${_src}" "action")
+        _sub=$(cf_req_field "${_src}" "subject")
+        if [ -z "${_sub}" ]; then
+            _sub="${_who}"
+        fi
+        if [ -z "${_act}" ]; then
+            out_die_code request_invalid "DNS request needs action add, update, remove, or mode"
+        fi
+        _rid=$(cf_req_alloc_id "${_in}" "${_sub}" "${_act}") || out_die_code vault_insecure "cannot allocate DNS request id"
+    else
+        if [ "${CF_REQ_BN_SUBJECT}" != "${_who}" ]; then
+            out_die_code request_invalid "DNS request is self-scope only. basename subject ${CF_REQ_BN_SUBJECT} is not ${_who}"
+        fi
+        _rid="${_bn}"
+        if [ -e "${_in}/${_rid}" ]; then
+            out_die_code request_invalid "DNS inbound already has ${_rid}"
+        fi
+    fi
+    _dest="${_in}/${_rid}"
+    cp "${_tmp}" "${_dest}" || out_die_code vault_insecure "cannot write ${_dest}"
+    chmod 0640 "${_dest}" 2>/dev/null || true
+    cf_req_verify "${_dest}" "${_who}"
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "submit" "queued" \
+            "request_id" "${_rid}" \
+            "action" "${CF_REQ_ACTION}" \
+            "subject" "${CF_REQ_SUBJECT}" \
+            "inbound" "${_in}"
+        return 0
+    fi
+    out_success "Queued DNS ${CF_REQ_ACTION} request ${_rid}"
+    out_info "inbound=${_in}  (approver: $(lpu_user))"
+}
+
+cf_req_pick() {
+    _in="$1"
+    _want="${2:-}"
+    if [ -n "${_want}" ]; then
+        _bn=$(basename -- "${_want}")
+        if [ -f "${_in}/${_bn}" ]; then
+            printf '%s' "${_in}/${_bn}"
+            return 0
+        fi
+        if [ -f "${_want}" ]; then
+            printf '%s' "${_want}"
+            return 0
+        fi
+        out_die_code request_invalid "DNS request not in inbound: ${_bn}"
+    fi
+    _n=0
+    _one=""
+    for _f in "${_in}"/*.json; do
+        [ -f "${_f}" ] || continue
+        _n=$((_n + 1))
+        if [ -z "${_one}" ]; then
+            _one="${_f}"
+        fi
+    done
+    if [ "${_n}" -eq 1 ]; then
+        printf '%s' "${_one}"
+        return 0
+    fi
+    if [ "${_n}" -eq 0 ]; then
+        out_die_code request_invalid "No pending DNS requests in ${_in}"
+    fi
+    out_die_code request_invalid "More than one pending DNS request. Pass the request_id (basename)."
+}
+
+cf_req_move() {
+    _src="$1"
+    _kind="$2"
+    _in=$(dirname -- "${_src}")
+    : "${DNS_ACCEPTED_BASENAME:=dns-accepted}"
+    : "${DNS_DECLINED_BASENAME:=dns-declined}"
+    if [ "${_kind}" = "accepted" ]; then
+        _dest_dir=$(cf_req_sibling_dir "${_in}" "${DNS_ACCEPTED_BASENAME}")
+    else
+        _dest_dir=$(cf_req_sibling_dir "${_in}" "${DNS_DECLINED_BASENAME}")
+    fi
+    if [ ! -d "${_dest_dir}" ]; then
+        out_die_code sudoer_required "DNS ${_kind} folder missing: ${_dest_dir}. Next: sudo ${APP_NAME} setup"
+    fi
+    _bn=$(basename -- "${_src}")
+    mv "${_src}" "${_dest_dir}/${_bn}" || out_die_code vault_insecure "cannot move ${_src} to ${_dest_dir}"
+    printf '%s' "${_dest_dir}/${_bn}"
+}
+
+cf_req_approve() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    cf_req_require_approver "approve"
+    _in=""
+    if ! _in=$(cf_req_detect_inbound); then
+        out_die_code sudoer_required "DNS inbound queue not found. Next: sudo ${APP_NAME} setup"
+    fi
+    _src=$(cf_req_pick "${_in}" "${1:-}")
+    cf_req_verify "${_src}"
+    cf_req_apply
+    _moved=$(cf_req_move "${_src}" "accepted")
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "approve" "accepted" \
+            "request_id" "$(basename -- "${_moved}")" \
+            "action" "${CF_REQ_ACTION}" \
+            "path" "${_moved}"
+        return 0
+    fi
+    out_success "Accepted DNS ${CF_REQ_ACTION} request $(basename -- "${_moved}")"
+}
+
+cf_req_reject() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    cf_req_require_approver "reject"
+    _in=""
+    if ! _in=$(cf_req_detect_inbound); then
+        out_die_code sudoer_required "DNS inbound queue not found. Next: sudo ${APP_NAME} setup"
+    fi
+    _src=$(cf_req_pick "${_in}" "${1:-}")
+    cf_req_verify "${_src}"
+    _moved=$(cf_req_move "${_src}" "declined")
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "reject" "declined" \
+            "request_id" "$(basename -- "${_moved}")" \
+            "action" "${CF_REQ_ACTION}" \
+            "path" "${_moved}"
+        return 0
+    fi
+    out_success "Declined DNS ${CF_REQ_ACTION} request $(basename -- "${_moved}")"
+}
+
+cf_req_interactive() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${TTY:=0}"
+    cf_req_require_approver "interactive"
+    if [ "${JSON}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
+        out_die_code confirm_required "interactive requires a TTY. Do not use --json. Next: log in as $(lpu_user) or run without --json on a terminal"
+    fi
+    _in=""
+    if ! _in=$(cf_req_detect_inbound); then
+        out_info "no pending requests"
+        return 0
+    fi
+    _any=0
+    for _f in "${_in}"/*.json; do
+        [ -f "${_f}" ] || continue
+        _any=1
+        cf_req_verify "${_f}"
+        out_info "request $(basename -- "${_f}")"
+        out_plain "purpose: ${CF_REQ_PURPOSE}"
+        out_plain "action:  ${CF_REQ_ACTION}  domain: ${CF_REQ_DOMAIN}  subdomain: ${CF_REQ_SUBDOMAIN}"
+        if [ -n "${CF_REQ_IPV4}" ]; then
+            out_plain "ipv4:    ${CF_REQ_IPV4}"
+        fi
+        if [ -n "${CF_REQ_MODE}" ]; then
+            out_plain "mode:    ${CF_REQ_MODE}"
+        fi
+        _ans=$(prompt_ask "accept / decline / skip / quit" "skip")
+        case "${_ans}" in
+            accept|a|yes|y)
+                cf_req_apply
+                cf_req_move "${_f}" "accepted" >/dev/null
+                out_success "Accepted $(basename -- "${_f}")"
+                ;;
+            decline|d|reject|no|n)
+                cf_req_move "${_f}" "declined" >/dev/null
+                out_success "Declined $(basename -- "${_f}")"
+                ;;
+            quit|q)
+                return 0
+                ;;
+            *)
+                out_info "Skipped $(basename -- "${_f}")"
+                ;;
+        esac
+    done
+    if [ "${_any}" -eq 0 ]; then
+        out_info "no pending requests"
+    fi
+}
+
+# =============================================================================
 # app_help() - Usage (local Type 0 only)
 # =============================================================================
 app_help() {
@@ -4829,12 +5776,19 @@ app_help() {
     out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"
     out_plain "  generate-sudoer-request [path]"
     out_plain "                       Write a local JSON grant you can review (not inbound)"
+    out_plain "                       Default kind=type-2-switch (you as dns-adm)"
     out_plain "  submit-sudoer-request [file]"
-    out_plain "                       Queue JSON into sibling sudoer-cli inbound"
+    out_plain "                       Type 0: current login, no sudo, type-2-switch only"
     out_empty_line
-    out_info "Host account (elevated — password sudo or already root):"
-    out_plain "  setup                Create Linux user dns-adm, vault dir, sudoers dest"
+    out_info "Host account (Type 1 — password sudo or already root):"
+    out_plain "  setup                Create Linux user dns-adm, vault dir, sudoers dest;"
+    out_plain "                       write login-hook-elev into dest inbound (not dest Type 0 submit)"
     out_plain "  remove-lpu           Remove dns-adm (confirm or --force)"
+    out_empty_line
+    out_info "Submit vs setup (do not confuse):"
+    out_plain "  submit-sudoer-request  Type 0 — you (id -un). Self-scope. type-2-switch only. No sudo."
+    out_plain "  setup                  Type 1 — host admin. Password sudo / already root."
+    out_plain "  Dest approval reviews the JSON. Dest Type 0 self-scope MUST NOT apply to setup."
     out_empty_line
     out_info "Cloudflare DNS (Type 0 domain):"
     out_plain "  vault input                 Interactive TTY wizard (zone, account, domain, subdomain, token)"
@@ -4847,6 +5801,12 @@ app_help() {
     out_plain "  update [--ip V4]               Update existing A record"
     out_plain "  remove                         Delete managed A record"
     out_plain "  status | show               Read-only: public IP + real DNS A lookup + Cloudflare API"
+    out_empty_line
+    out_info "DNS inbound (anyone submits; dns-adm approves):"
+    out_plain "  submit FILE          Type 0 — queue self-scoped DNS JSON (not submit-sudoer-request)"
+    out_plain "  approve [ID]         Type 1 as dns-adm — re-check, apply dest, move to accepted"
+    out_plain "  reject [ID]          Type 1 as dns-adm — re-check, move to declined"
+    out_plain "  interactive          Type 1 TTY review loop (login hook target)"
     out_empty_line
     out_info "Global Options:"
     out_plain "  --quiet, -q          Suppress info/success (errors still shown)"
@@ -4868,12 +5828,14 @@ app_help() {
     out_plain "  --allow-test-local   Allow generate/submit when only local/unmanaged (TEST MODE)"
     out_plain "  --add                Force submit-sudoer-request action=add"
     out_plain "  --update             Force submit-sudoer-request action=update"
+    out_plain "  --kind KIND          type-2-switch (default) or login-hook-elev (generate fixture)"
     out_empty_line
     out_info "Environment:"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
     out_plain "  REPO_USER / REPO_NAME  repository identity (not an install channel)"
     out_plain "  CF_API_TOKEN / CF_USER_ID / CF_ZONE_ID / CF_ACCOUNT_ID / CF_DOMAIN / CF_SUBDOMAIN  fill missing only"
     out_plain "  CF_VAULT_DIR         Override local application vault (absolute; --vault-dir wins)"
+    out_plain "  Default dest         dns-adm home child .local/vaults/${APP_NAME} (not invoking-user XDG)"
     out_plain "  SUDOER_CLI / SUDOER_QUEUE_INBOUND / SUDOER_ADM_USER  sibling submitter detect"
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode generate / submit"
     out_empty_line
@@ -4881,6 +5843,7 @@ app_help() {
     out_plain "  ${APP_NAME} install"
     out_plain "  sudo ${APP_NAME} setup"
     out_plain "  ${APP_NAME} generate-sudoer-request"
+    out_plain "  ${APP_NAME} generate-sudoer-request --kind login-hook-elev"
     out_plain "  ${APP_NAME} submit-sudoer-request"
     out_plain "  ${APP_NAME} vault input"
     out_plain "  ${APP_NAME} vault account add example.org --user-id … --zone-id … --account-id … --subdomain home --token-file ./tok"
@@ -4893,6 +5856,7 @@ app_help() {
     out_info "Empty argv shows help (Type N — local-only; no curl|sh; no Cloudflare call)."
     out_info "install copies the program only; it does not create Linux user dns-adm."
     out_info "Create dns-adm with: sudo ${APP_NAME} setup"
+    out_info "submit-sudoer-request is Type 0 (you). setup is Type 1 (sudo). Do not confuse them."
     out_info "No backup, restore, or sudoers-manager extras."
     out_info "JSON sudoer queue is Type 0 compose with sibling sudoer-cli (does not write /etc)."
 }
@@ -4964,6 +5928,8 @@ app_main() {
         return 0
     fi
 
+    lpu_type2_save_argv "$@"
+
     while [ $# -gt 0 ]; do
         case "$1" in
             --quiet|-q) QUIET=1 ;;
@@ -4974,6 +5940,14 @@ app_main() {
             --allow-test-local) ALLOW_TEST_LOCAL_SUDOERS=1; export ALLOW_TEST_LOCAL_SUDOERS ;;
             --add)      SUBMIT_ACTION="add"; SUBMIT_ACTION_EXPLICIT=1 ;;
             --update)   SUBMIT_ACTION="update"; SUBMIT_ACTION_EXPLICIT=1 ;;
+            --kind)
+                if [ -z "${2:-}" ]; then
+                    out_die_code request_invalid "--kind requires type-2-switch or login-hook-elev"
+                fi
+                SUDOER_REQUEST_KIND="$2"
+                export SUDOER_REQUEST_KIND
+                shift
+                ;;
             --ip|--subdomain|--zone-id|--account-id|--domain|--domain-id|--user-id|--ttl|--proxied|--token-file|--vault-dir|--mode|--from|--label|--home)
                 _flg="$1"
                 shift
@@ -5064,12 +6038,24 @@ app_main() {
                 out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
             fi
             ;;
+        submit|approve|reject)
+            if [ "${CF_POSN}" -gt 2 ]; then
+                out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
+            fi
+            ;;
+        interactive)
+            if [ "${CF_POSN}" -gt 1 ]; then
+                out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
+            fi
+            ;;
         *)
             out_die "Unknown command or flag: ${COMMAND}. See '${APP_NAME} help'."
             ;;
     esac
 
     out_debug "dispatch command=${COMMAND} quiet=${QUIET} json=${JSON} force=${FORCE} force_global=${FORCE_GLOBAL}"
+
+    lpu_type2_maybe_reexec
 
     cf_approver_heal_login_rc
 
@@ -5090,6 +6076,10 @@ app_main() {
         update)       cf_dns_update ;;
         remove)       cf_dns_remove ;;
         status|show)  cf_dns_status ;;
+        submit)       cf_req_submit "${CF_POS2:-}" ;;
+        approve)      cf_req_approve "${CF_POS2:-}" ;;
+        reject)       cf_req_reject "${CF_POS2:-}" ;;
+        interactive)  cf_req_interactive ;;
         help)         app_help ;;
         *)            app_help ;;
     esac

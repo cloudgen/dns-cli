@@ -125,6 +125,10 @@ ci_vault_env() {
     export USER_BIN="${CI_USER_BIN}"
     unset XDG_CONFIG_HOME 2>/dev/null || true
     unset CF_API_TOKEN CF_ZONE_ID CF_ACCOUNT_ID CF_DOMAIN CF_SUBDOMAIN 2>/dev/null || true
+    # Type 0 specify: tests must not rely on invoking-user XDG default.
+    export CF_VAULT_DIR="${CI_HOME}/.local/vaults/${APP_NAME}"
+    mkdir -p "${CF_VAULT_DIR}"
+    chmod 0700 "${CI_HOME}/.local/vaults" "${CF_VAULT_DIR}"
     # Token-probe on vault add/set uses this stub (never public net).
     CI_STUB="${CI_HOME}/stub"
     mkdir -p "${CI_STUB}"
@@ -139,6 +143,7 @@ ci_vault_cleanup() {
         rm -rf "${CI_HOME}"
         CI_HOME=
     fi
+    unset CF_VAULT_DIR 2>/dev/null || true
 }
 
 ci_capture() {

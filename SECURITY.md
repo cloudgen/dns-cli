@@ -28,7 +28,7 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 | Letter | Principle | Security application |
 |--------|-----------|----------------------|
 | **C** | **Caution** | Unknown commands fail closed; install fails loud if the target is not writable. |
-| **I** | **Intentional** | Type 0 lifecycle + Type 1 `setup`/`remove-lpu`; Type 0 JSON sudoer generate/submit (no `/etc/sudoers.d` write). |
+| **I** | **Intentional** | Type 0 lifecycle + Type 1 `setup`/`remove-lpu`; Type 0 JSON sudoer `type-2-switch` generate/submit; `setup` auto-queue of `login-hook-elev` (no `/etc/sudoers.d` write). |
 | **A** | **Anti-fragile** | Isolated scratch (`APP_NAME` + `USERNAME`); atomic install place with mode **0755**. |
 | **O** | **Over-protect** | Protection Zones on `out_*` and install; no online channel UX. |
 

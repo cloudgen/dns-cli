@@ -54,18 +54,24 @@ run_test_cf_lpu() {
     chmod 0755 "${GLOBAL_BIN}/${APP_NAME}"
 
     _out=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        SUDOER_CLI="${CI_HOME}/no-such-sudoer-cli" \
         sh "${SCRIPT}" --json setup 2>/dev/null)
     _ec=$?
     assert_eq "TP-LPU-01 setup exit 0" 0 "$_ec"
     assert_contains "TP-LPU-01 created" "$_out" '"created":"true"'
     assert_contains "TP-LPU-01 user" "$_out" '"user":"dns-adm"'
+    assert_contains "TP-SUDOER-JSON-14 setup skip hook submit" "$_out" '"login_hook_sudoer":"skipped"'
     _home="${CF_LPU_ROOT}/etc/dns-adm"
-    _vault="${_home}/vault"
+    _vault="${_home}/.local/vaults/${APP_NAME}"
     _dest="${_home}/sudoers"
     _pw="${CF_LPU_ROOT}/passwd"
     assert_file_exists "TP-LPU-01 home" "${_home}"
+    assert_file_exists "TP-LPU-01 vaults parent" "${_home}/.local/vaults"
     assert_file_exists "TP-LPU-01 vault dir" "${_vault}"
     assert_file_exists "TP-LPU-01 sudoers dest" "${_dest}"
+    _about=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        env -u CF_VAULT_DIR sh "${SCRIPT}" --json about 2>/dev/null)
+    assert_contains "TP-LPU-01 about default dest" "${_about}" "${_vault}"
     assert_file_exists "TP-LPU-01 stub passwd" "${_pw}"
     assert_contains "TP-LPU-01 passwd row" "$(cat "${_pw}")" "dns-adm:"
     assert_file_exists "TP-LPU-01 heal bashrc" "${_home}/.bashrc"
@@ -90,6 +96,36 @@ run_test_cf_lpu() {
     assert_contains "TP-LPU-02 healed" "$_out" '"created":"false"'
     _n1=$(grep -c '# BEGIN dns-cli login hook' "${_home}/.bashrc")
     assert_eq "TP-LPU-02 hook once" "1" "${_n1}"
+
+    # TP-LPU-03 — stub LPU exists; invoker is not dns-adm; no specify → lpu_required
+    _err=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        env -u CF_VAULT_DIR sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-LPU-03 default vault other user exit 1" 1 "${_ec}"
+    assert_contains "TP-LPU-03 code" "${_err}" "lpu_required"
+    assert_contains "TP-LPU-03 next generate" "${_err}" "generate-sudoer-request"
+    assert_contains "TP-LPU-03 next submit" "${_err}" "submit-sudoer-request"
+    assert_not_contains "TP-LPU-03 not lpu_missing" "${_err}" "lpu_missing"
+
+    _err=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        env -u CF_VAULT_DIR sh "${SCRIPT}" --json status home 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-LPU-03 status other user exit 1" 1 "${_ec}"
+    assert_contains "TP-LPU-03 status code" "${_err}" "lpu_required"
+
+    _vqa="${CI_HOME}/qa-vault-switch"
+    mkdir -p "${_vqa}"
+    chmod 0700 "${_vqa}"
+    _out=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        sh "${SCRIPT}" --vault-dir "${_vqa}" --json vault show 2>&1)
+    assert_not_contains "TP-LPU-03 specify skips switch" "${_out}" "lpu_required"
+    assert_not_contains "TP-LPU-03 specify not lpu_missing" "${_out}" "lpu_missing"
+
+    _about=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        env -u CF_VAULT_DIR sh "${SCRIPT}" --json about 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-LPU-03 about no switch exit 0" 0 "${_ec}"
+    assert_contains "TP-LPU-03 about default dest" "${_about}" "${_vault}"
 
     # TP-LPU-04 specify vault still works without a live host dns-adm
     _vdir="${CI_HOME}/qa-vault"
@@ -147,6 +183,7 @@ run_test_cf_lpu() {
     assert_contains "TP-SUDOER-JSON-03 runas dns-adm" "${_body}" '"runas":"dns-adm"'
     assert_contains "TP-SUDOER-JSON-03 service dns-cli" "${_body}" '"service":"dns-cli"'
     assert_contains "TP-SUDOER-JSON-03 empty args" "${_body}" '"args":[]'
+    assert_contains "TP-SUDOER-JSON-10 kind type-2-switch" "${_body}" '"kind":"type-2-switch"'
     assert_not_contains "TP-SUDOER-JSON-02 no mkdir" "${_body}" "mkdir"
     assert_not_contains "TP-SUDOER-JSON-02 no /usr/bin/cp" "${_body}" "/usr/bin/cp"
     assert_not_contains "TP-SUDOER-JSON-03 no runas root" "${_body}" '"runas":"root"'
@@ -224,6 +261,101 @@ STUB
     assert_file_missing "TP-PRIV-07 no /etc/sudoers.d dest" "/etc/sudoers.d/dns-cli-${_user}"
     assert_not_contains "TP-PRIV-07 human no dest write claim" "${_out}" "Wrote /etc/sudoers.d"
 
+    # TP-SUDOER-JSON-11 — generate login-hook-elev fixture
+    _hook_dest="${CI_HOME}/.config/${APP_NAME}/sudoer-request-dns-adm-login-hook.json"
+    _out=$(HOME="${CI_HOME}" sh "${SCRIPT}" generate-sudoer-request --allow-test-local --kind login-hook-elev 2>&1)
+    _ec=$?
+    assert_eq "TP-SUDOER-JSON-11 generate hook exit 0" 0 "${_ec}"
+    assert_file_exists "TP-SUDOER-JSON-11 hook dest exists" "${_hook_dest}"
+    _hbody=$(cat "${_hook_dest}" 2>/dev/null || true)
+    assert_contains "TP-SUDOER-JSON-11 kind" "${_hbody}" '"kind":"login-hook-elev"'
+    assert_contains "TP-SUDOER-JSON-11 username dns-adm" "${_hbody}" '"username":"dns-adm"'
+    assert_contains "TP-SUDOER-JSON-11 runas root" "${_hbody}" '"runas":"root"'
+    assert_contains "TP-SUDOER-JSON-11 args interactive" "${_hbody}" '"args":["interactive"]'
+    assert_contains "TP-SUDOER-JSON-11 path" "${_hbody}" '"path":"/usr/local/bin/dns-cli"'
+
+    # TP-SUDOER-JSON-12 — Type 0 submit refuses hook kind
+    _err=$(HOME="${CI_HOME}" \
+        SUDOER_CLI="${_stub_dir}/bin/sudoer-cli" \
+        SUDOER_ADM_USER="${_user}" \
+        SUDOER_QUEUE_INBOUND="${_stub_dir}/sudoer-request" \
+        sh "${SCRIPT}" submit-sudoer-request --allow-test-local "${_hook_dest}" 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-SUDOER-JSON-12 submit hook kind exit 1" 1 "${_ec}"
+    assert_contains "TP-SUDOER-JSON-12 refuse message" "${_err}" "Type 0 (current login, no sudo, type-2-switch only)"
+    assert_contains "TP-SUDOER-JSON-12 next is Type 1 setup" "${_err}" "Type 1 setup"
+
+    # TP-SUDOER-JSON-13 — setup auto-submits hook kind when sibling present
+    export CF_TEST_LPU=1
+    export CF_LPU_ROOT="${CI_HOME}/lpu-root-hook"
+    mkdir -p "${CF_LPU_ROOT}" "${CI_HOME}/gbin"
+    if [ ! -x "${CI_HOME}/gbin/${APP_NAME}" ]; then
+        printf '#!/bin/sh\nexit 0\n' >"${CI_HOME}/gbin/${APP_NAME}"
+        chmod 0755 "${CI_HOME}/gbin/${APP_NAME}"
+    fi
+    _out=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_HOME}/gbin" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        SUDOER_CLI="${_stub_dir}/bin/sudoer-cli" \
+        SUDOER_ADM_USER="${_user}" \
+        SUDOER_QUEUE_INBOUND="${_stub_dir}/sudoer-request" \
+        sh "${SCRIPT}" --json setup 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-SUDOER-JSON-13 setup with sibling exit 0" 0 "${_ec}"
+    assert_contains "TP-SUDOER-JSON-13 login_hook submitted" "${_out}" '"login_hook_sudoer":"submitted"'
+    _hook_in=$(grep -l 'login-hook-elev' "${_stub_dir}/sudoer-request/"*.json 2>/dev/null | head -n 1)
+    if [ -n "${_hook_in}" ]; then
+        t_pass "TP-SUDOER-JSON-13 inbound has login-hook-elev"
+        assert_contains "TP-SUDOER-JSON-13 inbound runas root" "$(cat "${_hook_in}")" '"runas":"root"'
+        assert_contains "TP-SUDOER-JSON-13 inbound interactive" "$(cat "${_hook_in}")" '"interactive"'
+    else
+        t_fail "TP-SUDOER-JSON-13 inbound has login-hook-elev"
+    fi
+    assert_file_missing "TP-SUDOER-JSON-13 no /etc/sudoers.d dest" "/etc/sudoers.d/dns-cli-dns-adm"
+
+    # TP-SUDOER-JSON-16 — dest Type 0 self_scope is a blockage; setup still writes inbound
+    _block="${CI_HOME}/stub-sudoer-block"
+    mkdir -p "${_block}/bin" "${_block}/sudoer-request"
+    cat > "${_block}/bin/sudoer-cli" <<'STUB'
+#!/bin/sh
+for _a in "$@"; do
+    case "${_a}" in
+        add-sudoer-request|update-sudoer-request)
+            printf '%s\n' '{"type":"out_error","message":"self-scope","code":"self_scope"}' >&2
+            exit 1
+            ;;
+    esac
+done
+exit 0
+STUB
+    chmod 0755 "${_block}/bin/sudoer-cli"
+    export CF_TEST_LPU=1
+    export CF_LPU_ROOT="${CI_HOME}/lpu-root-hook-block"
+    mkdir -p "${CF_LPU_ROOT}" "${CI_HOME}/gbin"
+    if [ ! -x "${CI_HOME}/gbin/${APP_NAME}" ]; then
+        printf '#!/bin/sh\nexit 0\n' >"${CI_HOME}/gbin/${APP_NAME}"
+        chmod 0755 "${CI_HOME}/gbin/${APP_NAME}"
+    fi
+    _out=$(HOME="${CI_HOME}" \
+        GLOBAL_BIN="${CI_HOME}/gbin" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        SUDOER_CLI="${_block}/bin/sudoer-cli" \
+        SUDOER_ADM_USER="${_user}" \
+        SUDOER_QUEUE_INBOUND="${_block}/sudoer-request" \
+        sh "${SCRIPT}" --json setup 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-SUDOER-JSON-16 dest self_scope does not fail setup" 0 "${_ec}"
+    assert_contains "TP-SUDOER-JSON-16 login_hook submitted" "${_out}" '"login_hook_sudoer":"submitted"'
+    _hook_in=$(grep -l 'login-hook-elev' "${_block}/sudoer-request/"*.json 2>/dev/null | head -n 1)
+    if [ -n "${_hook_in}" ]; then
+        t_pass "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
+    else
+        t_fail "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
+    fi
+
+    unset CF_TEST_LPU
+    unset CF_LPU_ROOT
+
     ci_cleanup_env
 
     # TP-PRIV-09 / TP-SUDOER-JSON-09 — role tables are product law, not merged with DNS actors
@@ -252,6 +384,15 @@ STUB
         assert_contains "TP-SUDOER-JSON-09 not DNS actor table" "${_sbody}" "be collapsed into the DNS actor table"
         assert_contains "TP-SUDOER-JSON-09 AC-11 role table" "${_sbody}" "AC-11"
         assert_contains "TP-SUDOER-JSON-09 AC-12 print file" "${_sbody}" "AC-12"
+        assert_contains "TP-SUDOER-JSON-15 kind type-2-switch" "${_sbody}" "type-2-switch"
+        assert_contains "TP-SUDOER-JSON-15 kind login-hook-elev" "${_sbody}" "login-hook-elev"
+        assert_contains "TP-SUDOER-JSON-15 hook auto-submitter" "${_sbody}" "Hook auto-submitter"
+        assert_contains "TP-SUDOER-JSON-15 SJ-M3 door" "${_sbody}" "SJ-M3"
+        assert_contains "TP-SUDOER-JSON-15 dest Type 0 self-scope blockage" "${_sbody}" "blockage"
+        assert_contains "TP-SUDOER-JSON-17 SJ-M4 three dests" "${_sbody}" "SJ-M4"
+        assert_contains "TP-SUDOER-JSON-17 switch dest" "${_sbody}" "/etc/sudoers.d/dns-cli-<user>"
+        assert_contains "TP-SUDOER-JSON-17 hook dest" "${_sbody}" "/etc/sudoers.d/dns-cli-dns-adm"
+        assert_contains "TP-SUDOER-JSON-17 F6 dest" "${_sbody}" "/etc/dns-adm/sudoers"
     else
         t_fail "TP-SUDOER-JSON-09 missing requirement-sudoer-json-file.md"
     fi

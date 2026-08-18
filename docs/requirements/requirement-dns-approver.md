@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-approver.md  
-**Status**: Active (Version 1.0.0) — `dns-adm` is the approver; rc heal **Implemented**; `interactive` review loop **Gap**  
+**Status**: Active (Version 1.1.0) — `dns-adm` is the approver; rc heal **Implemented**; `interactive` review loop **Implemented** (1.9.0)  
 **Area**: architecture  
 **Key**: `requirement-dns-approver`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -26,6 +26,8 @@ Who-may-submit vs who-may-approve stays on `requirement-dns-actor-table`. This f
 
 **APR-M3.** After a **TTY login** as `dns-adm`, a hook **MUST** run **`sudo -n /usr/local/bin/dns-cli interactive`** once per session. Empty argv of `dns-cli` **MUST** remain help. `scp` / non-TTY **MUST** skip. `sudo -n` fail **MUST** warn and **MUST NOT** block login.
 
+The hook’s `sudo -n` needs a live grant **`login-hook-elev`** (`dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli interactive`). That JSON is **not** the Type 0 current-user grant. Type 1 `setup` **MUST** queue it when sibling `sudoer-cli` + `sudoer-adm` exist (`requirement-sudoer-json-file`). Rc heal **MUST NOT** be treated as that grant.
+
 The hook snippet **MUST** match `requirement-dns-actor-table` (begin/end markers, `DNS_CLI_HOOK_RAN` set **before** `sudo -n`, identity `id -un` = `dns-adm`).
 
 ### 2.2a Sample invocations (CI-M1a)
@@ -35,7 +37,7 @@ dns-cli interactive
 sudo -n /usr/local/bin/dns-cli interactive
 ```
 
-`interactive` is Type 1 as `dns-adm`. Empty argv remains help. The review loop is **Gap** until routed; rc heal is Implemented.
+`interactive` is Type 1 as `dns-adm`. Empty argv remains help. The review loop is **Implemented** on 1.9.0; rc heal is Implemented.
 
 ### 2.3 Heal when interactive and invoker is the approver
 
@@ -76,7 +78,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 |------|--------|
 | **Product** | `dns-cli` |
 | **Approver** | `dns-adm` |
-| **Review verb** | `interactive` (**Gap** — still unknown on 1.4.x; hook will warn until routed) |
+| **Review verb** | `interactive` (**Implemented** 1.9.0) |
 | **Rc heal** | **Implemented** on `src/dns-cli` (`cf_approver_heal_login_rc`); `setup` also heals the new home (`lpu_heal_home_rc`) |
 | **Test override** | `CF_APPROVER_USER` (default `dns-adm`); `CF_TEST_HEAL_RC=1` skips TTY for suite |
 | **Proof** | **TP-CF-APR-01..06** |

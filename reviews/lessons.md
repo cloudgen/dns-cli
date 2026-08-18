@@ -21,7 +21,8 @@ Durable failure modes. **Always re-check on product review.**
 | L-MODE-SUBSHELL-01 | `$(cf_vault_live_ipv4_count)` + `out_die_code` fail-open (empty count treated as 0/1) | Live count in current shell; API fail must not switch | open watch |
 | L-TOKEN-PUB-01 | Cloudflare / forge token **value** pasted into README, reviews, chat-copied into git | file-leaks **C5**; product-review §2.6; `--token-file` 0600; request JSON has no `token` key | open watch |
 | L-LPU-MISSING-01 | Named LPU `dns-adm` treated as live while `id dns-adm` is `no such user` | Probe passwd; stay-honest Gap; `sudo install` ≠ create; no ad-hoc `useradd`; default dest `lpu_missing`; incident **20260818-001** | open watch |
-| L-LPU-DEST-01 | Unspecified vault/DNS still uses invoking-user XDG after law set default `/etc/dns-adm/vault/` | Default dest = F5; no specify + no LPU → `lpu_missing`; Type 2 switch or `lpu_required`; TP-AV-07 · TP-LPU-03 | open watch |
+| L-HOOK-QUEUE-01 | Setup called dest Type 0 `add-sudoer-request`; dest `self_scope` emptied inbound. Dest Type 0 self-scope is a **blockage**, not a safety net; dest **approval** does not test who submitted | Setup writes inbound (1.8.1); do not call dest Type 0 submit for `login-hook-elev`; incident **20260818-002** | open watch |
+| L-LPU-DEST-01 | Unspecified vault/DNS used invoking-user XDG after law set LPU dest | Default dest = `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; no specify + no LPU → `lpu_missing`; Type 2 switch or `lpu_required` (TP-LPU-03) | dest closed 1.8.0; switch closed 1.8.2 |
 
 **Related-product only (do not re-apply as this origin’s law):** L-DEPOSIT-01, L-SUDOERS-01..05 (OS-tool Cmnds / inbound fidelity on the **dest**), L-OVERWRITE-01 stay on folder-backup. This product **does** own the sudoer-approval-submitter leaf. Type O empty-argv / online-channel lessons stay on products that own those surfaces. This product is hop 1 from cli-template.
 

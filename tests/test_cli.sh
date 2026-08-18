@@ -45,6 +45,8 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
     assert_contains "TP-CLI-04 help generate-sudoer-request" "$_out" "generate-sudoer-request"
     assert_contains "TP-CLI-04 help submit-sudoer-request" "$_out" "submit-sudoer-request"
+    assert_contains "TP-CLI-04 help submit vs setup" "$_out" "Submit vs setup"
+    assert_contains "TP-CLI-04 help dest Type 0 self-scope not on setup" "$_out" "Dest Type 0 self-scope MUST NOT apply to setup"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
@@ -141,19 +143,20 @@ run_test_cli() {
         assert_contains "TP-CLI-13 ${_verb} unknown" "$_err" "Unknown command"
     done
 
-    # TP-CF-ACTOR-* — unrouted approval verbs fail closed (Gap on 1.4.0)
+    # TP-CF-ACTOR-* — routed; help lists them; missing inbound/file fails closed (not unknown)
     _help=$(sh "${SCRIPT}" help 2>/dev/null)
-    for _verb in submit approve reject interactive; do
-        _err=$(sh "${SCRIPT}" "${_verb}" 2>&1 >/dev/null)
-        _ec=$?
-        assert_eq "TP-CF-ACTOR-${_verb} exit 1" 1 "$_ec"
-        assert_contains "TP-CF-ACTOR-${_verb} unknown" "$_err" "Unknown command"
-        if [ "${_verb}" = "submit" ]; then
-            assert_not_contains "TP-CF-ACTOR-05 help omits DNS submit" "${_help}" "  submit "
-        else
-            assert_not_contains "TP-CF-ACTOR-05 help omits ${_verb}" "${_help}" "${_verb}"
-        fi
-    done
+    assert_contains "TP-CF-ACTOR-05 help lists DNS submit" "${_help}" "  submit FILE"
+    assert_contains "TP-CF-ACTOR-05 help lists approve" "${_help}" "  approve "
+    assert_contains "TP-CF-ACTOR-05 help lists reject" "${_help}" "  reject "
+    assert_contains "TP-CF-ACTOR-05 help lists interactive" "${_help}" "  interactive"
+    _err=$(sh "${SCRIPT}" submit 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-ACTOR-01 submit no-file exit 1" 1 "${_ec}"
+    assert_contains "TP-CF-ACTOR-01 submit not unknown" "${_err}" "submit needs a DNS request"
+    _err=$(sh "${SCRIPT}" --json interactive 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-ACTOR-04 interactive json exit 1" 1 "${_ec}"
+    assert_not_contains "TP-CF-ACTOR-04 interactive not unknown" "${_err}" "Unknown command"
 
     # TP-CF-ACTOR-07 — DNS actor table MUST NOT absorb sudoer print/submit roles
     _actor="${REPO_ROOT}/docs/requirements/requirement-dns-actor-table.md"

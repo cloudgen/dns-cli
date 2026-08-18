@@ -30,7 +30,7 @@ run_test_cf_vault() {
     ci_vault_env
 
     _cf_vault_seed
-    _vdir="${HOME}/.config/${APP_NAME}"
+    _vdir="${CF_VAULT_DIR}"
     _slot="${_vdir}/accounts/example.test"
     _dm=$(stat -c '%a' "${_vdir}" 2>/dev/null || echo "")
     _jm=$(stat -c '%a' "${_slot}/vault.json" 2>/dev/null || echo "")
@@ -125,11 +125,12 @@ run_test_cf_vault() {
     assert_eq "TP-CF-VAULT-12 --token exit 1" "1" "${_ec}"
     assert_contains "TP-CF-VAULT-12 unknown" "${_err}" "Unknown command or flag"
 
-    # TP-CF-VAULT-13 XDG_CONFIG_HOME under /tmp
-    _err=$(XDG_CONFIG_HOME=/tmp sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
+    # TP-CF-VAULT-13 XDG is not dest; no specify + no LPU → lpu_missing
+    _err=$(CF_TEST_LPU=1 env -u CF_VAULT_DIR -u CF_LPU_ROOT XDG_CONFIG_HOME=/tmp \
+        sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
     _ec=$?
     assert_eq "TP-CF-VAULT-13 xdg /tmp exit 1" "1" "${_ec}"
-    assert_contains "TP-CF-VAULT-13 code" "${_err}" "vault_insecure"
+    assert_contains "TP-CF-VAULT-13 code" "${_err}" "lpu_missing"
 
     # TP-CF-VAULT-14 uninstall does not wipe vault
     mkdir -p "${HOME}/.global-bin"
@@ -218,6 +219,13 @@ with open(p,"w",encoding="utf-8") as fh:
     _out=$(HOME=/tmp sh "${SCRIPT}" --json --vault-dir "${_alt}" vault show 2>/dev/null)
     assert_eq "TP-AV-06 HOME=/tmp + specify exit 0" "0" "$?"
     assert_contains "TP-AV-06 dir" "${_out}" "\"vault_dir\":\"${_alt}\""
+
+    # TP-AV-07 no specify + no LPU → lpu_missing (stub so host dns-adm cannot satisfy dest)
+    _err=$(CF_TEST_LPU=1 env -u CF_VAULT_DIR -u CF_LPU_ROOT \
+        sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-AV-07 no specify exit 1" "1" "${_ec}"
+    assert_contains "TP-AV-07 code" "${_err}" "lpu_missing"
 
     # --- v2 zone-slot CRUD (TP-CF-VAULT-18..33) ---
     _cf_vault_seed
@@ -387,13 +395,15 @@ with open(p,"w",encoding="utf-8") as fh:
 
     ci_vault_cleanup
 
-    _err=$(HOME=/tmp sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
+    _err=$(CF_TEST_LPU=1 env -u CF_VAULT_DIR -u CF_LPU_ROOT HOME=/tmp \
+        sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
     _ec=$?
     assert_eq "TP-CF-VAULT-02 HOME=/tmp exit 1" "1" "${_ec}"
-    assert_contains "TP-CF-VAULT-02 HOME=/tmp code" "${_err}" "vault_no_home"
+    assert_contains "TP-CF-VAULT-02 HOME=/tmp code" "${_err}" "lpu_missing"
 
-    _err=$(env -u HOME sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
+    _err=$(CF_TEST_LPU=1 env -u CF_VAULT_DIR -u CF_LPU_ROOT -u HOME \
+        sh "${SCRIPT}" --json vault show 2>&1 >/dev/null)
     _ec=$?
     assert_eq "TP-CF-VAULT-02 env -u HOME exit 1" "1" "${_ec}"
-    assert_contains "TP-CF-VAULT-02 env -u HOME code" "${_err}" "vault_no_home"
+    assert_contains "TP-CF-VAULT-02 env -u HOME code" "${_err}" "lpu_missing"
 }

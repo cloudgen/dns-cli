@@ -89,7 +89,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
-| **Type 1 / Type 2 commands** | `setup` / `remove-lpu` (Type 1) **Implemented** 1.5.0; generate/submit JSON sudoer **Implemented** 1.6.0; default-vault domain (Type 2) — **Gap** |
+| **Type 1 / Type 2 commands** | `setup` / `remove-lpu` (Type 1) **Implemented** 1.5.0; generate/submit JSON sudoer **Implemented** 1.6.0; default-vault domain (Type 2) switch **Implemented** 1.8.2 |
 | **Dedicated system user** | `dns-adm` — `requirement-least-privilege-user` |
 | **About** | Type 0 fields **plus** domain extras owned by `requirement-domain-cloudflare-dns` (incl. `lpu_present`) |
 | **Domain catalog owner** | `requirement-domain-cloudflare-dns` |
@@ -106,14 +106,14 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
-| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest — **Implemented** (1.5.0) |
+| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Implemented** (1.5.0) |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
-| `generate-sudoer-request` | Type 0 | `lpu_generate_sudoer_request` | Independent JSON grant dest — **Implemented** (1.6.0) |
-| `submit-sudoer-request` | Type 0 | `lpu_submit_sudoer_request` | Queue JSON into sibling inbound — **Implemented** (1.6.0) |
+| `generate-sudoer-request` | Type 0 | `lpu_generate_sudoer_request` | Independent JSON dest; `--kind type-2-switch` (default) or `login-hook-elev` — **Implemented** |
+| `submit-sudoer-request` | Type 0 | `lpu_submit_sudoer_request` | Queue **`type-2-switch`** only — **Implemented** |
 | `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here |
-| `submit` | Type 0 | Gap | Inbound **DNS** JSON drop — `requirement-dns-actor-table` (not sudoer submit) |
-| `approve` / `reject` / `interactive` | Type 1 | Gap | Approver path — `requirement-dns-actor-table` |
+| `submit` | Type 0 | Implemented | Inbound **DNS** JSON drop — `requirement-dns-actor-table` (not sudoer submit) |
+| `approve` / `reject` / `interactive` | Type 1 | Implemented | Approver path — `requirement-dns-actor-table` |
 
 #### Argv grammar (normative)
 

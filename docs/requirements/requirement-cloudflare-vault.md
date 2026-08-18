@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-vault.md  
-**Status**: Active (Version 2.5.0) — 1:1 domain↔API↔user-id; zone-slot CRUD + list; 1:N subdomains with mode; CI-M1a samples; ship unit **1.4.0 Implemented** (LPU default dest still Gap)  
+**Status**: Active (Version 2.8.0) — 1:1 domain↔API↔user-id; Type-2 dest = LPU-home `.local/vaults/dns-cli/`; not GitHub 1:N token plane; default dest Implemented; Type 2 switch **Implemented** (1.8.2)  
 **Area**: domain  
 **Key**: `requirement-cloudflare-vault`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -23,7 +23,18 @@ The on-disk **slot key** remains **domain-id** (apex). User-id is a **required f
 
 The domain SSOT (`requirement-domain-cloudflare-dns.md`) **consumes** the **selected** account’s fields. HTTPS meaning of token / zone-id / account-id is `requirement-cloudflare-api`. Path/specify is `requirement-application-local-vault`. Default dest is the `dns-adm` F5 tree (`requirement-least-privilege-user`). This file is the **schema and store-UX** spec. It is **not** a second `requirement-domain-*` catalog.
 
-This vault is **not** host SSH forge identity and **not** scratch from `util_resolve_storage`.
+This vault is **not** host SSH forge identity, **not** the operator GitHub API plane (`~/.local/vaults/github/`), **not** the invoking user’s local vaults root, and **not** scratch from `util_resolve_storage`.
+
+**Fence vs operator vaults (portable parent + GitHub plane):**
+
+| Surface | Cardinality | Dest |
+|---------|-------------|------|
+| **This product vault** | **1 : 1** domain-id ↔ token (and domain-id ↔ Cloudflare user-id) | Type 2 `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` |
+| **GitHub API vault** | **1 : N** tokens per GitHub login | Invoking-operator `~/.local/vaults/github/` |
+| **SSH profile vault** | one key dir per persona | Invoking-operator `~/.local/vaults/ssh/…` |
+| **Type 0 specify** | one QA dest | **MAY** be invoking-user `~/.local/vaults/dns-cli/` via `--vault-dir` |
+
+**MUST NOT** store Cloudflare tokens under `github/` or `ssh/`. **MUST NOT** use `users/<hex>/` as the slot key. **MUST NOT** hardcode `/etc/dns-adm/vault/`. **MUST NOT** default Type 2 dest to the invoking user’s `~/.local/vaults/`.
 
 ---
 
@@ -44,7 +55,7 @@ This vault is **not** host SSH forge identity and **not** scratch from `util_res
 
 ```text
 dns-adm  (host LPU — one operator, many CF users + many domains)
-    └── /etc/dns-adm/vault/                    ← one vault
+    └── ${SYSTEM_USER_HOME}/.local/vaults/dns-cli/   ← one vault (F3 home + app child)
             ├── index.json
             └── accounts/
                     ├── example.com/          ← domain-id
@@ -70,6 +81,8 @@ dns-adm  (host LPU — one operator, many CF users + many domains)
 **V-M0d.** Two slots **MUST NOT** share a `token` file, the same `zone_id`, or the same `user_id`. Two slots **MAY** share an `account_id` only if that still yields **distinct** `user_id` values (unusual; fail closed if `user_id` collides).
 
 **V-M0e.** `--vault-dir` / `CF_VAULT_DIR` **MUST NOT** be “one vault per host login.” Multiple Cloudflare user-ids live **inside** the one dest.
+
+**V-M0f.** The Type 2 dest **MUST** be the LPU F5 app child (`${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). **MUST NOT** hardcode `/etc/dns-adm/vault/`. **MUST NOT** default to the invoking user’s `~/.local/vaults/dns-cli/` except as an explicit Type 0 specify. Token cardinality **MUST** stay **1 : 1** with domain-id — **MUST NOT** adopt GitHub-style many tokens per login.
 
 **Complete sample `index.json`:**
 
@@ -106,7 +119,7 @@ dns-adm  (host LPU — one operator, many CF users + many domains)
 
 ### 2.1 Location and isolation
 
-**V-M1.** Vault **directory resolve and specify** (`--vault-dir` / `CF_VAULT_DIR` / default `/etc/dns-adm/vault/`) are owned by `requirement-application-local-vault`. This file **consumes** that path. **MUST NOT** invent a second default.
+**V-M1.** Vault **directory resolve and specify** (`--vault-dir` / `CF_VAULT_DIR` / default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`) are owned by `requirement-application-local-vault`. This file **consumes** that path. **MUST NOT** invent a second default.
 
 Fail closed:
 
@@ -116,7 +129,7 @@ Fail closed:
 | Specified or resolved vault dir is under `/tmp` or `/dev/shm` | `vault_insecure` |
 | `HOME` unset/empty/`/tmp` **and** no specify **and** no usable LPU dest | `vault_no_home` |
 
-**MUST NOT** inherit Type 0 `HOME=/tmp` for secret I/O. **MUST NOT** place vault files under `EFFECTIVE_STORAGE_DIR` or any `util_resolve_storage` tier. On fail-closed, **MUST NOT** `mkdir` the rejected path.
+**MUST NOT** inherit Type 0 `HOME=/tmp` for secret I/O. **MUST NOT** place vault files under `EFFECTIVE_STORAGE_DIR` or any `util_resolve_storage` tier. **MUST NOT** write Cloudflare `token` files under `~/.local/vaults/github/` or `~/.local/vaults/ssh/`. On fail-closed, **MUST NOT** `mkdir` the rejected path.
 
 ### 2.2 Layout and permissions
 
@@ -318,9 +331,9 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 |------|--------|
 | **Product** | `dns-cli` |
 | **APP_NAME (target)** | `dns-cli` |
-| **Vault path (target)** | Owned by `requirement-application-local-vault` (default `/etc/dns-adm/vault/`) |
+| **Vault path (target)** | Owned by `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`) |
 | **Live identity** | Config `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| **Vault code** | v2 multi-account Implemented on `src/dns-cli` **1.4.0**. **Gap:** default dest `/etc/dns-adm/vault/` + Type 2 `dns-adm` |
+| **Vault code** | v2 multi-account Implemented on `src/dns-cli` **1.4.0**. Default dest Implemented **1.8.0**. Type 2 switch **Implemented** **1.8.2** |
 | **Uninstall** | **MUST NOT** delete the vault |
 | **Proof family** | **TP-CF-VAULT-*** (v1 have; v2 todo) |
 
@@ -359,7 +372,7 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 7. Let env override a present vault field (except explicit `vault set` / `account modify` / `zone modify`).  
 8. Inherit `HOME=/tmp` for vault I/O.  
 9. Remove the last host-label on a domain-id.  
-10. Claim LPU default dest Implemented while `src/dns-cli` still resolves XDG when `dns-adm` is absent.  
+10. Claim LPU default dest Implemented while `src/dns-cli` still resolves invoking-user XDG when `dns-adm` is absent.  
 11. Store two domains’ tokens in one `token` file.  
 12. Treat domain-id as a UUID or integer distinct from the apex name.  
 13. Key slot directories as `users/<user-id>/` instead of `accounts/<domain-id>/`.  
@@ -371,7 +384,10 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 19. Switch `mode` when live `ipv4_count` ≥ 2, or rewrite `mode` from live N.  
 20. Ship zone-slot add / modify / remove without a **list** JSON surface tests can assert.  
 21. Implement `vault zone add` as Cloudflare `POST /zones` (API-M15). Local slot only.  
-22. Omit `vault account modify` / `vault zone modify` and leave rewrite only on undocumented `set` flags.
+22. Omit `vault account modify` / `vault zone modify` and leave rewrite only on undocumented `set` flags.  
+23. Hardcode `/etc/dns-adm/vault/` as Type 2 dest, or default Type 2 dest to the invoking user’s `~/.local/vaults/`.  
+24. Store Cloudflare tokens under `~/.local/vaults/github/` or `~/.local/vaults/ssh/`.  
+25. Adopt GitHub-style many tokens per login for a Cloudflare domain-id.
 
 **Violating this rule is a critical secrets-storage regression.**
 
@@ -381,14 +397,14 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 
 | ID | Criterion |
 |----|-----------|
-| AC-V1 | Vault dir is not under `/dev/shm`, `/tmp`, or `util_resolve_storage` output; `env -u HOME` and `HOME=/tmp` fail `vault_no_home` |
+| AC-V1 | Vault dir is not under `/dev/shm`, `/tmp`, or `util_resolve_storage` output; no specify + no LPU → `lpu_missing` |
 | AC-V2 | `token` key/value is absent from `vault.json` |
 | AC-V3 | `--json vault show` has no token value |
 | AC-V4 | Mode `0644` on `token` or `--token-file` → fail closed `vault_insecure` |
 | AC-V5 | Two host-labels persist **on one domain-id** and are selectable; removing the last remaining label on that id fails closed |
 | AC-V6 | Two domain-ids persist with **distinct** tokens; selection N≠1 without `--domain` → `domain_required` |
 | AC-V7 | v1 root `vault.json` + `token` → `vault_invalid` |
-| AC-V8 | Stay-honest: v2 layout **Implemented** on `src/dns-cli` 1.4.0; LPU default dest still Gap |
+| AC-V8 | Stay-honest: v2 layout **Implemented** on `src/dns-cli` 1.4.0; default dest **Implemented** 1.8.0; Type 2 switch **Implemented** 1.8.2 |
 | AC-V9 | Two slots **MAY** have different `account_id`; they **MUST** have distinct tokens and distinct `zone_id` |
 | AC-V10 | Missing `user_id` or duplicate `user_id` across two domain-ids → `vault_invalid` / `vault_incomplete` |
 | AC-V11 | Sample layout: two domain-ids, two user-ids, two tokens; one domain has ≥2 subdomain labels |
@@ -426,7 +442,7 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
 | **TP-CF-VAULT-01** | `tests/test_cf_vault.sh` | have | dir 0700 / files 0600 |
-| **TP-CF-VAULT-02** | `tests/test_cf_vault.sh` | have | `env -u HOME` and `HOME=/tmp` → `vault_no_home` |
+| **TP-CF-VAULT-02** | `tests/test_cf_vault.sh` | have | no specify + no LPU (`HOME=/tmp` / `env -u HOME`) → `lpu_missing` |
 | **TP-CF-VAULT-03** | `tests/test_cf_vault.sh` | have | token redacted in show/about JSON |
 | **TP-CF-VAULT-04** | `tests/test_cf_vault.sh` | have | last-label remove fail-closed |
 | **TP-CF-VAULT-05** | `tests/test_cf_vault.sh` | have | `--token-file` 0644 → `vault_insecure` |
@@ -437,7 +453,7 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 | **TP-CF-VAULT-10** | `tests/test_cf_vault.sh` | have | bad zone_id → `vault_invalid` |
 | **TP-CF-VAULT-11** | `tests/test_cf_vault.sh` | have | `CF_*` env does not overwrite; `vault set --zone-id` rewrites |
 | **TP-CF-VAULT-12** | `tests/test_cf_vault.sh` | have | `--token` argv rejected |
-| **TP-CF-VAULT-13** | `tests/test_cf_vault.sh` | have | `XDG_CONFIG_HOME=/tmp` → `vault_insecure` |
+| **TP-CF-VAULT-13** | `tests/test_cf_vault.sh` | have | `XDG_CONFIG_HOME=/tmp` without specify → `lpu_missing` (XDG is not dest) |
 | **TP-CF-VAULT-14** | `tests/test_cf_vault.sh` | have | uninstall does not delete vault |
 | **TP-CF-VAULT-15** | `tests/test_cf_vault.sh` | have | vault.json 0644 → `vault_insecure` |
 | **TP-CF-VAULT-16** | `tests/test_cf_vault.sh` | have | unknown schema_version → `vault_invalid` |
@@ -468,6 +484,9 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 2.8.0 | Type 2 `sudo -u dns-adm` switch Implemented (1.8.2 / TP-LPU-03) |
+| 2026-08-18 | Active 2.7.0 | Type-2 dest = `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; default dest Implemented 1.8.0 |
+| 2026-08-18 | Active 2.6.0 | Type-2 dest off local-vaults-root; fence vs GitHub 1:N token plane |
 | 2026-08-18 | Active 2.5.0 | CI-M1a sample invocations for every `vault` store subcommand |
 | 2026-08-17 | Active 2.4.0 | Zone-slot CRUD: `account`/`zone` add\|list\|modify\|remove; list JSON is the test surface |
 | 2026-08-17 | Active 2.3.0 | Subdomain objects `{label, mode}`; default non-round-robin; `vault subdomain mode` |
@@ -479,6 +498,6 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

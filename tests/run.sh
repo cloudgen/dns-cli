@@ -39,6 +39,8 @@ export APP_NAME
 . "${TESTS_ROOT}/test_cf_approver.sh"
 # shellcheck source=test_cf_lpu.sh
 . "${TESTS_ROOT}/test_cf_lpu.sh"
+# shellcheck source=test_cf_request.sh
+. "${TESTS_ROOT}/test_cf_request.sh"
 
 PASS=0
 FAIL=0
@@ -67,6 +69,7 @@ run_test_cf_dns
 run_test_cf_ip
 run_test_cf_approver
 run_test_cf_lpu
+run_test_cf_request
 
 printf '\n== summary ==\n'
 printf 'PASS=%s FAIL=%s SKIP=%s\n' "${PASS}" "${FAIL}" "${SKIP}"

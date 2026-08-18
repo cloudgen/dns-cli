@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-08-18
+
+### Added
+
+- Inbound DNS file-based JSON approval: Type 0 **`submit`**, Type 1 **`approve` / `reject` / `interactive`**. Anyone queues a self-scoped request (`add` / `update` / `remove` / `mode`); **`dns-adm`** re-checks and moves the file. Accept applies dest via vault DNS/mode verbs. No token in the JSON.
+- Type 1 **`setup`** creates the public trio `/var/dns-cli/dns-request` (`3773`) + `dns-accepted` / `dns-declined` (`0700`) and an F4 view `${LPU_HOME}/dns-request`. Type 0 **MUST NOT** `mkdir` inbound.
+- Suites **TP-CF-REQ-01..08**. **TP-CF-ACTOR-01..05** now prove the routed verbs (help lists them; missing file / `--json interactive` fail closed, not unknown).
+
+## [1.8.2] - 2026-08-18
+
+### Added
+
+- **Submit vs setup door** (SJ-M3 / **P-M11** / **L-M11**): who may `submit-sudoer-request` (Type 0, current login, no sudo, `type-2-switch`) vs who may `setup` (Type 1, password `sudo` / already root). Dest Type 0 self-scope **MUST NOT** apply to `setup` — that check is a blockage, not dest approval.
+- Help names the door. Type 0 submit of `login-hook-elev` names both doors. Setup success says dest approval reviews the JSON.
+- **TP-SUDOER-JSON-16**: dest Type 0 `self_scope` does not block setup inbound write.
+- Type 2 default-vault switch (INC-20260818-001 CAPA 6 / **TP-LPU-03**): unspecified `vault` / `add` / `update` / `remove` / `status` / `show` as a non-`dns-adm` login re-execs `sudo -n -u dns-adm` of the managed global binary. If that sudo is unavailable → `lpu_required` (next: `generate-sudoer-request` then `submit-sudoer-request`, or `--vault-dir` for QA). Specify `--vault-dir` / `CF_VAULT_DIR` does **not** switch.
+
+### Changed
+
+- Law/mold dest split (**SJ-M4** / **P-M12** / **L-M12**): setup/account dest after approve is **`/etc/sudoers.d/dns-cli-dns-adm`**. Type 0 switch dest is **`/etc/sudoers.d/dns-cli-<user>`**. F6 is **`/etc/dns-adm/sudoers`**. Portable: **`LM-SUDOER-JSON-FILE`** 1.6.0 §3.4c; **`LM-THREE-LAYER-PRIVILEGE-MODEL`** 2.12.0; **`LM-LEAST-PRIVILEGE-USER`** 2.5.0; **`LM-FILE-BASED-JSON-APPROVAL-SUBMITTER`** 1.3.0. **TP-SUDOER-JSON-17**.
+- Skills: **`SK-CREATE-SUDOERS-FILE`** S18 dest split.
+
+## [1.8.1] - 2026-08-18
+
+### Fixed
+
+- Type 1 `setup` writes `login-hook-elev` JSON **into dest inbound** (dest request-id grammar). It does **not** call dest Type 0 `add-sudoer-request`. Dest approval reviews the file; dest Type 0 self-scope is a blockage, not dest approval (INC-20260818-002).
+- Setup WARN on queue fail no longer says “until approved” when inbound was not written.
+
+## [1.8.0] - 2026-08-18
+
+### Changed
+
+- Type 2 default vault dest is **`${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`** (LPU F3 home + app child). Setup `mkdir`s that parent and child (`0700`). **MUST NOT** hardcode `/etc/dns-adm/vault/`.
+- Unspecified vault I/O no longer uses the invoking user’s XDG tree. No specify + no `dns-adm` → `lpu_missing`.
+- Type 0 `--vault-dir` / `CF_VAULT_DIR` remain the QA specify path (MAY be the invoking user’s `~/.local/vaults/dns-cli/`).
+- Portable law: **`LM-APPLICATION-LOCAL-VAULT`** 1.2.0; F5 dest family on **`SK-CREATE-LEAST-PRIVILEGE-SYSTEM-USER`**.
+
+### Added
+
+- **TP-AV-07**: no specify + no LPU → `lpu_missing`.
+
+## [1.7.0] - 2026-08-18
+
+### Added
+
+- Two JSON sudoer **kinds**, split by field `kind`:
+  - **`type-2-switch`**: current login (example `leolio`) may run `dns-cli` as `dns-adm`. Type 0 `generate-sudoer-request` / `submit-sudoer-request`.
+  - **`login-hook-elev`**: `dns-adm` may `sudo -n /usr/local/bin/dns-cli interactive`. Verb-bound; not whole-CLI-as-root.
+- Type 1 **`setup`** auto-queues `login-hook-elev` when sibling `sudoer-cli` + `sudoer-adm` + inbound exist; skips when missing (setup still succeeds). Does not write `/etc/sudoers.d`.
+- `generate-sudoer-request --kind type-2-switch|login-hook-elev` for the independent generate dest.
+- Terminology: `sudoer-request-kind`, `type-2-switch-sudoer-request`, `login-hook-sudoer-request`, `automatic-login-hook-sudoer-submit`.
+- Suites **TP-SUDOER-JSON-10..15**.
+
+### Changed
+
+- Type 0 `submit-sudoer-request` refuses `login-hook-elev` (that grant is setup-time only).
+- JSON grant bodies always emit `kind`. Missing `kind` on a `runas=dns-adm` input is still treated as `type-2-switch`.
+
 ## [1.6.0] - 2026-08-18
 
 ### Added

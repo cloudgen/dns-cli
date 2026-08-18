@@ -22,6 +22,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `test_cf_dns.sh` | Single A, add-implies-update, `--force`, stubbed curl | **TP-CF-DNS-*** · **TP-CF-MODE-*** |
 | `test_cf_ip.sh` | Vault-free public IPv4 display | **TP-CF-IP-*** |
 | `test_cf_lpu.sh` | `setup` / `remove-lpu` / `print-sudoers` / generate+submit JSON sudoer + role tables (stub `CF_TEST_LPU=1`) | **TP-LPU-*** · **TP-PRIV-*** · **TP-SUDOER-JSON-*** |
+| `test_cf_request.sh` | DNS inbound `submit` / `approve` / `reject` + closed schema | **TP-CF-REQ-*** |
 | `test_cf_live.sh` | Optional live `crms.hk` as invoking user (not `dns-adm`) | **TP-CF-LIVE-*** |
 | `live/` | Seed / discover / teardown for Type 0 specify vault | — |
 | `fixtures/cf_curl_stub.sh` | Offline Cloudflare/ipinfo stand-in | — |

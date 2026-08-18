@@ -22,7 +22,7 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 
 The **actor table** (anyone submits; `dns-adm` approves; allocator / root) and the **login-hook procedure** are owned by `requirement-dns-actor-table`. This catalog **MUST NOT** invent a second table or a second approver account.
 
-Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Gap** on ship unit 1.4.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST NOT** list those verbs until routed (D-M7).
+Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Implemented** on ship unit 1.9.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST** list those verbs now that they are routed (D-M7).
 
 ### 2.1 Specialized CLI subcommands (pillar 1)
 
@@ -35,9 +35,9 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 | `remove` | Type 2 / Type 0 specify | `cf_dns_*` | Delete the targeted A; absent → success no-op (round-robin N>1 needs `--ip`) |
 | `status` | Type 2 / Type 0 specify | `cf_dns_*` | **Read-only**: public IPv4 + **real resolver A lookup** + Cloudflare A set + `mode` / `ipv4_count` |
 | `show` | Type 2 / Type 0 specify | `cf_dns_*` | Alias of `status` |
-| `submit` | Type 0 | Gap | Drop request JSON into inbound (`requirement-dns-actor-table`) |
-| `approve` / `reject` | Type 1 | Gap | Re-validate and move inbound → accepted/declined |
-| `interactive` | Type 1 | Gap | TTY review loop; login hook target |
+| `submit` | Type 0 | Implemented | Drop request JSON into inbound (`requirement-dns-actor-table`) |
+| `approve` / `reject` | Type 1 | Implemented | Re-validate and move inbound → accepted/declined |
+| `interactive` | Type 1 | Implemented | TTY review loop; login hook target |
 
 ### 2.1a Sample invocations (CI-M1a)
 
@@ -68,7 +68,7 @@ dns-cli reject
 dns-cli interactive
 ```
 
-`submit` / `approve` / `reject` / `interactive` are **Gap** until routed. They are **not** `submit-sudoer-request`. Help **MUST NOT** list them until `app_main` routes them.
+`submit` / `approve` / `reject` / `interactive` are **Implemented** (1.9.0). They are **not** `submit-sudoer-request`. Help **MUST** list them now that `app_main` routes them.
 
 **D-M1.** Default-vault DNS/vault verbs **MUST** run as `dns-adm` (Type 2). Specified `--vault-dir` **MAY** stay Type 0. **MUST NOT** require sudo for Cloudflare HTTPS itself, write `/etc` from DNS verbs, or mutate host resolver config. `setup` / `remove-lpu` are **not** domain verbs (privilege law).
 
@@ -86,7 +86,7 @@ dns-cli interactive
 
 **D-M3. Cloudflare DNS API.** Transport, auth, envelope, zone GET, and DNS CRUD **MUST** follow `requirement-cloudflare-api`. This domain SSOT **consumes** that file: it does **not** invent a second base URL, auth scheme, or record JSON.
 
-**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Actors and the login hook **MUST** follow `requirement-dns-actor-table`. Submit/approve/`interactive` are **Gap** on ship unit 1.4.0. Rc heal is **Implemented**.
+**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Actors and the login hook **MUST** follow `requirement-dns-actor-table`. Submit/approve/`interactive` are **Implemented** on 1.9.0. Rc heal is **Implemented**.
 
 **D-M4. A-record mode.** Verb **cardinality** **MUST** follow `requirement-cloudflare-dns-mode` (default `non-round-robin`; `round-robin` = many distinct IPv4 A rows; switch only when `ipv4_count` ∈ {0, 1}; IPv4 only). This catalog **MUST NOT** re-specify the enum. Query matching A records by `name`.  
 - Stored `non-round-robin` + N>1 on mutate: fail `dns_multi_record` unless `--force` **repairs** (collapse to one A; mode stays non-round-robin).  
@@ -170,7 +170,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **Product** | `dns-cli` |
 | **Target ship unit** | `src/dns-cli` |
 | **Live ship unit** | `src/dns-cli` — Implemented |
-| **Domain code** | v2 domain-id selection + mode Implemented (`cf_dns_*` / `cf_ip_*` / `cf_api_*` / `cf_vault_*`). **Gap:** Type 2 as `dns-adm` |
+| **Domain code** | v2 domain-id selection + mode Implemented (`cf_dns_*` / `cf_ip_*` / `cf_api_*` / `cf_vault_*`). Type 2 as `dns-adm` **Implemented** 1.8.2 |
 | **API** | `https://api.cloudflare.com/client/v4/zones/:zone_id/dns_records` |
 | **IP lookup** | `https://ipinfo.io` field `ip` (`--ip` override; `CF_CURL` stub for tests) |
 | **Record type** | A only (IPv4). AAAA out of scope |

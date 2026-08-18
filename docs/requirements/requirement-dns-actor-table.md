@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-actor-table.md  
-**Status**: Active (Version 1.0.3) — capability law; ship unit **Gap** (no submit/approve/interactive routes); CI-M1a samples; sudoer roles stay off this table  
+**Status**: Active (Version 1.1.0) — submit / approve / reject / `interactive` **Implemented** (1.9.0); sudoer roles stay off this table  
 **Area**: architecture  
 **Key**: `requirement-dns-actor-table`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -78,7 +78,7 @@ Procedure:
 
 1. `dns-adm` logs in on a keyboard TTY (SSH/console).  
 2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet in §2.6.  
-3. Guards pass → `sudo -n /usr/local/bin/dns-cli interactive` (F6, global binary only).  
+3. Guards pass → `sudo -n /usr/local/bin/dns-cli interactive` (global binary only). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`.  
 4. `interactive` lists inbound JSON, one file at a time: show purpose + body; prompt **accept** / **decline** / **skip** / **quit**.  
 5. Accept / decline **MUST** re-run §2.4, then **move** the file (accepted / declined). Accept also applies the dest DNS/mode verb.  
 6. Empty inbound → exit 0; login continues to a shell.  
@@ -90,7 +90,7 @@ Procedure:
 
 ### 2.5a Sample invocations (CI-M1a)
 
-These verbs are **Gap** on the ship unit. The argv is still law. They are **not** `submit-sudoer-request`.
+These verbs are **Implemented** on ship unit **1.9.0**. They are **not** `submit-sudoer-request`.
 
 ```sh
 dns-cli submit
@@ -131,15 +131,16 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.4.0** — rc heal **Implemented**; submit / approve / reject / `interactive` review loop **Gap** |
+| **Ship unit** | `src/dns-cli` **1.9.0** — rc heal + submit / approve / reject / `interactive` **Implemented** |
+| **Inbound** | `/var/dns-cli/dns-request` (`3773`); archives `dns-accepted` / `dns-declined` (`0700`); F4 `${LPU_HOME}/dns-request` |
 | **Submitter** | **Anyone** — any login (`id -un`; example `alice`) |
 | **Approver** | `dns-adm` |
 | **Type 2 operator** | `dns-adm` (same leaf) |
 | **Review verb** | `interactive` |
 | **Hook variable** | `DNS_CLI_HOOK_RAN` |
-| **Inbound (when implemented)** | Type 1 creates the trio; Type 0 does not `mkdir` |
+| **Inbound create** | Type 1 `setup` creates the trio; Type 0 does not `mkdir` |
 | **Dest** | Cloudflare A / mode apply via vault — not `/etc/<subject>/dns` |
-| **Proof** | **TP-CF-ACTOR-01..06** |
+| **Proof** | **TP-CF-ACTOR-01..07** · **TP-CF-REQ-01..08** |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -183,10 +184,10 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | AC-ACT1 | Actor table present in this file **and** product README |
 | AC-ACT2 | `dns-adm` is the only approver; anyone may submit |
 | AC-ACT3 | Complete hook snippet present |
-| AC-ACT4 | Unrouted `submit` / `approve` / `reject` / `interactive` fail unknown (1.4.0) |
-| AC-ACT5 | Help does not list those verbs until routed |
+| AC-ACT4 | Routed `submit` / `approve` / `reject` / `interactive` are not unknown |
+| AC-ACT5 | Help lists those verbs now that they are routed |
 | AC-ACT6 | Empty argv is help |
-| AC-ACT7 | Stay-honest: rc heal **Implemented**; review loop **Gap** on 1.4.0 |
+| AC-ACT7 | Stay-honest: rc heal + review loop **Implemented** on 1.9.0 |
 
 ---
 
@@ -211,11 +212,11 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
-| **TP-CF-ACTOR-01** | `tests/test_cli.sh` | have | `submit` unknown |
-| **TP-CF-ACTOR-02** | `tests/test_cli.sh` | have | `approve` unknown |
-| **TP-CF-ACTOR-03** | `tests/test_cli.sh` | have | `reject` unknown |
-| **TP-CF-ACTOR-04** | `tests/test_cli.sh` | have | `interactive` unknown |
-| **TP-CF-ACTOR-05** | `tests/test_cli.sh` | have | help omits those verbs |
+| **TP-CF-ACTOR-01** | `tests/test_cli.sh` | have | `submit` routed; no file fails closed |
+| **TP-CF-ACTOR-02** | `tests/test_cli.sh` | have | `approve` routed |
+| **TP-CF-ACTOR-03** | `tests/test_cli.sh` | have | `reject` routed |
+| **TP-CF-ACTOR-04** | `tests/test_cli.sh` | have | `interactive` routed; `--json` fail closed |
+| **TP-CF-ACTOR-05** | `tests/test_cli.sh` | have | help lists those verbs |
 | **TP-CF-ACTOR-06** | `tests/test_cli.sh` | have | empty argv is help (peer TP-CLI-07) |
 | **TP-CF-ACTOR-07** | `tests/test_cli.sh` | have | MUST NOT absorb printer / `submit-sudoer-request` / `sudoer-adm` |
 
@@ -227,6 +228,7 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 1.1.0 | submit / approve / reject / interactive Implemented (1.9.0) |
 | 2026-08-18 | Active 1.0.3 | CI-M1a sample invocations for submit / approve / reject / interactive |
 | 2026-08-18 | Active 1.0.2 | Point at sudoer print/submit role table; do not merge |
 | 2026-08-17 | Active 1.0.1 | Approver is `dns-adm`; anyone may submit; no `dns-apr` |

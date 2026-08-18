@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 2.2.0)  
+**Status**: Active (Version 2.3.0)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `/etc/dns-adm/vault/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`.
+Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`.
 
 ---
 
@@ -63,8 +63,8 @@ Rules:
 | **Ship unit path (live)** | `src/dns-cli` |
 | **USER_BIN default** | `${HOME}/.local/bin` |
 | **GLOBAL_BIN default** | `/usr/local/bin` |
-| **Local application vault** | Path + specify: `requirement-application-local-vault` (default `/etc/dns-adm/vault/`). Schema: `requirement-cloudflare-vault`. Pointer only. |
-| **LPU home / F5** | `requirement-least-privilege-user` — `/etc/dns-adm` + `/etc/dns-adm/vault/` |
+| **Local application vault** | Path + specify: `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). Schema: `requirement-cloudflare-vault`. Pointer only. |
+| **LPU home / F5** | `requirement-least-privilege-user` — F3 prefer `/etc/dns-adm`; F5 `${SYSTEM_USER_HOME}/.local/vaults/` + `dns-cli/` child |
 | **No backup deposit** | `/var/backup` is not a product path |
 
 ### 2.5 Why This Requirement Exists (CIAO)
@@ -128,11 +128,12 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup layout + `/var/backup` deposit |
 | 2026-08-13 | Active 2.0.0 | cli-template: retarget; remove deposit |
+| 2026-08-18 | Active 2.3.0 | Default vault pointer `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` |
 | 2026-08-17 | Active 2.2.0 | LPU home + default vault `/etc/dns-adm/vault/` |
 | 2026-08-16 | Active 2.1.0 | dns-cli target paths; vault pointer only |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

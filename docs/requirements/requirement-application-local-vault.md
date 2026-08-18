@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-application-local-vault.md  
-**Status**: Active (Version 2.1.0)  
+**Status**: Active (Version 2.3.0)  
 **Area**: shell  
 **Key**: `requirement-application-local-vault`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -8,13 +8,22 @@
 
 This requirement is the **Single Source of Truth** for **where** dns-cli’s **local application vault** lives and **how the operator specifies** it.
 
-`requirement-cloudflare-vault.md` **consumes** this path for multi-account schema, per-domain-id token files, and `vault` verbs. LPU home vs affected-folder ownership lives in `requirement-least-privilege-user`. This file is **not** a second domain catalog and **not** SSH identity.
+`requirement-cloudflare-vault.md` **consumes** this path for multi-account schema, per-domain-id token files, and `vault` verbs. LPU home vs affected-folder ownership lives in `requirement-least-privilege-user`. This file is **not** a second domain catalog, **not** SSH identity, **not** the operator GitHub API plane, and **not** the parent operator vaults root.
+
+**Two dest families (do not collapse):**
+
+| Family | Path | Who | When |
+|--------|------|-----|------|
+| **Type 2 production default** | `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` (`SYSTEM_USER_HOME` = F3 of `dns-adm`) | `dns-adm` | Day-to-day Cloudflare vault I/O with no `--vault-dir` |
+| **Type 0 specify / QA** | Absolute `--vault-dir` / `CF_VAULT_DIR`. **MAY** be `${HOME}/.local/vaults/dns-cli/` (invoking-user child under that login’s local vaults root) | Invoking login | Tests, live-operator QA; LPU need not exist |
+
+The path **family** is `{{HOME}}/.local/vaults/{{APP_NAME}}/`. Type 2 uses **dns-adm’s** home. Type 0 specify uses the **invoking user’s** home. **MUST NOT** hardcode `/etc/dns-adm/vault/`. **MUST NOT** default Type 2 dest to the invoking user’s `~/.local/vaults/`.
 
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
 
-**AV-M1.** Default vault directory **MUST** be the LPU F5 path: **`/etc/dns-adm/vault/`** (or `${SYSTEM_USER_HOME}/vault/` when `dns-adm` home fell back — see LPU law). **MUST NOT** default to the invoking user’s XDG tree.
+**AV-M1.** Default vault directory **MUST** be the LPU F5 app child: **`${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`**, where `SYSTEM_USER_HOME` is the F3 home of `dns-adm` (prefer `/etc/dns-adm`; fallback `/home/dns-adm`; explicit `--home` wins — see LPU law). **MUST NOT** default to the invoking user’s XDG tree. **MUST NOT** hardcode `/etc/dns-adm/vault/`.
 
 **AV-M2.** Operator **MAY specify** a different vault:
 - Flag `--vault-dir PATH` (absolute)
@@ -27,7 +36,7 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 
 **AV-M4.** Specified or default path under `/tmp` or `/dev/shm` → `vault_insecure`. Default resolve when `dns-adm` does not exist and **no** specify → `lpu_missing`. A **specified** safe absolute path **MAY** be used even when `HOME` is `/tmp` or the LPU is absent. `HOME` unset/empty/`/tmp` with **no** specify **MUST NOT** fall back to `/tmp/.config`.
 
-**AV-M5.** Vault **MUST NOT** be scratch (`EFFECTIVE_STORAGE_DIR`) or an SSH profile vault (`~/.ssh-*`).
+**AV-M5.** Vault **MUST NOT** be scratch (`EFFECTIVE_STORAGE_DIR`), an SSH profile vault (`~/.local/vaults/ssh/…` or legacy `~/.ssh-*`), or the GitHub API plane (`~/.local/vaults/github/`). Cloudflare tokens **MUST NOT** live beside SSH keys or GitHub PATs.
 
 **AV-M6.** When created, vault dir **MUST** be `0700`. Default tree owner **MUST** be `dns-adm:dns-adm`. Specified QA dirs **MUST** be `0700` for the invoking user.
 
@@ -35,21 +44,25 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 
 **AV-M8.** Help **MUST** list `--vault-dir` and `CF_VAULT_DIR` and state that the default is the `dns-adm` vault.
 
-**AV-M9.** Production **MUST** use **one** default dest. Specify **MUST NOT** be “a vault per host login” or “a vault per Cloudflare user.” Multiple Cloudflare zones live **inside** that one dest (`requirement-cloudflare-vault` §2.0).
+**AV-M9.** Production **MUST** use **one** Type 2 default dest. Specify **MUST NOT** be “a vault per host login” or “a vault per Cloudflare user.” Multiple Cloudflare zones live **inside** that one dest (`requirement-cloudflare-vault` §2.0). A Type 0 specify at the invoking user’s `~/.local/vaults/dns-cli/` is **one QA dest**, not a second production dest.
+
+**AV-M10.** Type 2 dest **MUST** be `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` (`0700`). Setup **MUST** `mkdir` `${SYSTEM_USER_HOME}/.local/vaults/` and the `dns-cli` child. **MUST NOT** hardcode `/etc/dns-adm/vault/`. **MUST NOT** default production I/O to the invoking user’s `~/.local/vaults/dns-cli/` or `~/.config/dns-cli/`.
 
 ### 2.1 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
 | **Product** | dns-cli |
-| **Ship unit** | `src/dns-cli` — default path still XDG (v1). **Gap:** default `/etc/dns-adm/vault/` |
-| **Default (law)** | `/etc/dns-adm/vault/` |
+| **Ship unit** | `src/dns-cli` **1.8.0** — default dest = LPU-home vaults child; no specify + no LPU → `lpu_missing` |
+| **Default (law)** | Type 2: `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` |
+| **Filled example (preferred F3)** | `/etc/dns-adm/.local/vaults/dns-cli/` — Implementation Notes only; not core-rule hardcode |
+| **Type 0 specify example** | Invoking-user `${HOME}/.local/vaults/dns-cli/` (QA only; never production default) |
 | **Flag** | `--vault-dir` → `CF_OPT_VAULT_DIR` |
 | **Env** | `CF_VAULT_DIR` |
 | **Resolver (target)** | `cf_vault_specified_root` / `cf_vault_dir` / `cf_vault_dir_probe` |
 | **Schema / verbs** | `requirement-cloudflare-vault` |
 | **LPU owner** | `requirement-least-privilege-user` |
-| **Proof** | **TP-AV-01..06** have (specify). **TP-AV-07** todo (default is LPU path; no specify + no LPU → `lpu_missing`) |
+| **Proof** | **TP-AV-01..07** have (specify + `lpu_missing`) |
 
 ### 2.2 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -74,13 +87,15 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 ## 4. Protection Rule (Sacred)
 
 1. Store tokens under scratch or `/tmp`.  
-2. Reuse `~/.ssh-*` as the app vault.  
+2. Reuse `~/.ssh-*`, `~/.local/vaults/ssh/`, or `~/.local/vaults/github/` as the Cloudflare vault.  
 3. Accept a relative `--vault-dir`.  
 4. Delete the vault on uninstall.  
 5. Register this file as `requirement-domain-*`.  
 6. Duplicate the default path as a second SSOT in project-folder (pointer only).  
 7. Default the production vault back to the invoking user’s `~/.config/dns-cli/` while `dns-adm` is product law.  
-8. Treat `--vault-dir` as one vault per OS user or per Cloudflare user-id.
+8. Treat `--vault-dir` as one vault per OS user or per Cloudflare user-id.  
+9. Hardcode `/etc/dns-adm/vault/` as Type 2 dest, or default Type 2 dest to the invoking user’s `~/.local/vaults/`.  
+10. Default production I/O to the invoking user’s `~/.local/vaults/dns-cli/` or `~/.config/dns-cli/` while `dns-adm` is product law.
 
 ---
 
@@ -94,7 +109,7 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 | AC-AV4 | Relative `--vault-dir` → `vault_insecure` |
 | AC-AV5 | Help lists `--vault-dir` and `CF_VAULT_DIR` |
 | AC-AV6 | `--vault-dir` safe absolute works when `HOME=/tmp` |
-| AC-AV7 | No specify and no `dns-adm` → `lpu_missing` (when implemented) |
+| AC-AV7 | No specify and no `dns-adm` → `lpu_missing` |
 
 ---
 
@@ -122,7 +137,7 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 | **TP-AV-04** | `tests/test_cf_vault.sh` | have | relative rejected |
 | **TP-AV-05** | `tests/test_cf_vault.sh` | have | help lists flag + env |
 | **TP-AV-06** | `tests/test_cf_vault.sh` | have | specified path wins when `HOME=/tmp` |
-| **TP-AV-07** | `tests/test_cf_vault.sh` | todo | no specify + no LPU → `lpu_missing` |
+| **TP-AV-07** | `tests/test_cf_vault.sh` | have | no specify + no LPU → `lpu_missing` |
 
 **Map:** `reviews/test-plan.md`  
 **Matrix:** `reviews/requirement-test-matrix.md`
@@ -133,12 +148,14 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-18 | Active 2.3.0 | Type-2 dest = `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; no hardcode `/etc/dns-adm/vault/`; TP-AV-07 have |
+| 2026-08-18 | Active 2.2.0 | Type-2 dest stays off local-vaults-root; Type-0 specify MAY use `~/.local/vaults/dns-cli/`; fence GitHub/SSH planes |
 | 2026-08-17 | Active 2.1.0 | One production dest; specify is not per-user vaults |
 | 2026-08-17 | Active 2.0.0 | Default dest = `/etc/dns-adm/vault/`; XDG no longer default |
 | 2026-08-17 | Active 1.0.0 | Path + specify SSOT; `--vault-dir` / `CF_VAULT_DIR` |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-18  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
