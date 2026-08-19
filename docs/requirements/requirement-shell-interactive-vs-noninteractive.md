@@ -8,6 +8,30 @@
 
 This requirement is the **project Single Source of Truth** for how dns-cli behaves in **interactive** (human + TTY) versus **non-interactive** (automation, CI/CD, pipes, `--json` / often `--quiet`) environments.
 
+### 1.1 Human-facing
+
+**In one sentence:** If a person is at a keyboard, the program may **ask**; if you pipe or pass `--json`, it **must not hang** waiting for a yes.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You at a keyboard | Confirm uninstall | prompt then proceed |
+| Automation | `--json` / no TTY | Fail closed instead of hanging |
+| Not this | Who may approve inbound JSON | `requirement-dns-actor-table` |
+
+| Includes | Excludes |
+|----------|----------|
+| TTY vs `--json` / quiet | Measuring TTY **inside** helper functions as the only gate |
+| Confirm / `--force` | Login-hook snippet (approver file) |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Terminal | Interactive uninstall | Confirm |
+| `dns-cli --json uninstall` | Automation | No hang |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Uninstall from CI | Must not wait for a person | `dns-cli --json uninstall` (fails until `--force`) |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

@@ -17,6 +17,30 @@ This requirement is the **project Single Source of Truth** for **zero-argument (
 
 Type O (online-install empty-argv = install-ensure) does **not** apply.
 
+### 1.1 Human-facing
+
+**In one sentence:** If you run `dns-cli` with **no arguments**, you get **help** — it does **not** install, and it does **not** start a review.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Type the program name alone | `dns-cli` |
+| Help | Same family as `dns-cli help` | Usage text |
+| Not this | First-time copy of the binary | `dns-cli install` |
+
+| Includes | Excludes |
+|----------|----------|
+| Empty argv → help | Empty argv → install |
+| No network on empty argv | Login review hijacking no-args |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Terminal | `dns-cli` | Help |
+| `dns-cli help` | Explicit help | Same content family |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Try the program with no args | You should see usage, not a write | `dns-cli` |
+
 ---
 
 ## 2. Core Rules (Mandatory)

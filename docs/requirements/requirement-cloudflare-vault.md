@@ -36,6 +36,30 @@ This vault is **not** host SSH forge identity, **not** the operator GitHub API p
 
 **MUST NOT** store Cloudflare tokens under `github/` or `ssh/`. **MUST NOT** use `users/<hex>/` as the slot key. **MUST NOT** hardcode `/etc/dns-adm/vault/`. **MUST NOT** default Type 2 dest to the invoking user’s `~/.local/vaults/`.
 
+### 1.1 Human-facing
+
+**In one sentence:** The vault is a **folder of zone slots** (one token per apex domain) owned by **`dns-adm`** — it is not your GitHub or SSH key drawer.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You (as `dns-adm`) | Add / list / show / clear slots | `dns-cli vault account add` |
+| This file | Schema + store verbs | `vault.json` + per-domain token file |
+| Not this | Where the folder sits | `requirement-application-local-vault` |
+
+| Includes | Excludes |
+|----------|----------|
+| Multi-domain slots, 1:1 token | GitHub `~/.local/vaults/github/` |
+| `vault` collect / show / clear | Printing the token |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Vault directory | 0700 folder | Slots |
+| `dns-cli vault show` | Command | Fields without the secret |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Add a zone slot | Stores token in a 0600 file, not in help | `dns-cli vault account add` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

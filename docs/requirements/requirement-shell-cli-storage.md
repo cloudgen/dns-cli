@@ -10,6 +10,30 @@ This requirement is the **project Single Source of Truth** for **shell CLI stora
 
 Used for **install staging** (`mktemp` under the isolated root). Not a durable backup deposit. **Not** the application local vault (`requirement-application-local-vault` / `requirement-cloudflare-vault`).
 
+### 1.1 Human-facing
+
+**In one sentence:** Scratch and cache live under an **isolated per-user root** — that is not the folder that holds API tokens.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Temporary files during install | `mktemp` under storage root |
+| Vault | Durable secrets | `requirement-application-local-vault` |
+| Not this | Host backup archive | No backup verb |
+
+| Includes | Excludes |
+|----------|----------|
+| Isolated scratch / cache | Token files |
+| About field for effective storage | `/tmp` as the production vault |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `dns-cli about` | Command | `effective_storage` |
+| Isolated root | Directory | Scratch |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Ask where scratch is | About names the isolated root | `dns-cli --json about` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

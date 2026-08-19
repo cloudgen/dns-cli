@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-sudoer-json-file.md  
-**Status**: Active (Version 1.5.0) — two JSON **kinds**; three dests (switch / hook / F6); generate/submit Type 2 switch **Implemented**; `setup` writes `login-hook-elev` inbound  
+**Status**: Active (Version 1.9.0) — dest Fence row points at `requirement-incorrect-json-format`  
 **Area**: architecture  
 **Key**: `requirement-sudoer-json-file`  
 **Optional RQ-ID**: `RQ-SUDOER-JSON-FILE`  
@@ -32,6 +32,30 @@ Queued **basename** allocation remains sibling-owned. This requirement owns **co
 
 DNS inbound (`submit` a Cloudflare request) **is a different machine**. Do not mix those JSON types.
 
+### 1.1 Human-facing
+
+**In one sentence:** You write a **JSON grant** (switch to `dns-adm`, or the login-hook review grant). Sibling **`sudoer-cli`** approves it. dns-cli **never** writes `/etc/sudoers.d`.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Generate / submit a self-scoped switch JSON | `dns-cli generate-sudoer-request` |
+| Host admin | Setup queues the hook grant | `sudo dns-cli setup` |
+| Sibling dest | `sudoer-adm` reviews | Not this product |
+
+| Includes | Excludes |
+|----------|----------|
+| Two `kind`s + command identity `dns-cli` only | OS tools (`cp`, `mkdir`, shells) |
+| Queue into sibling inbound | Writing `/etc/sudoers.d` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Generated JSON | `~/.config/dns-cli/sudoer-request-*.json` | Readable without sudo |
+| `dns-cli submit-sudoer-request` | Command | Queue type-2-switch |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Ask to run as `dns-adm` later | File a grant; wait for sibling approve | `dns-cli submit-sudoer-request` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -57,9 +81,9 @@ This product runs **two** Type 0 sudoer surfaces **and** one Type 1 auto-queue. 
 | **Submitter** | Same login (self-scope) | **0** | `submit-sudoer-request` — queue a **`type-2-switch`** JSON to sibling `sudoer-cli`. **No sudo.** | Submit `login-hook-elev`; submit for another login; approve; invent the queued basename; write `/etc/sudoers.d`; treat dest Type 0 self-scope as dest approval |
 | **Subject (switch)** | Same person as the Type 0 submitter | — | Appear as `type-2-switch` `username` | Be another login; be `dns-adm` on a Type 0 submit |
 | **Subject (hook)** | LPU `dns-adm` | — | Appear as `login-hook-elev` `username` | Be a human login |
-| **Hook auto-submitter** | Host admin via `sudo dns-cli setup` | **1** | When sibling CLI + `sudoer-adm` + inbound exist, **write** `login-hook-elev` into inbound (dest request-id grammar). Missing sibling → skip (setup still succeeds). **MUST NOT** `mkdir` inbound. **MUST NOT** call dest Type 0 `add-sudoer-request` | Fail setup solely because sibling is absent; write `/etc/sudoers.d`; treat this as Type 0 `submit-sudoer-request`; apply dest Type 0 self-scope (`username` == `id -un`) to setup |
+| **Hook auto-submitter** | Host admin via `sudo dns-cli setup` | **1** | When sibling CLI + `sudoer-adm` + inbound exist, **write** `login-hook-elev` into inbound (dest request-id grammar). Missing sibling → skip (setup still succeeds). **MUST NOT** `mkdir` inbound. **MUST NOT** `chown` inbound. **MUST NOT** call dest Type 0 `add-sudoer-request` | Fail setup solely because sibling is absent; write `/etc/sudoers.d`; `chown` inbound to `dns-adm` or JSON `username`; treat this as Type 0 `submit-sudoer-request`; apply dest Type 0 self-scope (`username` == `id -un`) to setup |
 | **Allocator** | Sibling `sudoer-cli` Type 0 path | **0** | Allocate basename for Type 0 `submit-sudoer-request` | Be Type 1 `setup`; apply dest Type 0 self-scope to hook auto-queue |
-| **Sibling approver** | LPU **`sudoer-adm`** (not `dns-adm`) | **1** | Re-check JSON; **move** inbound; on accept, write `/etc/sudoers.d/dns-cli-<user>` | Be invented or operated by this product |
+| **Sibling approver** | LPU **`sudoer-adm`** (not `dns-adm`) | **1** | Take ownership of inbound JSON; **then** move inbound → approved/rejected; on accept, write `/etc/sudoers.d/dns-cli-<user>` | Be invented or operated by this product |
 | **F6 installer** | Host admin via `sudo dns-cli setup` | **1** | Install the **printed** sudoer file to `/etc/dns-adm/sudoers` after `visudo -c` | Write `/etc/sudoers.d` from this product |
 | **Type 2 operator** | LPU **`dns-adm`** | **2** | Run the managed binary after a live grant | Approve sudoer JSON; print/submit as a dest writer |
 
@@ -93,6 +117,21 @@ Type 0 `submit-sudoer-request` queues **`type-2-switch`**. After approve the des
 
 This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Type 1. Portable: **`LM-SUDOER-JSON-FILE`** §3.4c.
 
+**SJ-M5. Queue ownership (sacred).** Type 1 `setup` and Type 0 submit **MUST NOT** `chown` dest inbound JSON. Dest **`sudoer-adm`** takes ownership. The JSON username field is **not** file-ownership. Dest **MUST** take file-ownership when run as **`sudoer-adm`**, then move. Incident **INC-20260818-003**.
+
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+
+| Condition | Dest approve / reject / review |
+|-----------|--------------------------------|
+| **Incorrect JSON format** | **Fence** — fail closed. Independent REQ: `requirement-incorrect-json-format` |
+| File-ownership | **MUST NOT** fence on file-ownership — take ownership as `sudoer-adm` |
+| Who submitted / dest Type 0 self-scope | **MUST NOT** fence |
+| JSON `username` ≠ dest LPU | **MUST NOT** fence |
+| Filename subject token ≠ JSON `username` | **MUST NOT** fence — user SSOT is the JSON field |
+| Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `username`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences.
+
 | Door | Who | How | What | Dest Type 0 `username` == `id -un` |
 |------|-----|-----|------|-------------------------------------|
 | **`submit-sudoer-request`** | Current login | Type 0. **No sudo.** | `type-2-switch` only. `username` = `id -un`. Dest Type 0 submit allocates inbound. | Applies (human files for self) |
@@ -104,7 +143,7 @@ This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Typ
 2. **Print:** dest is stdout or an absolute user-writable path ≠ F6 dest ≠ `/etc/sudoers.d`.  
 3. **Generate:** dest is an absolute user-writable path ≠ F6 dest ≠ `/etc` ≠ inbound. Default `kind` is `type-2-switch`. `--kind login-hook-elev` writes the hook fixture only (does not queue).  
 4. **Type 0 submit:** self-scope (`username` = `id -un`); body is **`kind=type-2-switch`** and matches §2.2–2.3. Sibling CLI + `sudoer-adm` + inbound exist and inbound is writable. Type 0 **MUST NOT** `mkdir` inbound. Type 0 **MUST** refuse `login-hook-elev`.  
-5. **Type 1 hook auto-submit:** only from `setup`; body is **`kind=login-hook-elev`**; subject is `dns-adm`. **MUST** write inbound with dest request-id grammar. **MUST NOT** call dest Type 0 `add-sudoer-request` / `update-sudoer-request`. Missing sibling → skip. Present sibling + unwritable inbound → skip + warn (do not `mkdir`).  
+5. **Type 1 hook auto-submit:** only from `setup`; body is **`kind=login-hook-elev`**; subject is `dns-adm`. **MUST** write inbound with dest request-id grammar. **MUST NOT** `chown` the inbound file (SJ-M5). **MUST NOT** call dest Type 0 `add-sudoer-request` / `update-sudoer-request`. Missing sibling → skip. Present sibling + unwritable inbound → skip + warn (do not `mkdir`).  
 6. Type 0 submit: sibling dest allocator owns the queued basename. Type 1 setup: this product writes dest-grammar basename (SJ-M3).
 
 **Not a print / not a Type 0 submit:** wanting `/etc/sudoers.d` written immediately; `print-sudoers` of the F6 dest path; DNS `submit`; `setup` as a Type 0 substitute for print; Type 0 on-behalf-of JSON; Type 0 submit of `login-hook-elev`.
@@ -242,7 +281,7 @@ F6 text dual (Type 1 `setup` / `print-sudoers`; **not** either JSON dest):
 5. **MUST** fail closed if an input file’s `commands` contain a forbidden path, `service` ≠ `dns-cli`, a `type-2-switch` with `runas` ≠ `dns-adm`, or a `login-hook-elev` with `runas` ≠ `root` or `args` ≠ `["interactive"]`.  
 6. When inbound `${request_id}` is readable, **MUST** fail closed if `service`, `path`, `runas`, or `kind` (when present) is inconsistent.  
 7. Trust-tier: production requires global managed `/usr/local/bin/dns-cli`. Otherwise `--allow-test-local` / `ALLOW_TEST_LOCAL_SUDOERS=1`.  
-8. Type 1 `setup` **MUST** auto-queue `login-hook-elev` when sibling CLI + `sudoer-adm` + writable inbound exist. Action **update** when `/etc/sudoers.d/dns-cli-dns-adm` exists; else **add**. **MUST** write the JSON into inbound with dest request-id grammar (`sudoer-YYYYMMDD-dns-cli-dns-adm-<action>-<n>.json`). **MUST NOT** call dest Type 0 `add-sudoer-request` / `update-sudoer-request` for this grant (SJ-M3: dest Type 0 self-scope is a **blockage**, not dest approval). Missing sibling → skip (setup succeeds). Queue fail → warn; setup still succeeds. **MUST NOT** write `/etc/sudoers.d` as a fallback. `--json` **MUST** include `login_hook_sudoer` = `submitted` \| `skipped` \| `failed`.
+8. Type 1 `setup` **MUST** auto-queue `login-hook-elev` when sibling CLI + `sudoer-adm` + writable inbound exist. Action **update** when `/etc/sudoers.d/dns-cli-dns-adm` exists; else **add**. **MUST** write the JSON into inbound with dest request-id grammar (`sudoer-YYYYMMDD-dns-cli-dns-adm-<action>-<n>.json`). **MUST NOT** `chown` dest inbound (SJ-M5 — dest `sudoer-adm` takes ownership). **MUST NOT** call dest Type 0 `add-sudoer-request` / `update-sudoer-request` for this grant (SJ-M3: dest Type 0 self-scope is a **blockage**, not dest approval). Missing sibling → skip (setup succeeds). Queue fail → warn; setup still succeeds. **MUST NOT** write `/etc/sudoers.d` as a fallback. `--json` **MUST** include `login_hook_sudoer` = `submitted` \| `skipped` \| `failed`.
 
 ### 2.6a Sample invocations (CI-M1a)
 
@@ -319,6 +358,9 @@ sudo dns-cli setup
 5b. Apply dest Type 0 self-scope (`username` == `id -un`) to Type 1 `setup`, call dest Type 0 `add-sudoer-request` for `login-hook-elev`, or treat that dest check as a safety net. It is a **blockage**. Dest approval does **not** test who submitted.  
 5c. Confuse **who may submit** (current login, Type 0, no sudo) with **who may setup** (host admin, Type 1, password `sudo` / already root).  
 5d. Treat Type 1 `setup` dest as `/etc/sudoers.d/dns-cli-<invoker>`, or Type 0 submit dest as `/etc/sudoers.d/dns-cli-dns-adm`. Hook dest is **`dns-cli-dns-adm`**; switch dest is the **invoker**.  
+5e. `chown` dest inbound JSON to `dns-adm` (or JSON `username`) from Type 1 `setup` or Type 0 submit. Dest **`sudoer-adm`** takes ownership. JSON `username` is **not** the Unix owner.  
+5f. Tell dest `sudoer-cli` to fence on file-ownership (owner ≠ JSON `username`). Dest **takes** ownership as `sudoer-adm`.  
+5g. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `username` ≠ dest LPU).  
 6. Claim generate/submit are trimmed sudoers-manager extras.  
 7. Make submit, inbound, or a deleted temp the only way to obtain this JSON.  
 8. Store tokens in the JSON body.  
@@ -351,6 +393,8 @@ sudo dns-cli setup
 | AC-11 | Role table present (printer / generator / submitter / switch subject / hook subject / hook auto-submitter / allocator / sibling approver / F6 installer / Type 2) |
 | AC-12 | `print-sudoers` prints the sudoer file (Table A text) and does not write F6 dest |
 | AC-13 | Law names three dests: `/etc/sudoers.d/dns-cli-<user>` (switch), `/etc/sudoers.d/dns-cli-dns-adm` (hook), `/etc/dns-adm/sudoers` (F6) |
+| AC-14 | `setup` / Type 0 submit **MUST NOT** `chown` dest inbound (SJ-M5); dest `sudoer-adm` takes ownership |
+| AC-15 | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (SJ-M5) |
 
 ---
 
@@ -384,6 +428,9 @@ sudo dns-cli setup
 | **TP-SUDOER-JSON-14** | same | have | setup skips auto-submit when sibling missing |
 | **TP-SUDOER-JSON-15** | same | have | law names both kinds |
 | **TP-SUDOER-JSON-17** | same | have | law names switch dest ≠ hook dest ≠ F6 |
+| **TP-SUDOER-JSON-18** | same | have | setup hook write does not `chown`; law names SJ-M5 |
+| **TP-SUDOER-JSON-19** | same | have | dest MUST NOT fence on file-ownership |
+| **TP-SUDOER-JSON-20** | same | have | dest inbound fence is incorrect JSON format only (SJ-M5 table) |
 | **TP-SUDOER-JSON-08** | same | have | generate dest readable without sudo |
 | **TP-PRIV-05** | same | have | generate refuses `/etc` |
 | **TP-PRIV-06** | same | have | submit missing dest CLI fail-closed |
@@ -398,6 +445,10 @@ sudo dns-cli setup
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-19 | Active 1.9.0 | Dest Fence row points at `requirement-incorrect-json-format` |
+| 2026-08-19 | Active 1.8.0 | SJ-M5 user SSOT is JSON `username`, not the filename token |
+| 2026-08-18 | Active 1.7.0 | SJ-M5 dest approval fencing conditions closed: incorrect JSON format only |
+| 2026-08-18 | Active 1.6.0 | SJ-M5 setup/submit MUST NOT `chown` dest inbound; dest `sudoer-adm` takes ownership (INC-20260818-003) |
 | 2026-08-18 | Active 1.5.0 | SJ-M4 three dests: switch=`dns-cli-<user>`; hook=`dns-cli-dns-adm`; F6 group |
 | 2026-08-18 | Active 1.4.0 | SJ-M3 submit-vs-setup door; dest Type 0 self-scope is a blockage on setup |
 | 2026-08-18 | Active 1.3.0 | Two JSON kinds (`type-2-switch` vs `login-hook-elev`); setup auto-submit |

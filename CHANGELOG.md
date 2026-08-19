@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.9.7] - 2026-08-19
+
+### Changed
+
+- File-based JSON dest **login-hook `interactive`**, while taking file-ownership: dest **MUST** read original Unix file-ownership, take ownership as the corresponding LPU, review JSON format, and if the JSON is correct dest-write **`submit_by`** (human: submit by) set to that original owner. Type 0 `submit` **MUST NOT** include `submit_by`. Dest **MUST NOT** fence on dest-written `submit_by`. Term **`submit-by`**. Law: **ACT-M4** · **APR-M3** · **REQ-M9**. Mold **`LM-FILE-BASED-JSON-APPROVAL`** 1.14.0. **TP-CF-REQ-15**.
+- File-based JSON approval **MUST NOT** fence dest approve on Unix owner. Dest **takes** file-ownership as the corresponding LPU. User SSOT is the JSON field, not the filename token. Dest inbound fence is **incorrect JSON format** only.
+- Every requirement prints **§1.1 Human-facing**. Named dest approval-system subclasses (sudoer / nginx-conf / Cloudflare DNS) inherit fence-then-question.
+- Extracted **actor / role / subject / submitter / approver** catalog. Software-dev **MUST consider** even if Approver is **None**. **TP-ARSA-01** · **TP-ARSA-02**.
+- Software-dev **MUST review** dest fences and convert each dest **Fence** to an independent REQ. Dest tables still print and **point** at those REQs. This product: `requirement-incorrect-json-format`. **TP-FENCE-01** · **TP-FENCE-02**.
+- **Local vaults** is the class of every existing vault (account-home). **Global vault** is relative: an ordinary login stores a token or key under an LPU dest. Law **AV-M11**. **TP-AV-08**.
+
+## [1.9.6] - 2026-08-19
+
+### Changed
+
+- File-based JSON approval **user SSOT** is the **JSON username field** (`subject` / `username`), **not** the filename subject token. Dest **MUST NOT** fence when basename subject ≠ JSON field. Type 0 submit self-scope compares the JSON field to `id -un` only. Allocator **MAY** still copy the JSON field into the request-id for audit. Term **`json-username-field`**. Law: **ACT-M8** · **REQ-M9** · **SJ-M5** · **P-M13** · **L-M13**. Mold **`LM-FILE-BASED-JSON-APPROVAL`** 1.12.0. **TP-CF-REQ-14**.
+
+## [1.9.5] - 2026-08-19
+
+### Changed
+
+- After any create or modify of `.bashrc` / `.zshrc` / `.profile` / Fish config, dest **MUST** align **shell-rc file ownership** to the **corresponding user** (that home’s login). Term **`shell-rc-file-ownership`**. Helper **`util_align_rc_owner`**. Law: **APR-M4** · **L-M9**. Skills **`SK-SH-SCRIPT-CODING`** §2.3.4 · **`SK-CREATE-LEAST-PRIVILEGE-SYSTEM-USER`**. Mold **`LM-PATH-AND-SHELL-SUPPORT`** 1.2.0. **TP-CF-APR-07**.
+
+## [1.9.4] - 2026-08-19
+
+### Changed
+
+- **Approval system** superclass: dest **fences first**, **displays** a match in human-facing words, then asks the **approval question** only if clear. File-based JSON dest **MUST** include the **JSON format** fence. Term **`approval-system`**. Mold **`LM-APPROVAL-SYSTEM`** 1.0.0 · **`LM-FILE-BASED-JSON-APPROVAL`** 1.10.0. Law: **ACT-M4** · **ACT-M8** · **APR-M3** · **REQ-M9**. **TP-CF-REQ-13**.
+
+## [1.9.3] - 2026-08-19
+
+### Changed
+
+- Login-hook **`interactive`** asks a **one-off approval question**: **yes** = approve, **no** = reject (Enter = no). No skip / quit. Term **`approval-question`**. Law: **ACT-M4** · **APR-M3**. Mold **`LM-FILE-BASED-JSON-APPROVAL`** 1.9.0 §2.8. **TP-CF-REQ-12**.
+
+## [1.9.2] - 2026-08-19
+
+### Changed
+
+- Login-hook **`interactive`** (corresponding LPU **`dns-adm`**) **takes file-ownership of inbound JSON at the beginning**, then reviews. Queue move still assumes that previous ownership change. Law: **ACT-M4** · **APR-M3** · **L-M13** · **P-M13**. Mold **`LM-FILE-BASED-JSON-APPROVAL`** 1.8.0 §2.8. **TP-CF-REQ-11**.
+
+## [1.9.1] - 2026-08-18
+
+### Fixed
+
+- **INC-20260818-003**: Type 1 `setup` no longer `chown`s dest-inbound `login-hook-elev` JSON to `dns-adm`. Dest **`sudoer-adm`** takes ownership. Sticky inbound (`3773`) only lets the owner (or root) unlink — handing the file to `dns-adm` blocked dest queue move.
+- DNS `approve` / `reject` / `interactive` **`chown` to `dns-adm` first**, then move inbound → accepted/declined. CI stub (`CF_TEST_LPU=1`) skips live `chown`. Fail closed if production `chown` fails.
+
+### Changed
+
+- Law: **SJ-M5** / **L-M13** / **P-M13** / **ACT-M6** / **REQ-M9** — queue move assumes a previous ownership change to the approver; submitter/setup **MUST NOT** `chown`. Portable: **`LM-FILE-BASED-JSON-APPROVAL`** 1.5.0 §2.5a; **`LM-SUDOER-JSON-FILE`** 1.7.0 §3.0b; **`LM-THREE-LAYER-PRIVILEGE-MODEL`** 2.13.0; **`LM-LEAST-PRIVILEGE-USER`** 2.6.0. Term `approval-queue-move`. **TP-SUDOER-JSON-18** · **TP-CF-REQ-09**.
+
 ## [1.9.0] - 2026-08-18
 
 ### Added

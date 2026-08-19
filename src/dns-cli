@@ -36,7 +36,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.9.0"
+# VERSION: hard-assign VERSION="1.9.7"
 #
 # =============================================================================
 
@@ -53,8 +53,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, submit/approve/reject/interactive DNS inbound, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.9.0"
-: "${VERSION:=1.9.0}"
+VERSION="1.9.7"
+: "${VERSION:=1.9.7}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -611,6 +611,50 @@ inst_get_version() {
     fi
 }
 
+# After create/modify of a shell rc, owner MUST be the corresponding user
+# (home login), not writer euid. Term: shell-rc-file-ownership.
+# $1 file  $2 optional login  $3 optional 1=fail closed
+util_align_rc_owner() {
+    _rcf="${1:-}"
+    _rcu="${2:-}"
+    _rcstrict="${3:-0}"
+    # Corresponding user = home login (not writer euid; not JSON subject).
+    : "${HOME:=/tmp}"
+    [ -n "${_rcf}" ] && [ -e "${_rcf}" ] || return 0
+    if lpu_test_mode; then
+        return 0
+    fi
+    if [ -z "${_rcu}" ]; then
+        _rchome="${HOME}"
+        case "${_rcf}" in
+            "${HOME}/"*)
+                _rchome="${HOME}"
+                ;;
+            *)
+                _rchome=$(dirname -- "${_rcf}")
+                case "${_rcf}" in
+                    */.config/fish/*)
+                        _rchome=$(dirname -- "$(dirname -- "$(dirname -- "${_rcf}")")")
+                        ;;
+                esac
+                ;;
+        esac
+        _rcu=$(stat -c '%U' "${_rchome}" 2>/dev/null || stat -f '%Su' "${_rchome}" 2>/dev/null || id -un 2>/dev/null || true)
+    fi
+    [ -n "${_rcu}" ] || return 0
+    _cur=$(stat -c '%U' "${_rcf}" 2>/dev/null || stat -f '%Su' "${_rcf}" 2>/dev/null || true)
+    if [ "${_cur}" = "${_rcu}" ]; then
+        return 0
+    fi
+    if chown "${_rcu}:${_rcu}" "${_rcf}" 2>/dev/null || chown "${_rcu}" "${_rcf}" 2>/dev/null; then
+        return 0
+    fi
+    if [ "${_rcstrict}" = "1" ]; then
+        out_die_code vault_insecure "cannot chown ${_rcf} to ${_rcu} (shell rc must belong to that home user)"
+    fi
+    return 0
+}
+
 path_add_bashrc() {
     : "${HOME:=/tmp}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -624,6 +668,7 @@ path_add_bashrc() {
     if ! grep -qF "${USER_BIN}" "$bashrc" 2>/dev/null; then
         printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$bashrc"
         printf '%s\n' "${path_line}" >> "$bashrc"
+        util_align_rc_owner "$bashrc"
         if [ "${JSON}" -eq 0 ]; then
             out_plain "→ Added ${USER_BIN} to PATH for bash"
         fi
@@ -662,6 +707,7 @@ path_add_zshrc() {
     if ! grep -qF "${USER_BIN}" "$zshrc" 2>/dev/null; then
         printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$zshrc"
         printf '%s\n' "${path_line}" >> "$zshrc"
+        util_align_rc_owner "$zshrc"
         if [ "${JSON}" -eq 0 ]; then
             out_plain "→ Added ${USER_BIN} to PATH for zsh"
         fi
@@ -706,6 +752,10 @@ path_add_fish() {
 
     printf "\n# Added by %s installer (%s)\n" "$APP_NAME" "$VERSION" >> "$fish_config"
     printf '%s\n' "${path_line}" >> "$fish_config"
+    if [ -d "${HOME}/.config/fish" ]; then
+        util_align_rc_owner "${HOME}/.config/fish"
+    fi
+    util_align_rc_owner "$fish_config"
 
     if [ "${JSON}" -eq 0 ]; then
         out_plain "→ Added ${USER_BIN} to PATH for fish shell"
@@ -2948,6 +2998,12 @@ cf_approver_heal_login_rc() {
             rm -f "${_ptmp}"
         fi
     fi
+    if [ -f "${_brc}" ]; then
+        util_align_rc_owner "${_brc}" "$(cf_approver_user)"
+    fi
+    if [ -f "${_prf}" ]; then
+        util_align_rc_owner "${_prf}" "$(cf_approver_user)"
+    fi
 }
 
 # =============================================================================
@@ -3464,9 +3520,9 @@ lpu_heal_home_rc() {
             rm -f "${_ptmp}"
         fi
     fi
-    lpu_chown_tree "${_brc}"
+    util_align_rc_owner "${_brc}" "$(lpu_user)" 1
     if [ -f "${_prf}" ]; then
-        lpu_chown_tree "${_prf}"
+        util_align_rc_owner "${_prf}" "$(lpu_user)" 1
     fi
 }
 
@@ -4170,9 +4226,7 @@ lpu_submit_login_hook_sudoer_request() {
         return 0
     fi
     chmod 0640 "${_dest}" 2>/dev/null || true
-    if id "${_lpu}" >/dev/null 2>&1; then
-        chown "${_lpu}:${_lpu}" "${_dest}" 2>/dev/null || chown "${_lpu}" "${_dest}" 2>/dev/null || true
-    fi
+    # MUST NOT chown. Dest sudoer-adm takes ownership (sticky inbound).
     LOGIN_HOOK_SUDOER_STATUS="submitted"
     LOGIN_HOOK_SUDOER_REQUEST_ID="${_rid}"
     return 0
@@ -5312,23 +5366,29 @@ cf_req_field() {
     cf_json_get "${_jf}" "${_key}" 2>/dev/null || true
 }
 
-cf_req_verify() {
+# Dest fencing (file-based JSON subclass): incorrect JSON format only.
+# Returns 0 if clear; 1 if a fence matched (sets CF_REQ_FENCE_MSG).
+# User SSOT is the JSON subject field, not the filename token.
+# MUST NOT check who submitted / file-ownership / subject == dest LPU.
+cf_req_dest_fence() {
     _jf="$1"
-    _who="${2:-}"
     : "${APP_NAME:=dns-cli}"
-    if [ ! -f "${_jf}" ]; then
-        out_die_code request_invalid "DNS request file not found: ${_jf}"
-    fi
-    if [ -L "${_jf}" ]; then
-        out_die_code vault_insecure "refusing symlink DNS request: ${_jf}"
+    CF_REQ_FENCE_KIND=""
+    CF_REQ_FENCE_MSG=""
+    if [ ! -f "${_jf}" ] || [ -L "${_jf}" ]; then
+        CF_REQ_FENCE_KIND="incorrect_json_format"
+        CF_REQ_FENCE_MSG="This waiting file is missing, is a shortcut (symlink), or is not a regular file. Dest will not ask yes or no. Next: put a real JSON request in the waiting folder."
+        return 1
     fi
     _bn=$(basename -- "${_jf}")
     if ! cf_req_parse_basename "${_bn}"; then
-        out_die_code request_invalid "DNS request basename is not YYYYMMDD-subject-action-n.json: ${_bn}"
+        CF_REQ_FENCE_KIND="incorrect_json_format"
+        CF_REQ_FENCE_MSG="The file name ${_bn} is not a DNS request name (YYYYMMDD-subject-action-n.json). Dest will not ask yes or no. Next: rename or submit a new file."
+        return 1
     fi
     _uk=$(python3 -c '
 import json,sys
-allowed={"schema_version","purpose","subject","action","domain_id","subdomain","ipv4","from_ipv4","mode","ttl","proxied"}
+allowed={"schema_version","purpose","subject","action","domain_id","subdomain","ipv4","from_ipv4","mode","ttl","proxied","submit_by"}
 forbidden=("token","CF_API_TOKEN","user_id","api_token")
 path=sys.argv[1]
 with open(path, encoding="utf-8") as fh:
@@ -5347,19 +5407,25 @@ print("ok")
 ' "${_jf}")
     _prc=$?
     if [ "${_prc}" -ne 0 ]; then
+        CF_REQ_FENCE_KIND="incorrect_json_format"
         case "${_uk}" in
             secret:*)
-                out_die_code request_invalid "DNS request must not contain a token or user_id. Path: ${_jf}"
+                CF_REQ_FENCE_MSG="This waiting file must not contain a token or user_id. Dest will not ask yes or no. Next: remove those keys and ${APP_NAME} submit again."
                 ;;
             unknown:*)
-                out_die_code request_invalid "DNS request has an unknown key. Path: ${_jf}"
+                CF_REQ_FENCE_MSG="This waiting file has an unknown key. Dest will not ask yes or no. Next: use only the documented request keys and ${APP_NAME} submit again."
+                ;;
+            *)
+                CF_REQ_FENCE_MSG="This waiting file is not a JSON object. Dest will not ask yes or no. Next: write one JSON object and ${APP_NAME} submit again."
                 ;;
         esac
-        out_die_code request_invalid "DNS request is not a JSON object. Path: ${_jf}"
+        return 1
     fi
     _sv=$(cf_req_field "${_jf}" "schema_version")
     if [ "${_sv}" != "1" ]; then
-        out_die_code request_invalid "DNS request schema_version must be 1. Path: ${_jf}"
+        CF_REQ_FENCE_KIND="incorrect_json_format"
+        CF_REQ_FENCE_MSG="This waiting file schema_version must be 1. Dest will not ask yes or no. Next: set schema_version to 1 and ${APP_NAME} submit again."
+        return 1
     fi
     _purpose=$(cf_req_field "${_jf}" "purpose")
     _subject=$(cf_req_field "${_jf}" "subject")
@@ -5367,23 +5433,24 @@ print("ok")
     _dom=$(cf_req_field "${_jf}" "domain_id")
     _sub=$(cf_req_field "${_jf}" "subdomain")
     if [ -z "${_purpose}" ] || [ -z "${_subject}" ] || [ -z "${_action}" ] || [ -z "${_dom}" ] || [ -z "${_sub}" ]; then
-        out_die_code request_invalid "DNS request is missing a required field (purpose, subject, action, domain_id, subdomain). Path: ${_jf}"
+        CF_REQ_FENCE_KIND="incorrect_json_format"
+        CF_REQ_FENCE_MSG="This waiting file is missing a required field (purpose, subject, action, domain_id, subdomain). Dest will not ask yes or no."
+        return 1
     fi
     case "${_action}" in
         add|update|remove|mode) ;;
         *)
-            out_die_code request_invalid "DNS request action must be add, update, remove, or mode. Path: ${_jf}"
+            CF_REQ_FENCE_KIND="incorrect_json_format"
+            CF_REQ_FENCE_MSG="This waiting file action must be add, update, remove, or mode. Dest will not ask yes or no."
+            return 1
             ;;
     esac
     if [ "${_action}" != "${CF_REQ_BN_ACTION}" ]; then
-        out_die_code request_invalid "DNS request action ${_action} does not match basename type ${CF_REQ_BN_ACTION}. Path: ${_jf}"
+        CF_REQ_FENCE_KIND="incorrect_json_format"
+        CF_REQ_FENCE_MSG="This waiting file action ${_action} does not match basename type ${CF_REQ_BN_ACTION}. Dest will not ask yes or no."
+        return 1
     fi
-    if [ "${_subject}" != "${CF_REQ_BN_SUBJECT}" ]; then
-        out_die_code request_invalid "DNS request subject ${_subject} does not match basename ${CF_REQ_BN_SUBJECT}. Path: ${_jf}"
-    fi
-    if [ -n "${_who}" ] && [ "${_subject}" != "${_who}" ]; then
-        out_die_code request_invalid "DNS request is self-scope only. subject ${_subject} is not ${_who}. Path: ${_jf}"
-    fi
+    # User SSOT is JSON subject, not the filename token. Do not fence on basename subject.
     _ipv4=$(cf_req_field "${_jf}" "ipv4")
     _from=$(cf_req_field "${_jf}" "from_ipv4")
     _mode=$(cf_req_field "${_jf}" "mode")
@@ -5391,55 +5458,81 @@ print("ok")
     _prox=$(cf_req_field "${_jf}" "proxied")
     case "${_ipv4}${_from}" in
         *:*)
-            out_die_code request_invalid "DNS request IPv4 fields must not be IPv6. Path: ${_jf}"
+            CF_REQ_FENCE_KIND="incorrect_json_format"
+            CF_REQ_FENCE_MSG="This waiting file IPv4 fields must not be IPv6. Dest will not ask yes or no."
+            return 1
             ;;
     esac
     case "${_action}" in
         add)
             if [ -z "${_ipv4}" ]; then
-                out_die_code request_invalid "DNS add request needs ipv4. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting add request needs ipv4. Dest will not ask yes or no."
+                return 1
             fi
             if [ -n "${_from}" ] || [ -n "${_mode}" ]; then
-                out_die_code request_invalid "DNS add request must not include from_ipv4 or mode. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting add request must not include from_ipv4 or mode. Dest will not ask yes or no."
+                return 1
             fi
             if ! cf_ipv4_ok "${_ipv4}"; then
-                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting file ipv4 is not a public IPv4: ${_ipv4}. Dest will not ask yes or no."
+                return 1
             fi
             ;;
         update)
             if [ -z "${_ipv4}" ]; then
-                out_die_code request_invalid "DNS update request needs ipv4. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting update request needs ipv4. Dest will not ask yes or no."
+                return 1
             fi
             if [ -n "${_mode}" ]; then
-                out_die_code request_invalid "DNS update request must not include mode. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting update request must not include mode. Dest will not ask yes or no."
+                return 1
             fi
             if ! cf_ipv4_ok "${_ipv4}"; then
-                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting file ipv4 is not a public IPv4: ${_ipv4}. Dest will not ask yes or no."
+                return 1
             fi
             if [ -n "${_from}" ] && ! cf_ipv4_ok "${_from}"; then
-                out_die_code request_invalid "DNS request from_ipv4 is not a public IPv4: ${_from}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting file from_ipv4 is not a public IPv4: ${_from}. Dest will not ask yes or no."
+                return 1
             fi
             ;;
         remove)
             if [ -n "${_from}" ] || [ -n "${_mode}" ] || [ -n "${_ttl}" ] || [ -n "${_prox}" ]; then
-                out_die_code request_invalid "DNS remove request must not include from_ipv4, mode, ttl, or proxied. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting remove request must not include from_ipv4, mode, ttl, or proxied. Dest will not ask yes or no."
+                return 1
             fi
             if [ -n "${_ipv4}" ] && ! cf_ipv4_ok "${_ipv4}"; then
-                out_die_code request_invalid "DNS request ipv4 is not a public IPv4: ${_ipv4}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting file ipv4 is not a public IPv4: ${_ipv4}. Dest will not ask yes or no."
+                return 1
             fi
             ;;
         mode)
             if [ -z "${_mode}" ]; then
-                out_die_code request_invalid "DNS mode request needs mode. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting mode request needs mode. Dest will not ask yes or no."
+                return 1
             fi
             case "${_mode}" in
                 non-round-robin|round-robin) ;;
                 *)
-                    out_die_code request_invalid "DNS mode must be non-round-robin or round-robin. Path: ${_jf}"
+                    CF_REQ_FENCE_KIND="incorrect_json_format"
+                    CF_REQ_FENCE_MSG="This waiting file mode must be non-round-robin or round-robin. Dest will not ask yes or no."
+                    return 1
                     ;;
             esac
             if [ -n "${_ipv4}" ] || [ -n "${_from}" ] || [ -n "${_ttl}" ] || [ -n "${_prox}" ]; then
-                out_die_code request_invalid "DNS mode request must not include ipv4, from_ipv4, ttl, or proxied. Path: ${_jf}"
+                CF_REQ_FENCE_KIND="incorrect_json_format"
+                CF_REQ_FENCE_MSG="This waiting mode request must not include ipv4, from_ipv4, ttl, or proxied. Dest will not ask yes or no."
+                return 1
             fi
             ;;
     esac
@@ -5453,6 +5546,31 @@ print("ok")
     CF_REQ_MODE="${_mode}"
     CF_REQ_TTL="${_ttl}"
     CF_REQ_PROXIED="${_prox}"
+    CF_REQ_SUBMIT_BY=$(cf_req_field "${_jf}" "submit_by")
+    return 0
+}
+
+cf_req_explain_fence() {
+    _src="$1"
+    : "${APP_NAME:=dns-cli}"
+    _bn=$(basename -- "${_src}")
+    out_warn "Waiting file ${_bn} is blocked by a fencing condition (incorrect JSON format)."
+    out_plain "${CF_REQ_FENCE_MSG}"
+    out_plain "This file was not offered for yes or no. Next: fix the JSON and ${APP_NAME} submit it again."
+}
+
+cf_req_verify() {
+    _jf="$1"
+    # Approve omits _who. Dest inbound fence is incorrect JSON format only.
+    # File-ownership is not a dest wall; cf_req_move takes it as dns-adm.
+    _who="${2:-}"
+    : "${APP_NAME:=dns-cli}"
+    if ! cf_req_dest_fence "${_jf}"; then
+        out_die_code request_invalid "${CF_REQ_FENCE_MSG}"
+    fi
+    if [ -n "${_who}" ] && [ "${CF_REQ_SUBJECT}" != "${_who}" ]; then
+        out_die_code request_invalid "DNS request is self-scope only. subject ${CF_REQ_SUBJECT} is not ${_who}. Path: ${_jf}"
+    fi
     return 0
 }
 
@@ -5571,9 +5689,6 @@ cf_req_submit() {
         fi
         _rid=$(cf_req_alloc_id "${_in}" "${_sub}" "${_act}") || out_die_code vault_insecure "cannot allocate DNS request id"
     else
-        if [ "${CF_REQ_BN_SUBJECT}" != "${_who}" ]; then
-            out_die_code request_invalid "DNS request is self-scope only. basename subject ${CF_REQ_BN_SUBJECT} is not ${_who}"
-        fi
         _rid="${_bn}"
         if [ -e "${_in}/${_rid}" ]; then
             out_die_code request_invalid "DNS inbound already has ${_rid}"
@@ -5583,6 +5698,10 @@ cf_req_submit() {
     cp "${_tmp}" "${_dest}" || out_die_code vault_insecure "cannot write ${_dest}"
     chmod 0640 "${_dest}" 2>/dev/null || true
     cf_req_verify "${_dest}" "${_who}"
+    if [ -n "${CF_REQ_SUBMIT_BY}" ]; then
+        rm -f "${_dest}" 2>/dev/null || true
+        out_die_code request_invalid "DNS submit must not include submit_by. Dest writes that field after review. Path: ${_src}"
+    fi
     if [ "${JSON}" -eq 1 ]; then
         out_json "submit" "queued" \
             "request_id" "${_rid}" \
@@ -5629,6 +5748,72 @@ cf_req_pick() {
     out_die_code request_invalid "More than one pending DNS request. Pass the request_id (basename)."
 }
 
+# Unix inode owner of a queued file (login name). Empty on failure.
+cf_req_file_owner() {
+    _src="$1"
+    [ -n "${_src}" ] && [ -f "${_src}" ] || return 1
+    _own=$(stat -c '%U' "${_src}" 2>/dev/null || stat -f '%Su' "${_src}" 2>/dev/null || true)
+    [ -n "${_own}" ] || return 1
+    printf '%s' "${_own}"
+}
+
+# Dest-write submit_by (human: submit by) = original file-ownership.
+# Called only after dest_fence is clear.
+cf_req_stamp_submit_by() {
+    _jf="$1"
+    _orig="$2"
+    [ -n "${_jf}" ] && [ -f "${_jf}" ] && [ -n "${_orig}" ] || return 1
+    python3 -c '
+import json, sys
+path, owner = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+if not isinstance(data, dict):
+    raise SystemExit(2)
+data["submit_by"] = owner
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+' "${_jf}" "${_orig}" || out_die_code vault_insecure "cannot write submit_by on ${_jf}"
+    CF_REQ_SUBMIT_BY="${_orig}"
+    return 0
+}
+
+# Take Unix file-ownership as the dest LPU (dns-adm). Login-hook interactive
+# MUST do this at the beginning, before review. Queue move assumes that change.
+cf_req_take_ownership() {
+    _src="$1"
+    if lpu_test_mode; then
+        return 0
+    fi
+    [ -n "${_src}" ] && [ -f "${_src}" ] || return 1
+    [ -L "${_src}" ] && return 1
+    _owner=$(lpu_user)
+    if ! chown "${_owner}:${_owner}" "${_src}" 2>/dev/null && ! chown "${_owner}" "${_src}" 2>/dev/null; then
+        out_die_code vault_insecure "cannot chown ${_src} to ${_owner} (login-hook review takes ownership at the beginning)"
+    fi
+    return 0
+}
+
+# Interactive take-ownership: record original file-ownership, take as the
+# corresponding LPU, review JSON format, if clear add submit_by.
+cf_req_take_inbound_ownership() {
+    _in="$1"
+    [ -n "${_in}" ] && [ -d "${_in}" ] || return 0
+    for _f in "${_in}"/*.json; do
+        [ -f "${_f}" ] || continue
+        [ -L "${_f}" ] && continue
+        _orig=$(cf_req_file_owner "${_f}") || _orig=""
+        if [ -z "${_orig}" ]; then
+            out_die_code vault_insecure "cannot read original file-ownership of ${_f}"
+        fi
+        cf_req_take_ownership "${_f}"
+        if cf_req_dest_fence "${_f}"; then
+            cf_req_stamp_submit_by "${_f}" "${_orig}"
+        fi
+    done
+}
+
 cf_req_move() {
     _src="$1"
     _kind="$2"
@@ -5644,6 +5829,8 @@ cf_req_move() {
         out_die_code sudoer_required "DNS ${_kind} folder missing: ${_dest_dir}. Next: sudo ${APP_NAME} setup"
     fi
     _bn=$(basename -- "${_src}")
+    # Queue move assumes prior ownership change to the approver.
+    cf_req_take_ownership "${_src}"
     mv "${_src}" "${_dest_dir}/${_bn}" || out_die_code vault_insecure "cannot move ${_src} to ${_dest_dir}"
     printf '%s' "${_dest_dir}/${_bn}"
 }
@@ -5704,38 +5891,38 @@ cf_req_interactive() {
         out_info "no pending requests"
         return 0
     fi
+    # Login hook: take file-ownership as dns-adm at the beginning, then review.
+    cf_req_take_inbound_ownership "${_in}"
     _any=0
     for _f in "${_in}"/*.json; do
         [ -f "${_f}" ] || continue
         _any=1
-        cf_req_verify "${_f}"
+        # Approval system: fence first. Match → human-facing explain; no question.
+        if ! cf_req_dest_fence "${_f}"; then
+            cf_req_explain_fence "${_f}"
+            continue
+        fi
         out_info "request $(basename -- "${_f}")"
         out_plain "purpose: ${CF_REQ_PURPOSE}"
         out_plain "action:  ${CF_REQ_ACTION}  domain: ${CF_REQ_DOMAIN}  subdomain: ${CF_REQ_SUBDOMAIN}"
+        if [ -n "${CF_REQ_SUBMIT_BY}" ]; then
+            out_plain "submit by: ${CF_REQ_SUBMIT_BY}"
+        fi
         if [ -n "${CF_REQ_IPV4}" ]; then
             out_plain "ipv4:    ${CF_REQ_IPV4}"
         fi
         if [ -n "${CF_REQ_MODE}" ]; then
             out_plain "mode:    ${CF_REQ_MODE}"
         fi
-        _ans=$(prompt_ask "accept / decline / skip / quit" "skip")
-        case "${_ans}" in
-            accept|a|yes|y)
-                cf_req_apply
-                cf_req_move "${_f}" "accepted" >/dev/null
-                out_success "Accepted $(basename -- "${_f}")"
-                ;;
-            decline|d|reject|no|n)
-                cf_req_move "${_f}" "declined" >/dev/null
-                out_success "Declined $(basename -- "${_f}")"
-                ;;
-            quit|q)
-                return 0
-                ;;
-            *)
-                out_info "Skipped $(basename -- "${_f}")"
-                ;;
-        esac
+        # One-off approval question: yes = approve, no = reject (no skip/quit).
+        if prompt_yes_no "Approve this request"; then
+            cf_req_apply
+            cf_req_move "${_f}" "accepted" >/dev/null
+            out_success "Accepted $(basename -- "${_f}")"
+        else
+            cf_req_move "${_f}" "declined" >/dev/null
+            out_success "Declined $(basename -- "${_f}")"
+        fi
     done
     if [ "${_any}" -eq 0 ]; then
         out_info "no pending requests"

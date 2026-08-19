@@ -12,6 +12,29 @@ This requirement is the **project Single Source of Truth** for **modular functio
 
 Ship unit remains a **single executable** at `src/dns-cli`.
 
+### 1.1 Human-facing
+
+**In one sentence:** dns-cli is **one file** (`src/dns-cli`); helpers are named with prefixes (`out_`, `app_`, `cf_`) so you can tell output from DNS work.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Read or change the ship unit | `src/dns-cli` |
+| Prefix | Who owns the function | `out_info` vs `cf_dns_add` |
+| Not this | Splitting into many shipped binaries | No `lib/` product tree |
+
+| Includes | Excludes |
+|----------|----------|
+| One executable + prefixes | Multi-file install product |
+| CIAO function headers | Renaming `out_*` to raw `echo` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `src/dns-cli` | Ship unit | All functions |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Find output code | Search `out_` | `dns-cli --json about` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

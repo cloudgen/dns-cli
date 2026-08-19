@@ -12,6 +12,30 @@ Declare the **bootstrap chain** for this product: **B = `dns-cli` (hop 1)**, spe
 
 **Direction is sacred:** specialize from A onto this tree only. Never reverse-copy this product onto a remaining `cli-template` origin tree.
 
+### 1.1 Human-facing
+
+**In one sentence:** dns-cli was grown **from** `cli-template`; you specialize this product, you do **not** copy dns-cli back onto the template.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Work on this product (B) | Edit `src/dns-cli` |
+| The origin (A) | Shared CLI shape we inherited | `cli-template` |
+| Not this file | Cloudflare verbs or vault layout | `requirement-domain-cloudflare-dns` |
+
+| Includes | Excludes |
+|----------|----------|
+| Hop list A → B | Treating folder-backup as the origin |
+| One-way specialize | Reverse-copy onto `cli-template` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| This file | Bootstrap chain law | Direction |
+| `src/dns-cli` | This hop’s ship unit | Product work |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Change dns-cli | Stay on this tree | `dns-cli version` |
+
 ---
 
 ## 2. Core Rules (Mandatory)

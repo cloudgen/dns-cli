@@ -167,8 +167,102 @@ run_test_cli() {
         assert_contains "TP-CF-ACTOR-07 names submit-sudoer-request" "${_abody}" '`submit-sudoer-request`'
         assert_contains "TP-CF-ACTOR-07 names sudoer-adm" "${_abody}" '`sudoer-adm`'
         assert_contains "TP-CF-ACTOR-07 DNS submit ≠ sudoer submit" "${_abody}" 'DNS `submit` ≠ `submit-sudoer-request`'
+        assert_contains "TP-CF-ACTOR-08 ACT-M7" "${_abody}" "ACT-M7"
+        assert_contains "TP-CF-ACTOR-08 no dest fence on file-ownership" "${_abody}" "MUST NOT** fence on Unix file-ownership"
+        assert_contains "TP-CF-ACTOR-09 ACT-M8" "${_abody}" "ACT-M8"
+        assert_contains "TP-CF-ACTOR-09 dest fence is incorrect JSON format" "${_abody}" "incorrect JSON format"
+        assert_contains "TP-CF-ACTOR-09 closed dest fence table" "${_abody}" "Approval fencing conditions (closed"
+        assert_contains "TP-CF-ACTOR-09 MUST NOT extra dest fence" "${_abody}" "Who submitted / dest Type 0 self-scope"
+        assert_contains "TP-CF-ACTOR-09 MUST NOT fence filename subject" "${_abody}" "Filename subject token"
+        assert_contains "TP-ARSA dest catalog points at ARSA REQ" "${_abody}" "requirement-actor-role-subject-approver"
     else
         t_fail "TP-CF-ACTOR-07 missing requirement-dns-actor-table.md"
+    fi
+
+    _class="${REPO_ROOT}/docs/requirements/requirement-class-software-dev.md"
+    if [ -f "${_class}" ]; then
+        _cbody=$(cat "${_class}")
+        assert_contains "TP-ARSA-01 class consider" "${_cbody}" "actor / role / subject / approver"
+        assert_contains "TP-ARSA-01 even if no dest approver" "${_cbody}" "even if there is no dest approver"
+        assert_contains "TP-ARSA-01 MUST NOT invent an approver" "${_cbody}" "MUST NOT** invent an approver"
+        assert_contains "TP-FENCE-01 class dest-fence review" "${_cbody}" "Dest fence conditions (review and convert)"
+        assert_contains "TP-FENCE-01 independent REQ per Fence" "${_cbody}" "Each dest **Fence** row **MUST** be an independent Active requirement"
+        assert_contains "TP-FENCE-01 residual none" "${_cbody}" "considered — no dest fence conditions"
+        assert_contains "TP-FENCE-01 MUST NOT invent a dest fence" "${_cbody}" "MUST NOT** invent a dest fence"
+        assert_contains "TP-FENCE-01 residual points at IJF" "${_cbody}" "requirement-incorrect-json-format"
+        assert_contains "TP-FENCE-01 AC-9 dest fence review" "${_cbody}" "AC-9"
+    else
+        t_fail "TP-ARSA-01 missing requirement-class-software-dev.md"
+    fi
+    _arsa="${REPO_ROOT}/docs/requirements/requirement-actor-role-subject-approver.md"
+    if [ -f "${_arsa}" ]; then
+        _abody2=$(cat "${_arsa}")
+        assert_contains "TP-ARSA-02 catalog table header" "${_abody2}" "| Actor | Role | Subject | Submitter | Approver |"
+        assert_contains "TP-ARSA-02 Submitter anyone" "${_abody2}" "**anyone**"
+        assert_contains "TP-ARSA-02 Submitter the actor itself" "${_abody2}" "**the actor itself**"
+        assert_contains "TP-ARSA-02 None is valid" "${_abody2}" "**None**"
+        assert_contains "TP-ARSA-02 nginx dest None here" "${_abody2}" "None here"
+        assert_contains "TP-ARSA-02 day-to-day None" "${_abody2}" "do not dest-review"
+    else
+        t_fail "TP-ARSA-02 missing requirement-actor-role-subject-approver.md"
+    fi
+    _ijf="${REPO_ROOT}/docs/requirements/requirement-incorrect-json-format.md"
+    if [ -f "${_ijf}" ]; then
+        _ibody=$(cat "${_ijf}")
+        assert_contains "TP-FENCE-02 independent dest-fence REQ exists" "${_ibody}" "requirement-incorrect-json-format"
+        assert_contains "TP-FENCE-02 names this dest fence" "${_ibody}" "incorrect JSON format"
+        assert_contains "TP-FENCE-02 dest table still prints" "${_ibody}" "dest fence **table** stays"
+        assert_contains "TP-FENCE-02 MUST NOT extra dest fences" "${_ibody}" "Unix file-ownership"
+        assert_contains "TP-FENCE-02 dest-written submit_by allowed" "${_ibody}" "treat dest-written \`submit_by\`"
+    else
+        t_fail "TP-FENCE-02 missing requirement-incorrect-json-format.md"
+    fi
+    if [ -f "${_actor}" ]; then
+        assert_contains "TP-FENCE-02 dest catalog points at IJF REQ" "${_abody}" "requirement-incorrect-json-format"
+        assert_contains "TP-FENCE-02 dest Fence row still printed" "${_abody}" "**Incorrect JSON format**"
+    fi
+    for _peer in requirement-least-privilege-user.md requirement-three-layer-privilege-model.md requirement-sudoer-json-file.md; do
+        _pf="${REPO_ROOT}/docs/requirements/${_peer}"
+        if [ -f "${_pf}" ]; then
+            _pbody=$(cat "${_pf}")
+            assert_contains "TP-FENCE-02 ${_peer} dest Fence points at IJF" "${_pbody}" "requirement-incorrect-json-format"
+        else
+            t_fail "TP-FENCE-02 missing ${_peer}"
+        fi
+    done
+
+    _av="${REPO_ROOT}/docs/requirements/requirement-application-local-vault.md"
+    if [ -f "${_av}" ]; then
+        _avbody=$(cat "${_av}")
+        assert_contains "TP-AV-08 dest is local vaults" "${_avbody}" "is** local vaults"
+        assert_contains "TP-AV-08 Type 2 dest is global vault from ordinary login" "${_avbody}" "is** the **global vault"
+        assert_contains "TP-AV-08 MUST NOT invent /etc dest" "${_avbody}" "/etc/dns-adm/vault/"
+        assert_contains "TP-AV-08 MUST NOT treat archive as vault dest" "${_avbody}" "host archive deposit"
+        assert_contains "TP-AV-08 AV-M11 present" "${_avbody}" "AV-M11"
+    else
+        t_fail "TP-AV-08 missing requirement-application-local-vault.md"
+    fi
+
+    # TP-CLI-16 — every requirement prints §1.1 Human-facing (human-intro standard)
+    _reqdir="${REPO_ROOT}/docs/requirements"
+    _nreq=0
+    _nmiss=0
+    for _rf in "${_reqdir}"/requirement-*.md; do
+        [ -f "${_rf}" ] || continue
+        _nreq=$((_nreq + 1))
+        if ! grep -q '### 1.1 Human-facing' "${_rf}"; then
+            t_fail "TP-CLI-16 missing §1.1 Human-facing in $(basename "${_rf}")"
+            _nmiss=$((_nmiss + 1))
+        fi
+        if ! grep -q '\*\*In one sentence:\*\*' "${_rf}"; then
+            t_fail "TP-CLI-16 missing one-sentence lead in $(basename "${_rf}")"
+            _nmiss=$((_nmiss + 1))
+        fi
+    done
+    if [ "${_nreq}" -eq 0 ]; then
+        t_fail "TP-CLI-16 no requirement-*.md files"
+    elif [ "${_nmiss}" -eq 0 ]; then
+        t_pass "TP-CLI-16 ${_nreq} requirements have §1.1 Human-facing"
     fi
 
     # TP-CLI-14 — CI-M1 dual mention: each routed verb in CLI REQ + a topic-owner REQ.

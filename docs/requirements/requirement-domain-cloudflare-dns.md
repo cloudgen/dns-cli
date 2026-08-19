@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-cloudflare-dns.md  
-**Status**: Active (Version 2.6.0)  
+**Status**: Active (Version 2.8.0) — dest MUST NOT fence on filename subject token; user SSOT is JSON `subject`  
 **Area**: domain  
 **Key**: `requirement-domain-cloudflare-dns`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,6 +12,30 @@ It **consumes** the **selected** account’s vault fields (API token, zone id, a
 
 This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare-vault.md` is vault law, not a second domain catalog.
 
+### 1.1 Human-facing
+
+**In one sentence:** This is the **dns-cli verb book** for Cloudflare **A records** (`add` / `update` / `remove` / `status`) on the vault’s selected domain — not the inbound-JSON schema and not who may approve.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Run DNS verbs | `dns-cli add` / `dns-cli status` |
+| Request file | Four JSON types | `requirement-cloudflare-dns-request` |
+| Not this | Creating `dns-adm` | `sudo dns-cli setup` |
+
+| Includes | Excludes |
+|----------|----------|
+| Domain help + about extras | A second `requirement-domain-*` |
+| A records only | AAAA / CNAME |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `dns-cli help` | Command | Domain rows |
+| `dns-cli status` | Command | Live A set |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Publish current public IPv4 | Uses vault token; never prints it | `dns-cli add` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)
@@ -23,6 +47,17 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 The **actor table** (anyone submits; `dns-adm` approves; allocator / root) and the **login-hook procedure** are owned by `requirement-dns-actor-table`. This catalog **MUST NOT** invent a second table or a second approver account.
 
 Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Implemented** on ship unit 1.9.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST** list those verbs now that they are routed (D-M7).
+
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Owner: `requirement-dns-actor-table` ACT-M8.
+
+| Condition | Dest approve / reject / interactive |
+|-----------|-------------------------------------|
+| **Incorrect JSON format** | **Fence** — fail closed. Independent REQ: `requirement-incorrect-json-format` |
+| File-ownership | **MUST NOT** fence — take ownership as `dns-adm` |
+| Who submitted / dest Type 0 self-scope | **MUST NOT** fence |
+| JSON `subject` ≠ `dns-adm` | **MUST NOT** fence |
+| Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
+| Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
 
 ### 2.1 Specialized CLI subcommands (pillar 1)
 
@@ -214,7 +249,8 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 9. Register a second Active `requirement-domain-*` file.  
 10. Claim domain Implemented while the ship unit has no `cf_dns_*` routes.  
 11. Call live Cloudflare from `./tests/run.sh`.  
-12. Require `dns-adm` for `--vault-dir` live verify, or leave a temp token in a tracked path.
+12. Require `dns-adm` for `--vault-dir` live verify, or leave a temp token in a tracked path.  
+13. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `subject` ≠ `dns-adm`, filename subject token ≠ JSON `subject`).
 
 **Violating this rule is a critical domain-law regression.**
 
@@ -288,6 +324,8 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-19 | Active 2.8.0 | Dest MUST NOT fence on filename subject token; user SSOT is JSON `subject` |
+| 2026-08-18 | Active 2.7.0 | Dest approval fencing conditions closed: incorrect JSON format (ACT-M8 reprint) |
 | 2026-08-18 | Active 2.6.0 | CI-M1a sample invocations for every domain verb (§2.1a) |
 | 2026-08-17 | Active 2.5.0 | Consumes `requirement-dns-actor-table` (named machine + login hook) |
 | 2026-08-17 | Active 2.4.0 | Live Type 0 specify verify as invoking user (`crms.hk`); not dns-adm-only |

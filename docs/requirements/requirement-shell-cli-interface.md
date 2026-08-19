@@ -10,6 +10,30 @@ This requirement is the **project Single Source of Truth** for the **POSIX shell
 
 **Domain verb catalog, flags, help rows, and about extras** are owned by `requirement-domain-cloudflare-dns.md`. Type 1/2 map and elev tables live in `requirement-three-layer-privilege-model`. This file **lists names + argv grammar only** and **MUST NOT** duplicate full domain or F1–F7 tables. Full lifecycle rules live in `requirement-shell-local-self-management.md`.
 
+### 1.1 Human-facing
+
+**In one sentence:** This file is the **command-line contract**: which words `dns-cli` accepts, which flags are global, and what `help` / `about` must say — not how Cloudflare is written.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Run listed commands | `dns-cli help` |
+| Domain file | Owns what `add` **does** | `requirement-domain-cloudflare-dns` |
+| Not this | Token files or inbound JSON schema | vault / request files |
+
+| Includes | Excludes |
+|----------|----------|
+| Dispatcher names + argv grammar | Full DNS apply algorithm |
+| Global `--json` / `--quiet` | Creating `dns-adm` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `dns-cli help` | Command | Verb list |
+| `src/dns-cli` | Ship unit | `app_main` |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| See every routed verb | Help must match what actually runs | `dns-cli help` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

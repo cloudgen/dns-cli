@@ -88,6 +88,8 @@ run_test_cf_lpu() {
         *) assert_eq "TP-LPU-01 sudoers 0440" "0440" "${_smode}" ;;
     esac
     assert_contains "TP-LPU-01 dest Table A" "$(cat "${_dest}")" "ALL=(dns-adm) NOPASSWD:"
+    _lrc=$(sed -n '/^lpu_heal_home_rc()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-LPU-01 rc heal aligns owner" "${_lrc}" "util_align_rc_owner"
 
     _out=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
         sh "${SCRIPT}" --json setup 2>/dev/null)
@@ -349,9 +351,14 @@ STUB
     _hook_in=$(grep -l 'login-hook-elev' "${_block}/sudoer-request/"*.json 2>/dev/null | head -n 1)
     if [ -n "${_hook_in}" ]; then
         t_pass "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
+        _hook_owner=$(stat -c '%U' "${_hook_in}" 2>/dev/null || stat -f '%Su' "${_hook_in}")
+        assert_eq "TP-SUDOER-JSON-18 hook JSON owner is writer" "${_user}" "${_hook_owner}"
     else
         t_fail "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
     fi
+
+    _fn=$(sed -n '/^lpu_submit_login_hook_sudoer_request()/,/^}/p' "${SCRIPT}")
+    assert_not_contains "TP-SUDOER-JSON-18 setup hook write has no chown" "${_fn}" 'chown "${_lpu}'
 
     unset CF_TEST_LPU
     unset CF_LPU_ROOT
@@ -371,6 +378,9 @@ STUB
         assert_contains "TP-PRIV-09 submit named" "${_tbody}" '`submit-sudoer-request`'
         assert_contains "TP-PRIV-09 AC-P7 role table" "${_tbody}" "AC-P7"
         assert_contains "TP-PRIV-09 not merge DNS actors" "${_tbody}" "merge those three tables"
+        assert_contains "TP-PRIV-10 P-M13 dest fence table" "${_tbody}" "Dest approval fencing conditions (closed)"
+        assert_contains "TP-PRIV-10 dest fence is incorrect JSON format" "${_tbody}" "incorrect JSON format"
+        assert_contains "TP-PRIV-10 MUST NOT extra dest fence" "${_tbody}" "Who submitted / dest Type 0 self-scope"
     else
         t_fail "TP-PRIV-09 missing requirement-three-layer-privilege-model.md"
     fi
@@ -393,7 +403,24 @@ STUB
         assert_contains "TP-SUDOER-JSON-17 switch dest" "${_sbody}" "/etc/sudoers.d/dns-cli-<user>"
         assert_contains "TP-SUDOER-JSON-17 hook dest" "${_sbody}" "/etc/sudoers.d/dns-cli-dns-adm"
         assert_contains "TP-SUDOER-JSON-17 F6 dest" "${_sbody}" "/etc/dns-adm/sudoers"
+        assert_contains "TP-SUDOER-JSON-18 SJ-M5" "${_sbody}" "SJ-M5"
+        assert_contains "TP-SUDOER-JSON-18 setup MUST NOT chown inbound" "${_sbody}" "MUST NOT \`chown\` dest inbound"
+        assert_contains "TP-SUDOER-JSON-19 dest MUST NOT fence on file-ownership" "${_sbody}" "MUST NOT** fence on file-ownership"
+        assert_contains "TP-SUDOER-JSON-20 dest fence is incorrect JSON format" "${_sbody}" "incorrect JSON format"
+        assert_contains "TP-SUDOER-JSON-20 closed dest fence table" "${_sbody}" "Dest approval fencing conditions (closed)"
+        assert_contains "TP-SUDOER-JSON-20 MUST NOT extra dest fence" "${_sbody}" "Who submitted / dest Type 0 self-scope"
+        assert_contains "TP-SUDOER-JSON-20 MUST NOT fence filename subject" "${_sbody}" "Filename subject token"
     else
         t_fail "TP-SUDOER-JSON-09 missing requirement-sudoer-json-file.md"
+    fi
+    _lpu="${REPO_ROOT}/docs/requirements/requirement-least-privilege-user.md"
+    if [ -f "${_lpu}" ]; then
+        _lbody=$(cat "${_lpu}")
+        assert_contains "TP-LPU-07 L-M13 dest fence table" "${_lbody}" "Dest approval fencing conditions (closed)"
+        assert_contains "TP-LPU-07 dest fence is incorrect JSON format" "${_lbody}" "incorrect JSON format"
+        assert_contains "TP-LPU-07 MUST NOT extra dest fence" "${_lbody}" "Who submitted / dest Type 0 self-scope"
+        assert_contains "TP-LPU-07 MUST NOT fence filename subject" "${_lbody}" "Filename subject token"
+    else
+        t_fail "TP-LPU-07 missing requirement-least-privilege-user.md"
     fi
 }

@@ -8,6 +8,30 @@
 
 Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`.
 
+### 1.1 Human-facing
+
+**In one sentence:** This file says **where** the program lives (source, install path, scratch) — not where API tokens live.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Find the script and install copy | `src/dns-cli`, `~/.local/bin/dns-cli` |
+| Vault path | Different file | `requirement-application-local-vault` |
+| Not this file | Backup deposit (this product has none) | No `backup` verb |
+
+| Includes | Excludes |
+|----------|----------|
+| Source + install + scratch | Cloudflare token files |
+| `where-is-me` path truth | `/etc/sudoers.d` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `src/dns-cli` | Ship unit | Source |
+| `~/.local/bin/dns-cli` | Install dest | After `install` |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Ask where the binary is | Prints the install path | `dns-cli where-is-me` |
+
 ---
 
 ## 2. Core Rules (Mandatory)

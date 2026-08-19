@@ -12,6 +12,30 @@ This requirement is the **Single Source of Truth** for **per-subdomain A-record 
 
 Terms: [`cloudflare-dns-mode`](../terminologies/cloudflare-dns-mode.md) · [`cloudflare-dns-non-round-robin-mode`](../terminologies/cloudflare-dns-non-round-robin-mode.md) · [`cloudflare-dns-round-robin-mode`](../terminologies/cloudflare-dns-round-robin-mode.md) · [`cloudflare-dns-mode-switch`](../terminologies/cloudflare-dns-mode-switch.md) · [`subdomain-ipv4-count`](../terminologies/subdomain-ipv4-count.md).
 
+### 1.1 Human-facing
+
+**In one sentence:** Each hostname is either **one A record** (default) or **many A records** (round-robin). You cannot switch mode while two A records already exist.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Switch mode when count is 0 or 1 | `dns-cli vault subdomain mode` |
+| This file | The two modes + lock rule | IPv4 only |
+| Not this | Queued `mode` JSON schema | `requirement-cloudflare-dns-request` |
+
+| Includes | Excludes |
+|----------|----------|
+| non-round-robin vs round-robin | Cloudflare Load Balancing product |
+| Lock when `ipv4_count` ≥ 2 | AAAA |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Stored mode on the subdomain | Vault field | Default behavior of `add` |
+| `dns-cli status` | Command | Shows mode + count |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Allow a second A | Must already be round-robin | `dns-cli add` (fails if locked) |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

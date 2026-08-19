@@ -10,6 +10,30 @@ This requirement is the **project Single Source of Truth** for **idempotency (re
 
 **Informal formula:** for ensure-style operation *f* and system state *x*, **f(f(x)) ≈ f(x)** for the **desired outcome** (logs and timestamps may differ).
 
+### 1.1 Human-facing
+
+**In one sentence:** Running the same **ensure** command twice should leave the same intended result (the A record is still there; the binary is still installed).
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Re-run `install` or `add` | Second `install` says already installed |
+| This file | Re-run safety | `f(f(x)) ≈ f(x)` |
+| Not this | One-shot destroy without confirm | `remove-lpu` still needs `--force` |
+
+| Includes | Excludes |
+|----------|----------|
+| Install / DNS ensure re-runs | Treating confirm-gated destroy as “just run twice” |
+| Same desired outcome | Identical log timestamps |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `dns-cli install` | Command | Second run is a no-op |
+| `dns-cli add` | Command | Same IP → already |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Install again | Should succeed without a second copy | `dns-cli install` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

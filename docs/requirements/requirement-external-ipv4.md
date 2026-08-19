@@ -10,6 +10,30 @@ This requirement is the **Single Source of Truth** for **external (public) IPv4*
 
 `requirement-domain-cloudflare-dns.md` **consumes** this lookup for `add` / `update` / `status`. This file is **not** a second `requirement-domain-*` catalog and **not** vault law.
 
+### 1.1 Human-facing
+
+**In one sentence:** `dns-cli ip` prints your **public IPv4** (or the `--ip` you passed). It does **not** call Cloudflare, and it does **not** accept IPv6.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | See or override the A-record target | `dns-cli ip` / `--ip 203.0.113.10` |
+| Lookup | HTTPS ipinfo `ip` field | Unless `--ip` |
+| Not this | Writing the A record | `dns-cli add` |
+
+| Includes | Excludes |
+|----------|----------|
+| Public IPv4 + `--ip` override | IPv6 / loopback / link-local |
+| Shared helper for add/status | Vault tokens |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `dns-cli ip` | Command | Display only |
+| `--ip V4` | Flag | Skip the network |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Ask “what IP would we publish?” | No Cloudflare, no vault required | `dns-cli ip` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

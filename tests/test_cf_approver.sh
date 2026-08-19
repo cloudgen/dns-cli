@@ -52,6 +52,12 @@ run_test_cf_approver() {
     assert_file_missing "TP-CF-APR-05 json no bashrc" "${_home}/.bashrc"
     assert_file_missing "TP-CF-APR-05 json no profile" "${_home}/.profile"
 
+    _heal=$(sed -n '/^cf_approver_heal_login_rc()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-APR-07 heal aligns rc owner" "${_heal}" "util_align_rc_owner"
+    _align=$(sed -n '/^util_align_rc_owner()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-APR-07 align helper chown" "${_align}" "chown"
+    assert_contains "TP-CF-APR-07 corresponding user" "${_align}" "Corresponding user"
+
     unset CF_TEST_HEAL_RC
     unset CF_APPROVER_USER
     ci_vault_cleanup

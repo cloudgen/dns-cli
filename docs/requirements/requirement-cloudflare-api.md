@@ -10,6 +10,30 @@ This requirement is the **Single Source of Truth** for how dns-cli **talks to th
 
 `requirement-domain-cloudflare-dns.md` **consumes** these calls as the dest for `add` / `update` / `remove` / `status`. `requirement-cloudflare-vault.md` **supplies** token, zone id, and account id. This file is **not** a second `requirement-domain-*` catalog, **not** vault layout, and **not** public-IPv4 lookup.
 
+### 1.1 Human-facing
+
+**In one sentence:** This file is **how dns-cli calls Cloudflare over HTTPS** (Bearer token, A records only) — not where the token is stored, and not your public IPv4 lookup.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Run `add` / `status` | Dest is Cloudflare |
+| Vault | Supplies token + zone id | Never on `curl` argv |
+| Not this | `ip` display | `requirement-external-ipv4` |
+
+| Includes | Excludes |
+|----------|----------|
+| `api.cloudflare.com` v4 + type=A | AAAA / CNAME / TXT |
+| Envelope + zone GET + DNS CRUD | Token in help or JSON |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Cloudflare API | HTTPS | Dest after approve / live `add` |
+| `dns-cli status` | Command | Uses this transport |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Check live A rows | Program talks to Cloudflare; token stays in the vault | `dns-cli status` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

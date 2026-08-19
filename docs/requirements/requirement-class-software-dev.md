@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.5.0 – dns-adm LPU residual owner)  
+**Status**: Active (Version 1.7.0) — MUST review dest fence conditions and convert each Fence to its own REQ  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -9,6 +9,32 @@
 Declare this workspace as a **software-development** project class and hold the **residual collection** of software-engineering stack facts **not already owned** by more specific Active peer requirements: primary language, toolchain policy, package/test tooling, and runtime OS family.
 
 This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycle, output, or storage tables (those stay on peer requirements).
+
+### 1.1 Human-facing
+
+**In one sentence:** This file says dns-cli is a **software product** and keeps leftover stack facts (language, toolchain) that no other requirement owns.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Read class + residual stack | POSIX `/bin/sh`, `python3` for JSON |
+| A more specific file | Owns the real rule once it exists | `requirement-shell-cli-interface` owns the command list |
+| Not this file | Day-to-day install, vault, or DNS verbs | `dns-cli add` |
+
+| Includes | Excludes |
+|----------|----------|
+| Project class = software-development | Server-maintenance class file |
+| Residual language / toolchain until a peer owns them | Full help catalog |
+| MUST consider who dest-approves (or write None) | Inventing an approver |
+| MUST review dest fences and extract each Fence | Leaving a dest Fence as only a table cell |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `docs/requirements/requirement-class-software-dev.md` | This file | Class + residual |
+| `src/dns-cli` | Ship unit | What language the product actually is |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Ask what kind of project this is | Software you install and run, not a host-admin playbook | `dns-cli about` |
 
 ---
 
@@ -64,6 +90,21 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 27. **MUST** put live product name, repo slug, and concrete stack choices in **Implementation Notes** after collection — complete when Status is Active.  
 28. **MUST NOT** store secrets, PATs, or toy credentials in this file.
 
+### 2.8 Actor / role / subject / approver (consider)
+
+29. Every software-development project **MUST** consider an **actor / role / subject / approver** requirement — **even if there is no dest approver**.  
+30. **MUST** either publish Active `requirement-actor-role-subject-approver` (product stem allowed) that prints the five-column table (Submitter immediately before Approver), **or** record in this residual: **considered — no dest approver and no approval subject**.  
+31. **MUST NOT** skip the consider. **MUST NOT** invent an approver so the table looks complete.  
+32. A dest-specific actor table **MAY** exist when dest review is Implemented. That file does **not** replace this consider.
+
+### 2.9 Dest fence conditions (review and convert)
+
+33. Every software-development project **MUST review** whether any dest fencing conditions exist.  
+34. Each dest **Fence** row **MUST** be an independent Active requirement (product stem allowed). Dest fence tables **MUST** still print the closed catalog and **point** at those REQs.  
+35. Dest **MUST NOT** fence rows stay on dest tables only — they are **not** independent fence requirements.  
+36. If none: record in this residual **considered — no dest fence conditions**.  
+37. **MUST NOT** skip the review. **MUST NOT** invent a dest fence so the set looks complete.
+
 ### 2.7 Implementation Notes (this project)
 
 | Field | Value (dns-cli) |
@@ -87,7 +128,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
 | **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
-| **Product version SSOT** | `VERSION="1.4.0"` hard-assign in `src/dns-cli` |
+| **Product version SSOT** | `VERSION="1.9.7"` hard-assign in `src/dns-cli` |
 | **Bootstrap origin** | **A = `cli-template`** (hop 0, sibling origin). **This product is B = `dns-cli` (hop 1).** |
 
 **Residual ownership table:**
@@ -107,6 +148,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
+| Actor / role / subject / approver consider | `requirement-actor-role-subject-approver` | MUST consider even if no approver; dest who stays on `requirement-dns-actor-table` |
+| Dest fence conditions review | `requirement-incorrect-json-format` | Converted dest **Fence** row; dest tables still print the catalog |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
 | JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Two kinds: `type-2-switch` (Type 0 submit) and `login-hook-elev` (setup auto-queue); `print-sudoers` is three-layer + this file’s peer; this product **MUST NOT** write `/etc/sudoers.d` |
 | Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
@@ -150,7 +193,9 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 5. Leave Implementation Notes as hollow stubs when Status claims Active.  
 6. Reintroduce Active **online-install** / remote **self-update** / **self-uninstall** / channel **checksum** law without explicit user order (product is **local-only** by design).  
 7. Treat this file as server-maintenance allowlist law, or register an Active server-maintenance class file in parallel.  
-8. Invent a second primary language SSOT that contradicts peer modular/CLI requirements.
+8. Invent a second primary language SSOT that contradicts peer modular/CLI requirements.  
+9. Skip the actor / role / subject / approver consider, or invent an approver so the table looks complete.  
+10. Skip dest-fence review, leave a dest **Fence** as only a table cell, or invent a dest fence so the set looks complete.
 
 **Violating any of these is considered a critical regression.**
 
@@ -167,6 +212,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | AC-5 | No class file conflict with `requirement-class-server-maintenance` |
 | AC-6 | Ship unit identity (posix-sh single-file, local install) consistent with peer shell REQs |
 | AC-7 | Online install package **absent** from Active registry by design |
+| AC-8 | Actor / role / subject / approver considered (Active catalog REQ or residual **None**) |
+| AC-9 | Dest fence conditions reviewed (independent REQ per **Fence**, or residual **none**) |
 
 ---
 
@@ -181,6 +228,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-least-privilege-user` | `dns-adm` F1–F7 |
 | `requirement-three-layer-privilege-model` | Type map + Tables A/B/C |
 | `requirement-project-folder` | Layout and install locations |
+| `requirement-actor-role-subject-approver` | Actor / role / subject / approver catalog (consider even if no approver) |
+| `requirement-incorrect-json-format` | Independent dest **Fence** REQ (this product’s dest refuse reason) |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
 | `requirement-shell-cli-zero-arguments` | Type N empty argv |
 | `requirement-shell-local-self-management` | Local install lifecycle |
@@ -201,11 +250,13 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |
 | 2026-08-13 | Active 1.2.0 | Bootstrap origin = selfmanaged; folder-backup hop retired (no longer maintain bootstrap from it) |
 | 2026-08-13 | Active 1.3.0 | This product is hop 0; selfmanaged is not origin |
+| 2026-08-19 | Active 1.7.0 | MUST review dest fence conditions; each Fence row is an independent REQ |
+| 2026-08-19 | Active 1.6.0 | MUST consider actor / role / subject / approver even if no dest approver |
 | 2026-08-17 | Active 1.5.0 | Privilege residual → LPU + three-layer (`dns-adm`) |
 | 2026-08-16 | Active 1.4.0 | Specialize B = dns-cli; domain + vault residual owners; curl + python3/jq |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-19  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

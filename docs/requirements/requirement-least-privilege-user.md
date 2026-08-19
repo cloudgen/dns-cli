@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.6.0) — law Active; host create **Implemented**; Type 2 switch **Implemented**; DNS inbound trio F4/F5 (1.9.0)  
+**Status**: Active (Version 1.11.0) — dest Fence row points at `requirement-incorrect-json-format`  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -15,6 +15,30 @@ Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `
 `dns-adm` **is** the approver for inbound DNS request JSON (`requirement-dns-actor-table`). Approval-subject: Cloudflare DNS request (`add` / `update` / `remove` / `mode`). **Anyone** may submit. **MUST NOT** invent a second approver account. Login-hook heal (`.bashrc` / missing `.profile`) is `requirement-dns-approver`.
 
 `dns-adm` **is not** the sudoer-JSON approver. Print sudoer file (`print-sudoers`) and JSON generate/submit roles live in `requirement-sudoer-json-file` §2.0. Sibling approver is **`sudoer-adm`**.
+
+### 1.1 Human-facing
+
+**In one sentence:** **`dns-adm`** is the dedicated account that **owns the Cloudflare vault** and **approves inbound DNS JSON**. A host admin creates it once with `sudo dns-cli setup`.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| Host admin | Creates the account | `sudo dns-cli setup` |
+| `dns-adm` | Holds tokens; approves DNS files | vault + `interactive` |
+| Not this | Sibling sudoer approver | `sudoer-adm` |
+
+| Includes | Excludes |
+|----------|----------|
+| Who `dns-adm` is (home, vaults child, sudoers fragment dest) | Inventing `dns-apr` |
+| Setup does **not** `chown` sibling inbound | Writing `/etc/sudoers.d` |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `sudo dns-cli setup` | Command | Create / heal account |
+| `dns-adm` home | Directory | Vault + hook |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| First-time host prepare | Password sudo / already root | `sudo dns-cli setup` |
 
 ---
 
@@ -102,13 +126,28 @@ Absent account → success no-op.
 | F5 vault dir | `mkdir` `0700` | goes with home via `userdel -r` |
 | F6 dest | `visudo -c` + install `0440` | backup + unlink dest |
 
-**L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, and login-hook rc.
+**L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, and login-hook rc. After any create or modify of that home’s `.bashrc` / `.profile` (and the same rc class), dest **MUST** align **shell-rc file ownership** to **`dns-adm`**. Writer euid **MUST NOT** remain the owner. This is **not** queue file-ownership (L-M13).
 
-**L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`.
+**L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`.
 
 **L-M11. Submit vs setup door.** Who may **submit**: current login, Type 0, no sudo, `type-2-switch` only. Who may **setup**: host admin, Type 1, password `sudo` / already root. **MUST NOT** confuse them. Dest approval does **not** test who submitted.
 
 **L-M12. Three dests.** Setup/account create queues hook JSON; after approve the dest is `/etc/sudoers.d/dns-cli-dns-adm`. Type 0 submit after approve is `/etc/sudoers.d/dns-cli-<invoker>`. F6 is `/etc/dns-adm/sudoers`. Type 2 default-ops grant is F6 or the **invoker** file — **not** `dns-cli-dns-adm`. **MUST NOT** describe setup as writing `dns-cli-leolio`.
+
+**L-M13. Queue ownership.** `setup` **MUST NOT** `chown` dest inbound JSON to `dns-adm` (or any subject). Dest **`sudoer-adm`** takes file-ownership. The JSON username field is **not** the Unix owner. DNS `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any queue move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST** take file-ownership of inbound as `dns-adm` **at the beginning**, then review (`requirement-dns-actor-table` ACT-M4 / ACT-M6). Incident **INC-20260818-003**.
+
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+
+| Condition | Dest approve / reject / review |
+|-----------|--------------------------------|
+| **Incorrect JSON format** | **Fence** — fail closed. Independent REQ: `requirement-incorrect-json-format` |
+| File-ownership | **MUST NOT** fence — take ownership as dest LPU |
+| Who submitted / dest Type 0 self-scope | **MUST NOT** fence |
+| JSON username field ≠ dest LPU | **MUST NOT** fence |
+| Filename subject token ≠ JSON username field | **MUST NOT** fence — user SSOT is the JSON field |
+| Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is the JSON username field. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8 · SJ-M5.
 
 ### 2.8 Implementation Notes (this project)
 
@@ -158,7 +197,8 @@ Absent account → success no-op.
 7. Store tokens in the invoking user’s XDG tree as the **default** production vault.  
 8. Fix a UID/GID in core rules as if every host shared it.  
 9. Invent a second approver leaf after this redesign — `dns-adm` **is** the approver.  
-10. Dump glossary/skill paths into this file.
+10. Dump glossary/skill paths into this file.  
+11. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON username ≠ dest LPU).
 
 **Violating this rule is a critical least-privilege identity regression.**
 
@@ -172,6 +212,9 @@ Absent account → success no-op.
 | AC-L2 | Re-`setup` is success no-op + heal |
 | AC-L2a | `setup` writes `login-hook-elev` inbound when sibling dest exists; skips when missing |
 | AC-L2b | Dest Type 0 self-scope does not apply to `setup` (SJ-M3 / L-M11) |
+| AC-L2c | `setup` does not `chown` dest inbound (SJ-M5 / L-M13) |
+| AC-L2d | After setup rc heal, `.bashrc` / `.profile` owner is `dns-adm` (shell-rc-file-ownership; L-M9) |
+| AC-L2d | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (L-M13) |
 | AC-L3 | Default vault I/O as non-`dns-adm` context-switches or fails `lpu_required` |
 | AC-L4 | `--vault-dir` works without the LPU (QA) |
 | AC-L5 | `remove-lpu` does not run from Type 0 `uninstall` |
@@ -203,6 +246,7 @@ Absent account → success no-op.
 | **TP-LPU-04** | `tests/test_cf_lpu.sh` | have | `--vault-dir` without LPU still works |
 | **TP-LPU-05** | `tests/test_cf_lpu.sh` | have | `uninstall` does not `userdel` |
 | **TP-LPU-06** | `tests/test_cf_lpu.sh` | have | `remove-lpu` without `--force` in JSON → `confirm_required` |
+| **TP-LPU-07** | `tests/test_cf_lpu.sh` | have | L-M13 dest inbound fence is incorrect JSON format only |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -213,6 +257,11 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-19 | Active 1.11.0 | Dest Fence row points at `requirement-incorrect-json-format` |
+| 2026-08-19 | Active 1.10.0 | L-M13 user SSOT is the JSON username field, not the filename token |
+| 2026-08-19 | Active 1.9.0 | L-M13 login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** |
+| 2026-08-18 | Active 1.8.0 | L-M13 dest approval fencing conditions closed: incorrect JSON format only |
+| 2026-08-18 | Active 1.7.0 | L-M13 setup MUST NOT `chown` dest inbound; DNS queue move `chown`s first (INC-20260818-003) |
 | 2026-08-18 | Active 1.6.0 | F4 inbound view + F5 `/var/dns-cli/` trio (1.9.0 DNS inbound) |
 | 2026-08-18 | Active 1.5.0 | L-M12 three dests: setup → `dns-cli-dns-adm`; Type 0 submit → `dns-cli-<invoker>` |
 | 2026-08-18 | Active 1.4.0 | Type 2 default-vault switch Implemented (1.8.2 / TP-LPU-03) |
@@ -224,6 +273,6 @@ Absent account → success no-op.
 
 ---
 
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-08-19  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

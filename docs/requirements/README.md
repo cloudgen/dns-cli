@@ -10,7 +10,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 |-------|--------|
 | Product / `APP_NAME` (law) | `dns-cli` |
 | Live Config | `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| Version SSOT | `1.2.0` |
+| Version SSOT | `1.9.7` |
 | Ship unit (live) | `src/dns-cli` |
 | Default install | `~/.local/bin/dns-cli` |
 | Install mode | **Local-only** |
@@ -18,7 +18,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 | Type map / elev | `requirement-three-layer-privilege-model` — **Implemented** |
 | Domain SSOT | `requirement-domain-cloudflare-dns` — v2 Implemented |
 | A-record mode | `requirement-cloudflare-dns-mode` — default non-round-robin; stored mode **Implemented** |
-| DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0) |
+| DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0); queue-move `chown` (1.9.1); login-hook take-ownership-at-beginning (1.9.2) |
 | External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
 | Application local vault (path + specify) | `requirement-application-local-vault` — specify + default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` **Implemented** (1.8.0) |
 | Vault law (schema / verbs) | `requirement-cloudflare-vault` 2.4.0 — zone-slot add/list/modify/remove; `{label, mode}`; v2 **Implemented** (1.2.0) |
@@ -35,6 +35,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 
 - **Plan** designs work by reading and updating these docs.  
 - **Implement** delivers code that **traces** to these requirements.  
-- **Review** verifies delivery against requirements and CIAO checklists.
+- **Review** verifies delivery against requirements and CIAO checklists.  
+- Every `requirement-*.md` **MUST** include **§1.1 Human-facing** (one sentence, three boxes, includes/excludes, surfaces, practice). Lead with people and folders, not Type 0 / Type 1 / euid / F6 as the only words.
 
 v2 vault CRUD, stored A-record mode, Type 1 `setup`, default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`, Type 2 `sudo -u dns-adm` switch, and inbound DNS `submit` / `approve` / `reject` / `interactive` are **Implemented**.

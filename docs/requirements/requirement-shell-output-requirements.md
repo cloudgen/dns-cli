@@ -10,6 +10,30 @@ This requirement is the **project Single Source of Truth** for **all CLI output*
 
 This product owns the `out_*` family. Domain messages **MUST** use the same family. **MUST NOT** print API tokens.
 
+### 1.1 Human-facing
+
+**In one sentence:** Everything you **see** from dns-cli goes through `out_*` — humans get lines, machines get one JSON object, and **tokens never print**.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Read status or errors | `[OK]` / `[ERROR]` |
+| `--json` | One object on stdout | `{"type":"about",…}` |
+| Not this | Cloudflare HTTP bodies as user text | Envelope stays internal |
+
+| Includes | Excludes |
+|----------|----------|
+| `out_*` only | Raw `echo` of product messages |
+| Quiet / JSON / debug modes | Printing the API token |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Terminal | Human lines | Default |
+| `dns-cli --json about` | Machine | One JSON object |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Script the CLI | Parse one JSON object | `dns-cli --json version` |
+
 ---
 
 ## 2. Core Rules / Requirements (Mandatory)

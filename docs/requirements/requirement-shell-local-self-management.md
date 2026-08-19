@@ -10,6 +10,31 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 
 **Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
 
+### 1.1 Human-facing
+
+**In one sentence:** You **copy** dns-cli onto your PATH with `install`, **remove** that copy with `uninstall`, and **ask where it is** with `where-is-me`. There is no internet update channel.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Place or remove the local binary | `dns-cli install` |
+| This file | Those three verbs + local diagnostics | `version` / `about` / `help` wiring |
+| Not this | Create `dns-adm` or write sudoers | `sudo dns-cli setup` |
+
+| Includes | Excludes |
+|----------|----------|
+| `install` / `uninstall` / `where-is-me` | `self-update` / `self-uninstall` / `curl\|sh` |
+| Local `~/.local/bin/dns-cli` | Remote version-check |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| `~/.local/bin/dns-cli` | Installed copy | After install |
+| `dns-cli where-is-me` | Command | Path truth |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Put the program on your PATH | Copies `src/dns-cli` to user bin | `dns-cli install` |
+| Take it off PATH | Deletes that copy; does not delete `dns-adm` | `dns-cli uninstall --force` |
+
 ---
 
 ## 2. Core Rules (Mandatory)

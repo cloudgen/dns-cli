@@ -1,18 +1,42 @@
 **file**: docs/requirements/requirement-cloudflare-dns-request.md  
-**Status**: Active (Version 1.1.0) — four types; submit/approve **Implemented** (1.9.0)  
+**Status**: Active (Version 1.6.0) — dest-written `submit_by` after interactive format check  
 **Area**: domain  
 **Key**: `requirement-cloudflare-dns-request`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **Single Source of Truth** for **Cloudflare DNS request** JSON: how many types exist, the closed schema, and **complete examples** for each type (and its mode-specific variants).
+This requirement is the **Single Source of Truth** for **Cloudflare DNS request** JSON: how many types exist, the closed schema, and **complete examples** for each type (and its mode-specific variants). Dest review of those files is the **[cloudflare-dns-approval-system](../terminologies/cloudflare-dns-approval-system.md)** leaf.
 
 There are **exactly four** [request-types](../terminologies/cloudflare-dns-request-type.md): `add`, `update`, `remove`, `mode`.
 
 `requirement-domain-cloudflare-dns.md` **consumes** these bodies when a submit/approve surface exists. Approve **maps** to existing verbs (`add` / `update` / `remove` / `vault subdomain mode`) and **MUST** follow `requirement-cloudflare-dns-mode` + `requirement-cloudflare-api`. This file is **not** a second `requirement-domain-*`, **not** vault layout, and **not** zone create.
 
 Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) · [`cloudflare-dns-request-type`](../terminologies/cloudflare-dns-request-type.md) · [`cloudflare-dns-request-basename`](../terminologies/cloudflare-dns-request-basename.md).
+
+### 1.1 Human-facing
+
+**In one sentence:** A waiting request is a **JSON file** with exactly one action — `add`, `update`, `remove`, or `mode` — and **no API token** in the file.
+
+| Box | Meaning | Example |
+|-----|---------|---------|
+| You | Write a self-scoped JSON and `submit` | `dns-cli submit ./req.json` |
+| Approver | Re-checks the same schema | `dns-cli approve` |
+| Not this | Who may approve | `requirement-dns-actor-table` |
+
+| Includes | Excludes |
+|----------|----------|
+| Four actions + complete examples | A fifth action |
+| Closed keys / IPv4 only | `token` key / IPv6 |
+
+| Surface | What you open | What for |
+|---------|---------------|----------|
+| Inbound folder | `/var/dns-cli/dns-request` | Waiting files |
+| This file §2.5 | Examples | Copy-paste bodies |
+
+| You do… | What it means | What you type |
+|---------|---------------|---------------|
+| Queue a change | File must match these examples | `dns-cli submit ./home-add.json` |
 
 ---
 
@@ -47,6 +71,8 @@ Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) ·
 | `subdomain` | LDH host-label or `@` |
 
 **MUST NOT** include `token`, `CF_API_TOKEN`, `user_id` secrets, or any AAAA / IPv6 field. Unknown keys → `request_invalid`. Token stays in the vault.
+
+**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` as an allowed key, not unknown.
 
 **REQ-M4.** IPv4 fields (`ipv4`, `from_ipv4`) **MUST** be dotted-quad public IPv4 per `requirement-external-ipv4` IP-M4. IPv6 literal → `ip_lookup_failed` / `request_invalid`.
 
@@ -203,19 +229,34 @@ Basename: `20260817-alice-mode-2.json`
 
 ### 2.6 Verify (when submit/approve is implemented)
 
-**REQ-M7.** Verify **MUST** fail closed on: unknown `action`; `action` ≠ basename type; missing required field; forbidden extra; invalid IPv4; IPv6; unknown key; `mode` value not the two canonical strings; token present; `schema_version` ≠ 1.
+**REQ-M7.** Verify **MUST** fail closed on: unknown `action`; `action` ≠ basename type; missing required field; forbidden extra; invalid IPv4; IPv6; unknown key; `mode` value not the two canonical strings; token present; `schema_version` ≠ 1. Dest **MUST NOT** fail because the filename subject token ≠ JSON `subject` — user SSOT is JSON `subject`.
 
 **REQ-M8.** Approve **MUST** re-run verify, then apply the dest in §2.1. **MUST NOT** `POST /zones`. Empty argv **MUST NOT** submit or approve.
+
+**REQ-M9. Queue move assumes prior ownership change.** Type 0 `submit` **MUST NOT** `chown` inbound. `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any inbound → accepted/declined move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST**, at the beginning, read original file-ownership, take ownership as `dns-adm`, review JSON format, and if correct add `submit_by` = that original owner, then **fence first** for the yes/no walk (this file-based JSON system **MUST** include incorrect JSON format). A fence match **MUST** be displayed in human-facing words; dest **MUST NOT** ask yes/no for that file. Queue move assumes that previous ownership change. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Peer: `requirement-dns-actor-table` ACT-M4 / ACT-M6 / ACT-M7.
+
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+
+| Condition | Dest approve / reject / interactive |
+|-----------|-------------------------------------|
+| **Incorrect JSON format** | **Fence** — fail closed. Independent REQ: `requirement-incorrect-json-format` |
+| File-ownership | **MUST NOT** fence — take ownership as `dns-adm` |
+| Who submitted / dest Type 0 self-scope | **MUST NOT** fence |
+| JSON `subject` ≠ `dns-adm` | **MUST NOT** fence |
+| Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
+| Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail (`schema_version` 1, unknown keys, missing required, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8.
 
 ### 2.7 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.9.0** — request inbox **Implemented** |
+| **Ship unit** | `src/dns-cli` **1.9.7** — dest interactive dest-writes `submit_by` after format check |
 | **Types** | 4: `add` `update` `remove` `mode` |
 | **Inbound** | `/var/dns-cli/dns-request` (public 3773); JSON only |
-| **Proof** | **TP-CF-REQ-01..08** have |
+| **Proof** | **TP-CF-REQ-01..09** have |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -242,7 +283,11 @@ Basename: `20260817-alice-mode-2.json`
 3. Treat `status` / `ip` / `--force` collapse / `vault account add` as a request-type.  
 4. Use a `mode` request to create or delete A rows.  
 5. Register this file as `requirement-domain-*`.  
-6. Claim request submit/approve Implemented while the ship unit has no inbound queue.
+6. Claim request submit/approve Implemented while the ship unit has no inbound queue.  
+7. Move inbound → accepted/declined **without** a prior `chown` to `dns-adm`.  
+8. `chown` inbound DNS JSON from Type 0 `submit`.  
+9. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `subject` ≠ `dns-adm`).  
+10. Start login-hook `interactive` review **without** first taking inbound file-ownership as `dns-adm`.
 
 **Violating this rule is a critical request-schema regression.**
 
@@ -260,7 +305,9 @@ Basename: `20260817-alice-mode-2.json`
 | AC-REQ6 | `mode` with `ipv4` present → `request_invalid` |
 | AC-REQ7 | `mode` when `ipv4_count`≥2 → `dns_mode_locked` |
 | AC-REQ8 | IPv6 in `ipv4` / `from_ipv4` → fail closed |
-| AC-REQ9 | Stay-honest: inbound submit/approve **Implemented** on 1.9.0 |
+| AC-REQ9 | Stay-honest: inbound submit/approve **Implemented** on 1.9.0; queue-move `chown` on 1.9.1; login-hook take-ownership-at-beginning on 1.9.2 |
+| AC-REQ10 | Approve/reject `chown` to `dns-adm` before move; login-hook `interactive` takes inbound ownership **at the beginning**; submit does not (REQ-M9) |
+| AC-REQ11 | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (REQ-M9) |
 
 ---
 
@@ -290,7 +337,12 @@ Basename: `20260817-alice-mode-2.json`
 | **TP-CF-REQ-05** | `tests/test_cf_dns.sh` | todo | parse/accept both `mode` examples |
 | **TP-CF-REQ-06** | `tests/test_cf_dns.sh` | todo | unknown action / extra key fail |
 | **TP-CF-REQ-07** | `tests/test_cf_dns.sh` | todo | IPv6 / token in body fail |
-| **TP-CF-REQ-08** | `tests/test_cf_dns.sh` | todo | `mode` + ipv4 extra fail |
+| **TP-CF-REQ-08** | `tests/test_cf_request.sh` | have | `mode` + ipv4 extra fail |
+| **TP-CF-REQ-09** | `tests/test_cf_request.sh` | have | `cf_req_move` `chown`s to LPU before `mv`; skip in test mode |
+| **TP-CF-REQ-10** | `tests/test_cf_request.sh` | have | REQ-M9 dest inbound fence is incorrect JSON format only |
+| **TP-CF-REQ-11** | `tests/test_cf_request.sh` | have | login-hook `interactive` takes inbound ownership at the beginning |
+| **TP-CF-REQ-14** | `tests/test_cf_request.sh` | have | user SSOT is JSON `subject`; dest MUST NOT fence on filename token |
+| **TP-CF-REQ-15** | `tests/test_cf_request.sh` | have | interactive records original owner; dest-writes `submit_by` if format is clear |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -301,10 +353,16 @@ Basename: `20260817-alice-mode-2.json`
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-19 | Active 1.6.0 | REQ-M3a dest-written `submit_by` after interactive format check |
+| 2026-08-19 | Active 1.5.0 | REQ-M9 user SSOT is JSON `subject`, not the filename token |
+| 2026-08-19 | Active 1.4.0 | REQ-M9 login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** |
+| 2026-08-18 | Active 1.3.0 | REQ-M9 dest approval fencing conditions closed: incorrect JSON format only |
+| 2026-08-18 | Active 1.2.0 | REQ-M9 queue move `chown`s to `dns-adm` first; submit MUST NOT (INC-20260818-003) |
+| 2026-08-18 | Active 1.1.0 | submit / approve Implemented (1.9.0) |
 | 2026-08-17 | Active 1.0.0 | Four request-types + eight complete JSON examples |
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-19  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

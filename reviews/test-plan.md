@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.6.0  
-**Last plan update:** 2026-08-18  
-**Last suite run:** PASS=425 FAIL=0 SKIP=0 (2026-08-18)
+**Product VERSION:** 1.9.7  
+**Last plan update:** 2026-08-19  
+**Last suite run:** PASS=599 FAIL=0 SKIP=0 (2026-08-19)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -27,6 +27,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | LPU `dns-adm` / Type 1 setup | have | TP-LPU-* / TP-PRIV-01..04 |
 | JSON sudoer generate / submit | have | TP-SUDOER-JSON-* / TP-PRIV-05..09 |
 | Dual mention (CI-M1) | have | TP-CLI-14 |
+| Human-intro standard on every REQ | have | TP-CLI-16 |
 | Role tables stay split | have | TP-PRIV-09 · TP-SUDOER-JSON-09 · TP-CF-ACTOR-07 |
 | Multi-account vault (v2) | have | TP-CF-VAULT-18..33 |
 | A-record mode (stored + switch) | have | TP-CF-MODE-01..08 (09/10 partial) |
@@ -58,6 +59,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-13 | backup/restore/sudoers verbs unknown | test_cli | requirement-bootstrap-chain · interface | **have** |
 | TP-CLI-14 | Dual mention: each routed verb in ≥2 REQs (CLI + topic-owner) | test_cli | requirement-shell-cli-interface CI-M1 | **have** |
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
+| TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
 
 ### TP-CF-ACTOR (submit / approve actors)
 
@@ -70,6 +72,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-ACTOR-05 | help lists those verbs | test_cli | requirement-dns-actor-table · interface | **have** |
 | TP-CF-ACTOR-06 | empty argv is help | test_cli (TP-CLI-07) | requirement-dns-actor-table · zero-arguments | **have** |
 | TP-CF-ACTOR-07 | actor table MUST NOT absorb printer / submit-sudoer-request / sudoer-adm | test_cli | requirement-dns-actor-table ACT-M3a | **have** |
+| TP-CF-ACTOR-08 | dest MUST NOT fence on file-ownership (ACT-M7) | test_cli | requirement-dns-actor-table ACT-M7 | **have** |
+| TP-CF-ACTOR-09 | dest inbound fence is incorrect JSON format (ACT-M8) | test_cli | requirement-dns-actor-table ACT-M8 | **have** |
 
 ### TP-CF-APR (approver hook heal)
 
@@ -78,6 +82,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-APR-01 | interactive approver heals `.bashrc` hook | `tests/test_cf_approver.sh` | requirement-dns-approver | **have** |
 | TP-CF-APR-02 | missing `.profile` created and sources `.bashrc` | test_cf_approver | requirement-dns-approver | **have** |
 | TP-CF-APR-03 | existing `.profile` not overwritten | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-07 | rc heal aligns owner to corresponding user | test_cf_approver | requirement-dns-approver APR-M4 · term shell-rc-file-ownership | **have** |
 | TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-dns-approver | **have** |
 | TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-dns-approver | **have** |
 | TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-dns-approver | **have** |
@@ -147,6 +152,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-AV-05 | `help` lists `--vault-dir` and `CF_VAULT_DIR` | test_cf_vault | requirement-application-local-vault | **have** |
 | TP-AV-06 | specified vault works when `HOME=/tmp` | test_cf_vault | requirement-application-local-vault | **have** |
 | TP-AV-07 | no specify + no LPU → `lpu_missing` | test_cf_vault | requirement-application-local-vault | **have** |
+| TP-AV-08 | dest is local vaults; Type 2 dest is global vault from ordinary login | test_cli | requirement-application-local-vault AV-M11 | **have** |
 
 ### TP-LPU (dns-adm account)
 
@@ -158,6 +164,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LPU-04 | `--vault-dir` without LPU still works | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **have** |
 | TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
+| TP-LPU-07 | dest inbound fence is incorrect JSON format (L-M13 table) | test_cf_lpu | requirement-least-privilege-user L-M13 | **have** |
 
 ### TP-PRIV (Type map / fragment)
 
@@ -172,6 +179,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-PRIV-07 | submit stub inbound; no `/etc/sudoers.d` write | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-PRIV-08 | refuse OS-tool / runas-root grant | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-PRIV-09 | three-layer §2.1a role table present (printer / generator / submitter) | test_cf_lpu | requirement-three-layer-privilege-model AC-P7 | **have** |
+| TP-PRIV-10 | dest inbound fence is incorrect JSON format (P-M13 table) | test_cf_lpu | requirement-three-layer-privilege-model P-M13 | **have** |
 
 ### TP-SUDOER-JSON (JSON grant body)
 
@@ -190,6 +198,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-SUDOER-JSON-14 | setup skips auto-submit when sibling missing | test_cf_lpu | requirement-sudoer-json-file · LPU | **have** |
 | TP-SUDOER-JSON-15 | law names both kinds | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-17 | law names switch dest ≠ hook dest ≠ F6 | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-18 | setup hook write does not `chown`; law names SJ-M5 | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
+| TP-SUDOER-JSON-19 | dest MUST NOT fence on file-ownership | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
+| TP-SUDOER-JSON-20 | dest inbound fence is incorrect JSON format | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
 
 ### TP-CF-DNS (Cloudflare DNS + ipinfo)
 
@@ -232,6 +243,17 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-REQ-06 | unknown action / extra key fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
 | TP-CF-REQ-07 | IPv6 or token in body fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
 | TP-CF-REQ-08 | `mode` plus `ipv4` fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-09 | `cf_req_move` `chown`s to LPU before `mv`; skip in test mode | test_cf_request | requirement-dns-actor-table ACT-M6 | **have** |
+| TP-CF-REQ-10 | dest inbound fence is incorrect JSON format (REQ-M9 table) | test_cf_request | requirement-cloudflare-dns-request REQ-M9 | **have** |
+| TP-CF-REQ-11 | login-hook `interactive` takes inbound ownership at the beginning | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-dns-approver APR-M3 | **have** |
+| TP-CF-REQ-12 | approval question is one-off `prompt_yes_no` (yes=approve, no=reject) | test_cf_request | requirement-dns-actor-table ACT-M4 · term approval-question | **have** |
+| TP-CF-REQ-13 | dest fence first; human-facing match; no question on match | test_cf_request | requirement-dns-actor-table ACT-M4 · ACT-M8 · term approval-system | **have** |
+| TP-CF-REQ-14 | user SSOT is JSON `subject`; dest MUST NOT fence on filename token | test_cf_request | requirement-dns-actor-table ACT-M8 · requirement-cloudflare-dns-request REQ-M9 · term json-username-field | **have** |
+| TP-CF-REQ-15 | interactive records original owner; dest-writes `submit_by` if format is clear | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-cloudflare-dns-request REQ-M3a | **have** |
+| TP-ARSA-01 | software-dev class MUST consider actor / role / subject / approver even if no dest approver | test_cli | requirement-class-software-dev | **have** |
+| TP-ARSA-02 | catalog prints Actor / Role / Subject / Submitter / Approver; anyone or the actor itself | test_cli | requirement-actor-role-subject-approver | **have** |
+| TP-FENCE-01 | software-dev class MUST review dest fences; each Fence is an independent REQ or residual none | test_cli | requirement-class-software-dev §2.9 · AC-9 | **have** |
+| TP-FENCE-02 | requirement-incorrect-json-format exists; dest tables point at it | test_cli | requirement-incorrect-json-format · requirement-dns-actor-table | **have** |
 
 ### TP-CF-LIVE (optional real zone — invoking user)
 
