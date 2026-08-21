@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "purpose": "Add A for www.example.com",
+  "subject": "alice",
+  "action": "add",
+  "submit_app": "dns-cli",
+  "submit_version": "1.12.0",
+  "domain_id": "example.com",
+  "subdomain": "www",
+  "ipv4": "203.0.113.10"
+}

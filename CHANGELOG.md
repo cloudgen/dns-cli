@@ -5,7 +5,30 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.12.0] - 2026-08-21
+
+### Added
+
+- Dest-owned JSON keys **`submit_app`** / **`submit_version`**: Type 0 `submit` stamps live Config `APP_NAME` / `VERSION` (overwrite on queue). Dest format-fences missing or non-string values. Dest **MUST NOT** fence if the values ≠ dest product or dest version. Dest interactive prints `queued by {app} {version}` before yes/no. Dest **MUST NOT** dest-write those keys. Sudoer generate/submit emit the same keys after sibling dest allowlists them. Law **IJF-M8** / **IJF-M9** 1.4.0. **TP-FENCE-16** · **TP-FENCE-17** · **TP-CF-REQ-17**. Ship unit **`VERSION="1.12.0"`**.
+
+### Changed
+
+- Incident **INC-20260821-001**: live sibling dest `/etc/sudoers.d/dns-cli-dns-adm` granted a test `.ci-homes/…/gbin/dns-cli` path. `dns-adm` login `sudo -n` of `/usr/local/bin/dns-cli interactive` failed (`a password is required`). Law already requires `commands[].path` = `/usr/local/bin/dns-cli`. Emit still copies `$GLOBAL_BIN`. This product still **MUST NOT** rewrite `/etc/sudoers.d`.
+- Dest **approval fencing conditions** catalog is an independent requirement: `requirement-approval-fencing-condition`. Dest tables still print and **point**. Dest **Fence** meaning stays `requirement-incorrect-json-format`.
+- Dest JSON format is **dest-owned**. Sudoer dest allowlist **MUST** treat `kind` (`type-2-switch` \| `login-hook-elev`) as a **known** key, not unexpected. File-ownership dest-writes `submit_by` **after** format; dest **MUST NOT** convert file-ownership into `kind`. Incident **INC-20260819-001**. **TP-FENCE-03** · **TP-FENCE-04** · **TP-FENCE-05** · **TP-FENCE-06** · **TP-SUDOER-JSON-21** · **TP-CF-REQ-16**. Live dest unknown-key remains **TP-FENCE-07** skip until sibling dest allowlists `kind`.
+
+## [1.11.0] - 2026-08-21
+
+### Added
+
+- Type 0 **test-purpose** `fence-test`: unit test of dest fence functions against a JSON **file location** in a **local test folder** (`stdin` xor `--file PATH` xor `--dir DIR`; `--expect-match` with `--dir`). **No sudo** except wrap chmod/chown of that folder. Does **not** queue. Help lists testers apart from operational inbound. Closed dest list is still **incorrect JSON format** only. Corpus: `tests/fixtures/fence-test/{pass,match}/`. **TP-FENCE-09..15**. Sibling review: `sudoer-cli` 1.15.x.
+
+## [1.10.0] - 2026-08-20
+
+### Added
+
+- Type 0 `test-json-format` dest Fence tester (`stdin` xor `--file`; no queue). Dest `interactive` moves a fence match to **declined** without asking yes/no.
+- Specialized law from sibling sudoer-cli (no domain copy): `requirement-shell-script-coding`, `requirement-shell-sudo-command`, `requirement-shell-prompt`, `requirement-shell-temp-file-system`, `requirement-privilege-prevention-set`. Class residual **points**. Type 2 stays open.
 
 ## [1.9.7] - 2026-08-19
 

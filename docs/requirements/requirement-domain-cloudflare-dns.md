@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-cloudflare-dns.md  
-**Status**: Active (Version 2.8.0) — dest MUST NOT fence on filename subject token; user SSOT is JSON `subject`  
+**Status**: Active (Version 2.9.0) — Type 0 **test-purpose** `fence-test`; help lists testers apart from operational  
 **Area**: domain  
 **Key**: `requirement-domain-cloudflare-dns`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -48,7 +48,7 @@ The **actor table** (anyone submits; `dns-adm` approves; allocator / root) and t
 
 Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Implemented** on ship unit 1.9.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST** list those verbs now that they are routed (D-M7).
 
-**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Owner: `requirement-dns-actor-table` ACT-M8.
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`. Dest who reprint: `requirement-dns-actor-table` ACT-M8.
 
 | Condition | Dest approve / reject / interactive |
 |-----------|-------------------------------------|
@@ -58,6 +58,7 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 | JSON `subject` ≠ `dns-adm` | **MUST NOT** fence |
 | Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
 ### 2.1 Specialized CLI subcommands (pillar 1)
 
@@ -70,9 +71,11 @@ Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bash
 | `remove` | Type 2 / Type 0 specify | `cf_dns_*` | Delete the targeted A; absent → success no-op (round-robin N>1 needs `--ip`) |
 | `status` | Type 2 / Type 0 specify | `cf_dns_*` | **Read-only**: public IPv4 + **real resolver A lookup** + Cloudflare A set + `mode` / `ipv4_count` |
 | `show` | Type 2 / Type 0 specify | `cf_dns_*` | Alias of `status` |
-| `submit` | Type 0 | Implemented | Drop request JSON into inbound (`requirement-dns-actor-table`) |
-| `approve` / `reject` | Type 1 | Implemented | Re-validate and move inbound → accepted/declined |
-| `interactive` | Type 1 | Implemented | TTY review loop; login hook target |
+| `submit` | Type 0 **operational** | Implemented | Drop request JSON into inbound (`requirement-dns-actor-table`) |
+| `approve` / `reject` | Type 1 **operational** | Implemented | Re-validate and move inbound → accepted/declined |
+| `interactive` | Type 1 **operational** | Implemented | TTY review loop; login hook target |
+| `test-json-format` | Type 0 **test-purpose** | Implemented | Per-row dest JSON-format fence (`requirement-incorrect-json-format`) |
+| `fence-test` | Type 0 **test-purpose** | Implemented | Closed dest fence list (`requirement-approval-fencing-condition`) |
 
 ### 2.1a Sample invocations (CI-M1a)
 
@@ -101,6 +104,8 @@ dns-cli submit
 dns-cli approve
 dns-cli reject
 dns-cli interactive
+dns-cli test-json-format --file ./20260821-alice-add-1.json
+dns-cli fence-test --file tests/fixtures/fence-test/pass/20260821-alice-add-1.json
 ```
 
 `submit` / `approve` / `reject` / `interactive` are **Implemented** (1.9.0). They are **not** `submit-sudoer-request`. Help **MUST** list them now that `app_main` routes them.
@@ -148,7 +153,7 @@ dns-cli interactive
 
 ### 2.3 Specialized project help items (pillar 3)
 
-**D-M7.** Human `help` **MUST** list every **routed** domain verb plus Type 0 lifecycle. **MUST NOT** list a domain verb that `app_main` does not route. **MUST NOT** list backup, restore, or sudoers-manager extras. `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` **MUST** appear only when routed. Those sudoer verbs are privilege/submitter law — not a fifth DNS request-type.
+**D-M7.** Human `help` **MUST** list every **routed** domain verb plus Type 0 lifecycle. **MUST NOT** list a domain verb that `app_main` does not route. **MUST NOT** list backup, restore, or sudoers-manager extras. `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` **MUST** appear only when routed. Those sudoer verbs are privilege/submitter law — not a fifth DNS request-type. Help **MUST** list **test-purpose** verbs (`test-json-format`, `fence-test`) under a heading **apart** from **operational** inbound (`submit` / `approve` / `reject` / `interactive`).
 
 Staging honesty (implementation):
 
@@ -314,6 +319,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **TP-CF-DNS-08** | `tests/test_cf_dns.sh` | todo | two domain-ids → `domain_required` without `--domain` |
 | **TP-CF-LIVE-01..05** | `tests/test_cf_live.sh` | skip | Live `crms.hk` as invoking user; off unless `CF_LIVE=1` |
 | **TP-CF-ACTOR-01..06** | `tests/test_cli.sh` | have | Unrouted submit/approve/reject/interactive fail closed |
+| **TP-FENCE-09..15** | `tests/test_cli.sh` | have | Type 0 `fence-test` list tester; testers listed apart |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -324,6 +330,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-08-21 | Active 2.9.0 | Type 0 **test-purpose** `fence-test` / `test-json-format`; help lists testers apart from operational inbound |
 | 2026-08-19 | Active 2.8.0 | Dest MUST NOT fence on filename subject token; user SSOT is JSON `subject` |
 | 2026-08-18 | Active 2.7.0 | Dest approval fencing conditions closed: incorrect JSON format (ACT-M8 reprint) |
 | 2026-08-18 | Active 2.6.0 | CI-M1a sample invocations for every domain verb (§2.1a) |
@@ -338,6 +345,6 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-08-21  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

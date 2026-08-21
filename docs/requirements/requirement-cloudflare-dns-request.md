@@ -72,7 +72,7 @@ Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) ·
 
 **MUST NOT** include `token`, `CF_API_TOKEN`, `user_id` secrets, or any AAAA / IPv6 field. Unknown keys → `request_invalid`. Token stays in the vault.
 
-**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` as an allowed key, not unknown.
+**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Type 0 `submit` **MUST** overwrite `submit_app` / `submit_version` from live Config `APP_NAME` / `VERSION`. Dest **MUST NOT** dest-write those keys. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` and Type 0 `submit_app` / `submit_version` as allowed keys, not unknown. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. After format is clear, dest **MUST** display `queued by {submit_app} {submit_version}` before the approval question.
 
 **REQ-M4.** IPv4 fields (`ipv4`, `from_ipv4`) **MUST** be dotted-quad public IPv4 per `requirement-external-ipv4` IP-M4. IPv6 literal → `ip_lookup_failed` / `request_invalid`.
 
@@ -235,7 +235,7 @@ Basename: `20260817-alice-mode-2.json`
 
 **REQ-M9. Queue move assumes prior ownership change.** Type 0 `submit` **MUST NOT** `chown` inbound. `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any inbound → accepted/declined move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST**, at the beginning, read original file-ownership, take ownership as `dns-adm`, review JSON format, and if correct add `submit_by` = that original owner, then **fence first** for the yes/no walk (this file-based JSON system **MUST** include incorrect JSON format). A fence match **MUST** be displayed in human-facing words; dest **MUST NOT** ask yes/no for that file. Queue move assumes that previous ownership change. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Peer: `requirement-dns-actor-table` ACT-M4 / ACT-M6 / ACT-M7.
 
-**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
 | Condition | Dest approve / reject / interactive |
 |-----------|-------------------------------------|
@@ -245,8 +245,9 @@ Basename: `20260817-alice-mode-2.json`
 | JSON `subject` ≠ `dns-adm` | **MUST NOT** fence |
 | Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
-**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail (`schema_version` 1, unknown keys, missing required, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8.
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; dest-owned closed-schema fail (`schema_version` 1, unknown keys vs dest allowlist, missing required including `submit_app` / `submit_version` as non-empty strings, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest-written `submit_by` after format is allowed. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8. Catalog: `requirement-approval-fencing-condition`.
 
 ### 2.7 Implementation Notes (this project)
 
@@ -343,6 +344,8 @@ Basename: `20260817-alice-mode-2.json`
 | **TP-CF-REQ-11** | `tests/test_cf_request.sh` | have | login-hook `interactive` takes inbound ownership at the beginning |
 | **TP-CF-REQ-14** | `tests/test_cf_request.sh` | have | user SSOT is JSON `subject`; dest MUST NOT fence on filename token |
 | **TP-CF-REQ-15** | `tests/test_cf_request.sh` | have | interactive records original owner; dest-writes `submit_by` if format is clear |
+| **TP-CF-REQ-16** | `tests/test_cf_request.sh` | have | dest-legal sudoer `kind` is not a DNS dest key (same assert as **TP-FENCE-06**) |
+| **TP-CF-REQ-17** | `tests/test_cf_request.sh` | have | Type 0 submit stamps `submit_app` / `submit_version`; dest allowlists them; interactive `queued by` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`

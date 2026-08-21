@@ -3,7 +3,7 @@
 # =============================================================================
 # Primary REQs: requirement-shell-cli-interface, requirement-shell-cli-zero-arguments,
 # requirement-shell-output-requirements, requirement-shell-cli-storage
-# TP family: TP-CLI-* · TP-CF-ACTOR-* (incl. TP-CLI-14 dual mention, TP-CF-ACTOR-07)
+# TP family: TP-CLI-* · TP-CF-ACTOR-* · TP-FENCE-01..04 · TP-FENCE-08..15 (incl. TP-CLI-14 dual mention, TP-CF-ACTOR-07)
 # =============================================================================
 
 # shellcheck source=helpers.sh
@@ -45,6 +45,11 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help print-sudoers" "$_out" "print-sudoers"
     assert_contains "TP-CLI-04 help generate-sudoer-request" "$_out" "generate-sudoer-request"
     assert_contains "TP-CLI-04 help submit-sudoer-request" "$_out" "submit-sudoer-request"
+    assert_contains "TP-CLI-04 help test-json-format" "$_out" "test-json-format"
+    assert_contains "TP-CLI-04 help fence-test" "$_out" "fence-test"
+    assert_contains "TP-CLI-04 help testers apart" "$_out" "Unit test (local test folder; Type 0 — test-purpose)"
+    assert_contains "TP-CLI-04 help --dir" "$_out" "--dir DIR"
+    assert_contains "TP-CLI-04 help --expect-match" "$_out" "--expect-match"
     assert_contains "TP-CLI-04 help submit vs setup" "$_out" "Submit vs setup"
     assert_contains "TP-CLI-04 help dest Type 0 self-scope not on setup" "$_out" "Dest Type 0 self-scope MUST NOT apply to setup"
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
@@ -190,7 +195,10 @@ run_test_cli() {
         assert_contains "TP-FENCE-01 residual none" "${_cbody}" "considered — no dest fence conditions"
         assert_contains "TP-FENCE-01 MUST NOT invent a dest fence" "${_cbody}" "MUST NOT** invent a dest fence"
         assert_contains "TP-FENCE-01 residual points at IJF" "${_cbody}" "requirement-incorrect-json-format"
+        assert_contains "TP-FENCE-01 residual points at dest catalog" "${_cbody}" "requirement-approval-fencing-condition"
         assert_contains "TP-FENCE-01 AC-9 dest fence review" "${_cbody}" "AC-9"
+        assert_contains "TP-FENCE-01 AC-10 dest fence catalog" "${_cbody}" "AC-10"
+        assert_contains "TP-FENCE-01 class names fence-test" "${_cbody}" "fence-test"
     else
         t_fail "TP-ARSA-01 missing requirement-class-software-dev.md"
     fi
@@ -214,8 +222,25 @@ run_test_cli() {
         assert_contains "TP-FENCE-02 dest table still prints" "${_ibody}" "dest fence **table** stays"
         assert_contains "TP-FENCE-02 MUST NOT extra dest fences" "${_ibody}" "Unix file-ownership"
         assert_contains "TP-FENCE-02 dest-written submit_by allowed" "${_ibody}" "treat dest-written \`submit_by\`"
+        assert_contains "TP-FENCE-04 dest-owned allowlist" "${_ibody}" "Dest-owned allowlist"
+        assert_contains "TP-FENCE-04 sudoer kind known" "${_ibody}" "Dest **MUST NOT** treat dest-legal \`kind\` as unexpected"
+        assert_contains "TP-FENCE-04 kind is not file-ownership" "${_ibody}" "kind\` is not file-ownership"
+        assert_contains "TP-FENCE-04 catalog peer" "${_ibody}" "requirement-approval-fencing-condition"
     else
         t_fail "TP-FENCE-02 missing requirement-incorrect-json-format.md"
+    fi
+    _afc="${REPO_ROOT}/docs/requirements/requirement-approval-fencing-condition.md"
+    if [ -f "${_afc}" ]; then
+        _afcbody=$(cat "${_afc}")
+        assert_contains "TP-FENCE-03 catalog exists" "${_afcbody}" "requirement-approval-fencing-condition"
+        assert_contains "TP-FENCE-03 closed dest table header" "${_afcbody}" "| Condition | Dest \`approve\` / \`reject\` / \`interactive\` |"
+        assert_contains "TP-FENCE-03 Fence row is incorrect JSON format" "${_afcbody}" "**Incorrect JSON format**"
+        assert_contains "TP-FENCE-03 MUST NOT fence file-ownership" "${_afcbody}" "File-ownership"
+        assert_contains "TP-FENCE-03 kind is not a dest fence" "${_afcbody}" "kind\` is not a dest fence"
+        assert_contains "TP-FENCE-03 file-ownership dest-writes submit_by" "${_afcbody}" "dest-write \`submit_by\`"
+        assert_contains "TP-FENCE-03 MUST NOT convert ownership into kind" "${_afcbody}" "MUST NOT** convert file-ownership into submitter-emitted \`kind\`"
+    else
+        t_fail "TP-FENCE-03 missing requirement-approval-fencing-condition.md"
     fi
     if [ -f "${_actor}" ]; then
         assert_contains "TP-FENCE-02 dest catalog points at IJF REQ" "${_abody}" "requirement-incorrect-json-format"
@@ -284,7 +309,7 @@ run_test_cli() {
         for _verb in install uninstall where-is-me version about help setup remove-lpu \
             print-sudoers generate-sudoer-request submit-sudoer-request \
             vault ip add update remove status show \
-            submit approve reject interactive; do
+            submit approve reject interactive test-json-format fence-test; do
             _hits=$(grep -l -F -- "\`${_verb}\`" "${_reqdir}"/requirement-*.md 2>/dev/null || true)
             _n=$(printf '%s\n' "${_hits}" | sed '/^$/d' | wc -l | tr -d ' ')
             _in_cli=0
@@ -318,7 +343,7 @@ run_test_cli() {
     for _verb in install uninstall where-is-me version about help setup remove-lpu \
         print-sudoers generate-sudoer-request submit-sudoer-request \
         vault ip add update remove status show \
-        submit approve reject interactive; do
+        submit approve reject interactive test-json-format fence-test; do
         if _req_has_sample "${_verb}"; then
             t_pass "TP-CLI-15 ${_verb} has topic-owner sample"
         else
@@ -335,4 +360,73 @@ run_test_cli() {
             t_fail "TP-CLI-15 ${_vsub} missing dns-cli sample on a topic-owner REQ"
         fi
     done
+
+    # TP-FENCE-08 — Type 0 test-json-format (no queue)
+    _tf=$(mktemp)
+    printf '%s\n' '{"schema_version":1,"purpose":"Add A","subject":"alice","action":"add","submit_app":"dns-cli","submit_version":"1.12.0","domain_id":"example.com","subdomain":"www","ipv4":"8.8.8.8"}' >"${_tf}"
+    _out=$(sh "${SCRIPT}" test-json-format --file "${_tf}" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-08 dest-legal JSON exit 0" 0 "${_ec}"
+    assert_contains "TP-FENCE-08 dest-legal message" "${_out}" "dest-legal"
+    printf '%s\n' '{"schema_version":1,"purpose":"Add A","subject":"alice","action":"add","domain_id":"example.com","subdomain":"www","ipv4":"8.8.8.8"}' >"${_tf}"
+    _err=$(sh "${SCRIPT}" test-json-format --file "${_tf}" 2>&1)
+    _ec=$?
+    assert_eq "TP-FENCE-16 missing submit_app exit 1" 1 "${_ec}"
+    assert_contains "TP-FENCE-16 missing submit_app words" "${_err}" "submit_app"
+    printf '%s\n' '{"schema_version":1,"purpose":"Add A","subject":"alice","action":"add","submit_app":"other-cli","submit_version":"9.9.9","domain_id":"example.com","subdomain":"www","ipv4":"8.8.8.8"}' >"${_tf}"
+    _out=$(sh "${SCRIPT}" test-json-format --file "${_tf}" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-17 sibling submit_app exit 0" 0 "${_ec}"
+    assert_contains "TP-FENCE-17 sibling dest-legal" "${_out}" "dest-legal"
+    printf '%s\n' '{"schema_version":1,"purpose":"Add A","subject":"alice","action":"add","submit_app":"dns-cli","submit_version":"1.12.0","domain_id":"example.com","subdomain":"www","ipv4":"8.8.8.8","token":"no"}' >"${_tf}"
+    _out=$(sh "${SCRIPT}" test-json-format --file "${_tf}" 2>/dev/null)
+    _ec=$?
+    if [ "${_ec}" -ne 0 ]; then
+        t_pass "TP-FENCE-08 unknown key / token fails closed"
+    else
+        t_fail "TP-FENCE-08 expected nonzero exit on dest-illegal JSON"
+    fi
+    rm -f "${_tf}"
+
+    # TP-FENCE-09..15 — Type 0 fence-test (closed dest fence list; local test folder)
+    _ftdir="${TESTS_ROOT}/fixtures/fence-test"
+    _fx="${_ftdir}/pass/20260821-alice-add-1.json"
+    _out=$(sh "${SCRIPT}" --json fence-test --file "${_fx}" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-09 golden --file exit 0" 0 "${_ec}"
+    assert_contains "TP-FENCE-09 no dest fence" "${_out}" "No dest fence matched"
+    assert_contains "TP-FENCE-09 command fence-test" "${_out}" '"command":"fence-test"'
+    _err=$(sh "${SCRIPT}" fence-test --file "${_ftdir}/match/not-object.json" 2>&1)
+    _ec=$?
+    assert_eq "TP-FENCE-10 not-object exit 1" 1 "${_ec}"
+    assert_contains "TP-FENCE-10 not-object words" "${_err}" "not a JSON object"
+    _out=$(sh "${SCRIPT}" --json fence-test --dir "${_ftdir}/pass" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-11 pass corpus exit 0" 0 "${_ec}"
+    assert_contains "TP-FENCE-11 pass corpus files" "${_out}" '"files":"2"'
+    _out=$(sh "${SCRIPT}" --json fence-test --dir "${_ftdir}/match" --expect-match 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-12 match corpus --expect-match exit 0" 0 "${_ec}"
+    assert_contains "TP-FENCE-12 all matched" "${_out}" "all matched a dest fence"
+    _err=$(sh "${SCRIPT}" fence-test --dir "${_ftdir}/pass" --file "${_fx}" 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-13 xor --file and --dir exit 1" 1 "${_ec}"
+    assert_contains "TP-FENCE-13 xor words" "${_err}" "not both --file and --dir"
+    assert_contains "TP-FENCE-13 Next running ship unit" "${_err}" "${SCRIPT} fence-test --file"
+    assert_not_contains "TP-FENCE-13 Next not global install" "${_err}" "/usr/local/bin/dns-cli"
+    _err=$(sh "${SCRIPT}" fence-test --expect-match --file "${_fx}" 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-14 --expect-match needs --dir exit 1" 1 "${_ec}"
+    assert_contains "TP-FENCE-14 expect-match words" "${_err}" "only valid with --dir"
+    _help=$(sh "${SCRIPT}" help 2>/dev/null)
+    assert_contains "TP-FENCE-15 testers heading" "${_help}" "Unit test (local test folder; Type 0 — test-purpose)"
+    assert_contains "TP-FENCE-15 fence-test listed" "${_help}" "fence-test"
+
+    # TP-PREV-01 — prevention catalog exists and keeps Type 2 open
+    _prev="${REPO_ROOT}/docs/requirements/requirement-privilege-prevention-set.md"
+    if grep -q 'OPEN-T2' "${_prev}" && grep -q 'PREV-SUDOERS-D' "${_prev}"; then
+        t_pass "TP-PREV-01 prevention catalog names OPEN-T2 and PREV-SUDOERS-D"
+    else
+        t_fail "TP-PREV-01 missing OPEN-T2 / PREV-SUDOERS-D"
+    fi
 }

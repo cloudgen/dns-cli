@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.9.7  
-**Last plan update:** 2026-08-19  
-**Last suite run:** PASS=599 FAIL=0 SKIP=0 (2026-08-19)
+**Product VERSION:** 1.11.0  
+**Last plan update:** 2026-08-21  
+**Last suite run:** PASS=649 FAIL=0 SKIP=2 (2026-08-21; **TP-FENCE-07** skip live sibling dest `kind`; **TP-SUDOER-JSON-13** skip live dest present INC-20260821-001)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -60,6 +60,19 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-14 | Dual mention: each routed verb in ≥2 REQs (CLI + topic-owner) | test_cli | requirement-shell-cli-interface CI-M1 | **have** |
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 | TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
+| TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
+| TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
+| TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-11 | `fence-test --dir` pass corpus succeeds | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-12 | `fence-test --dir --expect-match` match corpus succeeds | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-13 | `fence-test --dir` xor `--file` fail closed; Next: running ship unit | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-14 | `--expect-match` needs `--dir` | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-15 | Help lists testers apart from operational | test_cli | requirement-shell-cli-interface · requirement-domain-cloudflare-dns D-M7 | **have** |
+| TP-FENCE-16 | `test-json-format` missing `submit_app` is dest format fail | test_cli | requirement-incorrect-json-format IJF-M8 | **have** |
+| TP-FENCE-17 | sibling `submit_app` ≠ dest product is dest-legal | test_cli | requirement-incorrect-json-format IJF-M2 | **have** |
+| TP-PREV-01 | Prevention catalog names OPEN-T2 and PREV-SUDOERS-D | test_cli | requirement-privilege-prevention-set | **have** |
+| TP-SUDO-01..07 | util_sudo / util_chmod only call sites | test_cli | requirement-shell-sudo-command | **todo** |
+| TP-TEMP-01 | no `$$` scratch paths | test_cli | requirement-shell-temp-file-system | **todo** |
 
 ### TP-CF-ACTOR (submit / approve actors)
 
@@ -201,6 +214,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-SUDOER-JSON-18 | setup hook write does not `chown`; law names SJ-M5 | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
 | TP-SUDOER-JSON-19 | dest MUST NOT fence on file-ownership | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
 | TP-SUDOER-JSON-20 | dest inbound fence is incorrect JSON format | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
+| TP-SUDOER-JSON-21 | queued inbound keys ⊆ dest-owned allowlist (`kind` known) | test_cf_lpu | requirement-sudoer-json-file · requirement-incorrect-json-format IJF-M9 | **have** |
 
 ### TP-CF-DNS (Cloudflare DNS + ipinfo)
 
@@ -250,10 +264,17 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-REQ-13 | dest fence first; human-facing match; no question on match | test_cf_request | requirement-dns-actor-table ACT-M4 · ACT-M8 · term approval-system | **have** |
 | TP-CF-REQ-14 | user SSOT is JSON `subject`; dest MUST NOT fence on filename token | test_cf_request | requirement-dns-actor-table ACT-M8 · requirement-cloudflare-dns-request REQ-M9 · term json-username-field | **have** |
 | TP-CF-REQ-15 | interactive records original owner; dest-writes `submit_by` if format is clear | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-cloudflare-dns-request REQ-M3a | **have** |
+| TP-CF-REQ-16 | dest-legal sudoer `kind` is not a DNS dest key | test_cf_request | requirement-incorrect-json-format IJF-M8 · requirement-cloudflare-dns-request | **have** |
+| TP-CF-REQ-17 | Type 0 `submit` stamps `submit_app` / `submit_version`; dest allowlists them; interactive `queued by` | test_cf_request | requirement-incorrect-json-format IJF-M8 · requirement-cloudflare-dns-request REQ-M3a | **have** |
 | TP-ARSA-01 | software-dev class MUST consider actor / role / subject / approver even if no dest approver | test_cli | requirement-class-software-dev | **have** |
 | TP-ARSA-02 | catalog prints Actor / Role / Subject / Submitter / Approver; anyone or the actor itself | test_cli | requirement-actor-role-subject-approver | **have** |
-| TP-FENCE-01 | software-dev class MUST review dest fences; each Fence is an independent REQ or residual none | test_cli | requirement-class-software-dev §2.9 · AC-9 | **have** |
+| TP-FENCE-01 | software-dev class MUST review dest fences; each Fence is an independent REQ or residual none | test_cli | requirement-class-software-dev §2.9 · AC-9 · AC-10 | **have** |
 | TP-FENCE-02 | requirement-incorrect-json-format exists; dest tables point at it | test_cli | requirement-incorrect-json-format · requirement-dns-actor-table | **have** |
+| TP-FENCE-03 | dest fence catalog REQ prints the closed dest table; `kind` is not a dest fence | test_cli | requirement-approval-fencing-condition | **have** |
+| TP-FENCE-04 | dest-owned sudoer allowlist includes `kind`; file-ownership dest-writes `submit_by` | test_cli | requirement-incorrect-json-format | **have** |
+| TP-FENCE-05 | queued sudoer body keys ⊆ dest-owned allowlist (`kind` present and dest-legal; no `submit_by`) | test_cf_lpu | requirement-incorrect-json-format IJF-M7 · IJF-M9 | **have** |
+| TP-FENCE-06 | dest-legal sudoer `kind` is not a DNS dest key | test_cf_request | requirement-incorrect-json-format IJF-M8 | **have** |
+| TP-FENCE-07 | live dest sudoer-cli unknown-key fence | test_cf_lpu | requirement-incorrect-json-format IJF-M9 · INC-20260819-001 CAPA 6 | **skip** |
 
 ### TP-CF-LIVE (optional real zone — invoking user)
 

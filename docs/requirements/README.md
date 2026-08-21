@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **dns-cli** lives here.
 
-**Current state (2026-08-17):** Specialized **software-development** product. **B = `dns-cli` (hop 1)** from **A = `cli-template` (hop 0)**. Registry is populated — see `index.md`.
+**Current state (2026-08-20):** Specialized **software-development** product. **B = `dns-cli` (hop 1)** from **A = `cli-template` (hop 0)**. Registry is populated — see `index.md`. Coding-style + in-tool sudo + prompt + temp + prevention-set Active. Type 0 `test-json-format`.
 
 ## Product identity (summary)
 
@@ -10,7 +10,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 |-------|--------|
 | Product / `APP_NAME` (law) | `dns-cli` |
 | Live Config | `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| Version SSOT | `1.9.7` |
+| Version SSOT | `1.11.0` |
 | Ship unit (live) | `src/dns-cli` |
 | Default install | `~/.local/bin/dns-cli` |
 | Install mode | **Local-only** |
@@ -18,6 +18,13 @@ Authoritative specialized product law for **dns-cli** lives here.
 | Type map / elev | `requirement-three-layer-privilege-model` — **Implemented** |
 | Domain SSOT | `requirement-domain-cloudflare-dns` — v2 Implemented |
 | A-record mode | `requirement-cloudflare-dns-mode` — default non-round-robin; stored mode **Implemented** |
+| Dest fence catalog | `requirement-approval-fencing-condition` — closed dest refuse list |
+| Dest Fence | `requirement-incorrect-json-format` — dest-owned JSON allowlist; sudoer `kind` known; Type 0 `test-json-format` |
+| Coding-style | `requirement-shell-script-coding` — specialize-in home |
+| In-tool sudo | `requirement-shell-sudo-command` — wrappers (Gap until wired) |
+| Prompt bodies | `requirement-shell-prompt` — Implemented |
+| Scratch leaves | `requirement-shell-temp-file-system` |
+| Prevention catalog | `requirement-privilege-prevention-set` — Type 2 remains; DNS dest is `dns-adm` |
 | DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0); queue-move `chown` (1.9.1); login-hook take-ownership-at-beginning (1.9.2) |
 | External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
 | Application local vault (path + specify) | `requirement-application-local-vault` — specify + default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` **Implemented** (1.8.0) |

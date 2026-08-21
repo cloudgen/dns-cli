@@ -78,6 +78,65 @@ assert_file_missing() {
     fi
 }
 
+# Dest-owned sudoer inbound allowlist (IJF-M9 / INC-20260819-001).
+# Queued body keys MUST be exactly the dest-known set. Generate fixtures
+# that are not inbound MAY keep extra keys; this helper is for queued bodies.
+assert_sudoer_dest_allowlist() {
+    _lab="$1"
+    _path="$2"
+    if [ ! -f "${_path}" ]; then
+        t_fail "${_lab} (missing ${_path})"
+        return
+    fi
+    if ! command -v python3 >/dev/null 2>&1; then
+        t_skip "${_lab} python3"
+        return
+    fi
+    _rep=$(python3 -c '
+import json, sys
+allowed = {"schema_version", "kind", "purpose", "username", "service", "action", "commands", "submit_app", "submit_version"}
+legal_kind = {"type-2-switch", "login-hook-elev"}
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+if not isinstance(data, dict):
+    print("not-object")
+    raise SystemExit(2)
+keys = set(data)
+extra = sorted(keys - allowed)
+if extra:
+    print("extra:" + ",".join(extra))
+    raise SystemExit(1)
+if "kind" not in keys:
+    print("missing-kind")
+    raise SystemExit(1)
+kind = data.get("kind", "")
+if kind not in legal_kind:
+    print("bad-kind:" + str(kind))
+    raise SystemExit(1)
+if "submit_by" in keys:
+    print("submit_by")
+    raise SystemExit(1)
+if "submit_app" not in keys:
+    print("missing-submit-app")
+    raise SystemExit(1)
+if "submit_version" not in keys:
+    print("missing-submit-version")
+    raise SystemExit(1)
+if not isinstance(data.get("submit_app"), str) or not data.get("submit_app"):
+    print("bad-submit-app")
+    raise SystemExit(1)
+if not isinstance(data.get("submit_version"), str) or not data.get("submit_version"):
+    print("bad-submit-version")
+    raise SystemExit(1)
+print("ok:" + kind)
+' "${_path}" 2>/dev/null) || true
+    case "${_rep}" in
+        ok:type-2-switch|ok:login-hook-elev) t_pass "${_lab} (${_rep})" ;;
+        *) t_fail "${_lab} (${_rep:-python-fail})" ;;
+    esac
+}
+
 _trunc() {
     printf '%s' "$1" | tr '\n' ' ' | cut -c1-160
 }

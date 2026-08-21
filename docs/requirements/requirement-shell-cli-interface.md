@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.5.0)  
+**Status**: Active (Version 3.7.0) — Type 0 **test-purpose** `fence-test` dual mention; testers listed apart from operational  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -44,7 +44,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request` |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | **Operational:** `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request`. **Test-purpose:** `test-json-format`, `fence-test` (unit test; local test folder) |
 | **Type 0 – Specify-vault domain** | Invoking user | `vault` / `add` / `update` / `remove` / `status`/`show` **when** `--vault-dir` / `CF_VAULT_DIR` is set — **catalog SSOT:** `requirement-domain-cloudflare-dns` |
 | **Type 1 – LPU bootstrap** | Password `sudo` / already-root | `setup`, `remove-lpu` — **SSOT:** `requirement-three-layer-privilege-model` |
 | **Type 2 – Default-vault domain** | `dns-adm` | `vault` / `add` / `update` / `remove` / `status`/`show` on the default LPU vault |
@@ -61,7 +61,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 Additional flags **MAY** be added only when documented here **or** in the domain SSOT and wired in the dispatcher. Domain flags (`--ip`, `--domain` / `--domain-id`, `--user-id`, `--subdomain`, `--mode`, `--from`, `--ttl`, `--proxied`, `--token-file`) are owned by domain / vault / mode law. `--vault-dir` is owned by `requirement-application-local-vault`. `--mode` and `--from` semantics: `requirement-cloudflare-dns-mode`.
 
-**Sudoer submitter flags (Type 0 generate/submit only):** `--allow-test-local`, `--add`, `--update`. **Forbidden flags (trimmed):** `--disk`, `--ram` (parent backup domain).
+**Sudoer submitter flags (Type 0 generate/submit only):** `--allow-test-local`, `--add`, `--update`. **Fence testers:** `--file PATH` (xor stdin xor `--dir`) on `test-json-format` / `fence-test`; `--dir DIR` and `--expect-match` on `fence-test` only. **Forbidden flags (trimmed):** `--disk`, `--ram` (parent backup domain).
 
 ### 2.3 Dispatcher and entry rules
 
@@ -83,6 +83,8 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 | `ip` | `requirement-external-ipv4` **and** `requirement-domain-cloudflare-dns` |
 | `add` / `update` / `remove` / `status` / `show` | `requirement-domain-cloudflare-dns` (`add`/`update`/`remove` dest also `requirement-cloudflare-dns-request`) |
 | `submit` / `approve` / `reject` / `interactive` | `requirement-dns-actor-table` **and** `requirement-domain-cloudflare-dns` (`interactive` also `requirement-dns-approver`) |
+| `test-json-format` | `requirement-incorrect-json-format` |
+| `fence-test` | `requirement-approval-fencing-condition` (domain SSOT also names it) |
 
 **CI-M1a. Sample invocation.** Every verb (and every `vault` store subcommand) in the table **MUST** have a **complete invocation sample** in its topic-owner REQ: a fenced `sh` block whose command line is `dns-cli` (optional `sudo` / `sudo -n` prefix) plus that verb and operands (copy-pasteable argv). A name in a table, a help string, or `app_help` is **not** the sample. Gap verbs **MUST** still show the intended argv. The domain SSOT **MUST** sample every domain verb it catalogs; store-UX samples live on `requirement-cloudflare-vault`.
 
@@ -99,6 +101,8 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 In JSON mode, help **MUST NOT** dump long human text; return a short structured success/note object.
 
 `help` **MUST NOT** list backup, restore, or `print-sudoers-install-script` / `remove-project-sudoers`. `help` **MUST** list `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` **only when** `app_main` routes them.
+
+`help` **MUST** list **test-purpose** verbs (`test-json-format`, `fence-test`) under a **separate heading** from **operational** Type 0 (submit, dest, setup, lifecycle). Privilege Type 0 does **not** mean “unit test.”
 
 ### 2.5 Implementation Notes (this project)
 
@@ -137,6 +141,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `submit-sudoer-request` | Type 0 | `lpu_submit_sudoer_request` | Queue **`type-2-switch`** only — **Implemented** |
 | `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here |
 | `submit` | Type 0 | Implemented | Inbound **DNS** JSON drop — `requirement-dns-actor-table` (not sudoer submit) |
+| `test-json-format` | Type 0 **test-purpose** | Implemented | Per-row dest Fence tester — stdin xor `--file`; no queue; no dest elev — `requirement-incorrect-json-format` |
+| `fence-test` | Type 0 **test-purpose** | Implemented | Closed dest fence **list** tester — stdin xor `--file` xor `--dir`; `--expect-match` only with `--dir`; no queue — `requirement-approval-fencing-condition` |
 | `approve` / `reject` / `interactive` | Type 1 | Implemented | Approver path — `requirement-dns-actor-table` |
 
 #### Argv grammar (normative)
@@ -204,7 +210,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 4. Advertise an online install channel in help/about.  
 5. Collapse Type 1/2 into “just run as root.”  
 6. Add a routed verb only to this file. Dual mention (CI-M1) is mandatory.  
-7. Name a verb on a topic-owner without a complete `dns-cli …` invocation sample (CI-M1a).
+7. Name a verb on a topic-owner without a complete `dns-cli …` invocation sample (CI-M1a).  
+8. Group **test-purpose** verbs with **operational** verbs in help, or treat dest review / queue as `fence-test`.
 
 **Violating this rule is a critical CLI-surface regression.**
 
@@ -249,6 +256,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have | includes stripped-verb fail-closed |
 | **TP-CLI-14** | `tests/test_cli.sh` | have | CI-M1 dual mention — each routed verb in ≥2 REQs |
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
+| **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
@@ -260,6 +268,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
+| 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
+| 2026-08-20 | Active 3.6.0 | Type 0 `test-json-format`; dual mention on dest Fence REQ |
 | 2026-08-18 | Active 3.5.0 | CI-M1a — topic-owner MUST include a complete `dns-cli …` sample per verb |
 | 2026-08-18 | Active 3.4.0 | Dual mention CI-M1 — every verb in ≥2 REQs |
 | 2026-08-18 | Active 3.3.0 | `generate-sudoer-request` / `submit-sudoer-request`; `--allow-test-local` / `--add` / `--update` |
@@ -270,6 +280,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-08-21  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.7.0) — MUST review dest fence conditions and convert each Fence to its own REQ  
+**Status**: Active (Version 1.10.0) — dest Fences ship Type 0 test-purpose `fence-test` (local test folder)  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -103,7 +103,21 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 34. Each dest **Fence** row **MUST** be an independent Active requirement (product stem allowed). Dest fence tables **MUST** still print the closed catalog and **point** at those REQs.  
 35. Dest **MUST NOT** fence rows stay on dest tables only — they are **not** independent fence requirements.  
 36. If none: record in this residual **considered — no dest fence conditions**.  
-37. **MUST NOT** skip the review. **MUST NOT** invent a dest fence so the set looks complete.
+37. **MUST NOT** skip the review. **MUST NOT** invent a dest fence so the set looks complete.  
+38. Dest **approval fencing conditions** (the closed catalog) **MUST** be Active `requirement-approval-fencing-condition` (product stem allowed) while dest review or dest submit exists. Dest tables still print. This catalog REQ is **not** a dest Fence.  
+39. When dest has any dest **Fence**, the product **MUST** ship Type 0 **`fence-test`** as a **test-purpose** verb: **unit test** of dest fence functions against a JSON **file location** in a **local test folder**. **MUST NOT** require `sudo` to run. The only allowed in-tool elev is wrapping **chmod** / **chown** of that folder (check before sudo). **MUST NOT** sudo otherwise. **MUST NOT** queue, dest-write, `setup`, or `approve`. Dest review / queue / host install **MUST NOT** count as that tester. Help **MUST** list test-purpose verbs **apart** from **operational** verbs. Dual mention: CLI-interface REQ **and** dest catalog / domain SSOT. This product: `fence-test --file tests/fixtures/fence-test/pass/20260821-alice-add-1.json`. Per-row testers **MAY** also exist (`test-json-format`) and are also test-purpose. Privilege Type 0 does **not** mean “unit test.”
+
+### 2.10 Coding-style related requirement (MUST have)
+
+40. This software-development product **MUST** have an Active coding-style related requirement matching the primary language.  
+41. **Intention:** without that REQ, agents bring portable learned lessons **raw** and treat them as this product’s law. That REQ is the **specialize-in home** (adopt, point, or refuse).  
+42. This product: Active `requirement-shell-script-coding` (POSIX `/bin/sh`). This class file **points**; it does **not** keep the writing-style body.  
+43. **MUST NOT** skip. Honest residual **none** is **not** valid.
+
+### 2.11 In-tool sudo / chmod wrappers
+
+44. This ship unit invokes sudo inside the script. Active `requirement-shell-sudo-command` **MUST** own the sudo-wrapping function, check before sudo, and the chmod example.  
+45. Coding-style **points** at that file. This class file **points**. **MUST NOT** keep wrapper bodies only on the coding-style REQ.
 
 ### 2.7 Implementation Notes (this project)
 
@@ -149,7 +163,13 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Interactive vs non-interactive | `requirement-shell-interactive-vs-noninteractive` | Do not duplicate |
 | Modular prefixes / single-file layout | `requirement-shell-modular-function-design` | Do not duplicate |
 | Actor / role / subject / approver consider | `requirement-actor-role-subject-approver` | MUST consider even if no approver; dest who stays on `requirement-dns-actor-table` |
-| Dest fence conditions review | `requirement-incorrect-json-format` | Converted dest **Fence** row; dest tables still print the catalog |
+| Dest fence catalog | `requirement-approval-fencing-condition` | Closed dest refuse list; dest tables still print |
+| Dest fence conditions review | `requirement-incorrect-json-format` | Converted dest **Fence** row; dest tables still print the catalog; Type 0 `test-json-format`; list tester `fence-test` |
+| Coding-style related REQ | `requirement-shell-script-coding` | **MUST**; specialize-in home for portable POSIX writing lessons; residual **points** |
+| In-tool sudo / chmod wrappers | `requirement-shell-sudo-command` | Sudo-wrapping function; check before sudo; chmod example |
+| Prompt helper bodies | `requirement-shell-prompt` | `prompt_yes_no` / `prompt_ask`; mode policy stays interactive REQ |
+| Scratch leaves | `requirement-shell-temp-file-system` | `mktemp`; no `$$` names; storage root stays storage REQ |
+| What is blocked vs must stay open | `requirement-privilege-prevention-set` | Closed prevention catalog; do not invent walls; Type 2 remains open |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
 | JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Two kinds: `type-2-switch` (Type 0 submit) and `login-hook-elev` (setup auto-queue); `print-sudoers` is three-layer + this file’s peer; this product **MUST NOT** write `/etc/sudoers.d` |
 | Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
@@ -195,7 +215,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 7. Treat this file as server-maintenance allowlist law, or register an Active server-maintenance class file in parallel.  
 8. Invent a second primary language SSOT that contradicts peer modular/CLI requirements.  
 9. Skip the actor / role / subject / approver consider, or invent an approver so the table looks complete.  
-10. Skip dest-fence review, leave a dest **Fence** as only a table cell, or invent a dest fence so the set looks complete.
+10. Skip dest-fence review, leave a dest **Fence** as only a table cell, invent a dest fence, leave dest Fences without Type 0 `fence-test`, treat `sudo` / a sudoers fragment / the waiting folder as that tester, group testers with operational verbs in help, or `sudo` on a tester except wrapping chmod/chown of the local test folder.  
+11. Leave dest **approval fencing conditions** as only terminology or dest-table cells while dest review exists.  
+12. Skip the coding-style related REQ, leave writing style only as residual “when present”, or treat coding skills as product law.  
+13. Skip `requirement-shell-sudo-command` while the ship unit has in-tool sudo, or keep wrapper bodies only on the coding-style REQ.  
+14. Copy sibling Type 2 absence or “any euid-0 host admin dest-approves DNS” into this product’s prevention catalog.
 
 **Violating any of these is considered a critical regression.**
 
@@ -213,7 +237,12 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | AC-6 | Ship unit identity (posix-sh single-file, local install) consistent with peer shell REQs |
 | AC-7 | Online install package **absent** from Active registry by design |
 | AC-8 | Actor / role / subject / approver considered (Active catalog REQ or residual **None**) |
-| AC-9 | Dest fence conditions reviewed (independent REQ per **Fence**, or residual **none**) |
+| AC-9 | Dest fence conditions reviewed (independent REQ per **Fence**, or residual **none**); dest Fences ship Type 0 **test-purpose** `fence-test` (local test folder; help listed apart from operational) |
+| AC-10 | Dest fence catalog is Active `requirement-approval-fencing-condition` while dest review exists (or residual **none**) |
+| AC-11 | Active `requirement-shell-script-coding` (specialize-in home; residual points) |
+| AC-12 | Active `requirement-shell-sudo-command` while in-tool sudo exists |
+| AC-13 | JSON-format dest Fence names Type 0 `test-json-format` |
+| AC-14 | Dest Fences ship Type 0 **test-purpose** `fence-test` (`--file` / `--dir`; local test folder; testers listed apart from operational) |
 
 ---
 
@@ -229,7 +258,13 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-three-layer-privilege-model` | Type map + Tables A/B/C |
 | `requirement-project-folder` | Layout and install locations |
 | `requirement-actor-role-subject-approver` | Actor / role / subject / approver catalog (consider even if no approver) |
-| `requirement-incorrect-json-format` | Independent dest **Fence** REQ (this product’s dest refuse reason) |
+| `requirement-approval-fencing-condition` | Dest fence catalog (closed dest refuse list) |
+| `requirement-incorrect-json-format` | Independent dest **Fence** REQ (this product’s dest refuse reason); Type 0 `test-json-format`; list tester `fence-test` |
+| `requirement-shell-script-coding` | POSIX writing-style specialize-in home |
+| `requirement-shell-sudo-command` | In-tool sudo wrappers |
+| `requirement-shell-prompt` | `prompt_*` bodies |
+| `requirement-shell-temp-file-system` | Scratch leaves |
+| `requirement-privilege-prevention-set` | Closed prevention catalog |
 | `requirement-shell-cli-interface` | Command surface, flags, dispatch |
 | `requirement-shell-cli-zero-arguments` | Type N empty argv |
 | `requirement-shell-local-self-management` | Local install lifecycle |
@@ -250,6 +285,9 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |
 | 2026-08-13 | Active 1.2.0 | Bootstrap origin = selfmanaged; folder-backup hop retired (no longer maintain bootstrap from it) |
 | 2026-08-13 | Active 1.3.0 | This product is hop 0; selfmanaged is not origin |
+| 2026-08-21 | Active 1.10.0 | Dest Fences ship Type 0 **test-purpose** `fence-test` (local test folder; help listed apart from operational) |
+| 2026-08-20 | Active 1.9.1 | Coding-style MUST have; in-tool sudo residual points; prevention-set / prompt / temp peers |
+| 2026-08-19 | Active 1.8.0 | Dest fence catalog is an independent REQ; dest-owned `kind` is format allowlist not a dest fence |
 | 2026-08-19 | Active 1.7.0 | MUST review dest fence conditions; each Fence row is an independent REQ |
 | 2026-08-19 | Active 1.6.0 | MUST consider actor / role / subject / approver even if no dest approver |
 | 2026-08-17 | Active 1.5.0 | Privilege residual → LPU + three-layer (`dns-adm`) |
@@ -257,6 +295,6 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-08-21  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

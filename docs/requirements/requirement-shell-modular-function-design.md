@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-modular-function-design.md  
-**Status**: Active (Version 2.3.0)  
+**Status**: Active (Version 2.4.0)  
 **Area**: shell  
 **Key**: `requirement-shell-modular-function-design`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -59,7 +59,7 @@ Ship unit remains a **single executable** at `src/dns-cli`.
 | `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper | `util_resolve_storage`, `util_resolve_running_path`, `util_get_install_bin_path`, `util_get_current_shell`, `util_json_escape`, `util_backup` — **examples:** §2.2a |
 | `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |
-| `prompt_` | Interactive prompts | TTY-safe confirmations and secrets | `prompt_yes_no`, `prompt_secret` |
+| `prompt_` | Interactive prompts | TTY-safe confirmations and secrets — **bodies:** `requirement-shell-prompt` | `prompt_yes_no`, `prompt_ask`, `prompt_secret` |
 | `cf_` | Cloudflare domain | Vault, DNS, IP lookup, API, JSON extract | `cf_vault_*`, `cf_dns_*`, `cf_ip_*`, `cf_api_*`, `cf_json_*` |
 | `lpu_` | LPU / privilege | `setup`, `remove-lpu`, `print-sudoers`, generate/submit sudoer JSON | `lpu_setup`, `lpu_remove`, `lpu_print_sudoers`, `lpu_generate_sudoer_request`, `lpu_submit_sudoer_request` |
 

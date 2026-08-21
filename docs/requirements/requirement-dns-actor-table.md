@@ -64,7 +64,7 @@ This is **not** a second `requirement-domain-*`. It is **not** the sudoer print/
 
 **ACT-M7. File-ownership is not a dest wall (sacred).** Dest `approve` / `reject` / `interactive` **MUST NOT** fence on Unix file-ownership (owner ≠ JSON `subject`, or owner ≠ `dns-adm`). JSON `subject` is the body identity key. When this app runs as **`dns-adm`**, it **MUST take** file-ownership, then move (ACT-M6). Self-scope is **submit-only** (`subject` = `id -un`).
 
-**ACT-M8. Approval fencing conditions (closed, sacred).** Dest **MUST** run fencing **before** any approval question. This file-based JSON system **MUST** include **incorrect JSON format**. Dest `approve` / `reject` **MUST** fail closed on inbound **only** for that listed fence, with a **human-facing** sentence. Dest `interactive` **MUST** display the same sentence and **MUST NOT** ask yes/no for that file. Dest **MUST NOT** add extra fencing conditions.
+**ACT-M8. Approval fencing conditions (closed, sacred).** Dest **MUST** run fencing **before** any approval question. This file-based JSON system **MUST** include **incorrect JSON format**. Dest `approve` / `reject` **MUST** fail closed on inbound **only** for that listed fence, with a **human-facing** sentence. Dest `interactive` **MUST** display the same sentence and **MUST NOT** ask yes/no for that file. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
 | Condition | Dest approve / reject / interactive |
 |-----------|-------------------------------------|
@@ -74,8 +74,9 @@ This is **not** a second `requirement-domain-*`. It is **not** the sudoer print/
 | JSON `subject` ≠ `dns-adm` | **MUST NOT** fence |
 | Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
-**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail (`schema_version` 1, unknown keys, missing required, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope is **not** a dest fencing condition. Who may run dest verbs is **authz**, not an inbound-file fence.
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; dest-owned closed-schema fail (`schema_version` 1, unknown keys vs dest allowlist, missing required including `submit_app` / `submit_version` as non-empty strings, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest-written `submit_by` after format is allowed. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope is **not** a dest fencing condition. Who may run dest verbs is **authz**, not an inbound-file fence.
 
 ### 2.2 Account map
 

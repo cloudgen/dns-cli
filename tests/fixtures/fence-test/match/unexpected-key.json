@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "purpose": "Add A",
+  "subject": "alice",
+  "action": "add",
+  "domain_id": "example.com",
+  "subdomain": "www",
+  "ipv4": "203.0.113.10",
+  "kind": "type-2-switch"
+}

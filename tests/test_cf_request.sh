@@ -2,7 +2,7 @@
 # tests/test_cf_request.sh — DNS inbound JSON submit / approve / reject
 # =============================================================================
 # Primary REQs: requirement-cloudflare-dns-request, requirement-dns-actor-table
-# TP families: TP-CF-REQ-* · TP-CF-ACTOR submit/approve (routed)
+# TP families: TP-CF-REQ-* · TP-FENCE-06 · TP-CF-ACTOR submit/approve (routed)
 # =============================================================================
 
 # shellcheck source=helpers.sh
@@ -80,6 +80,8 @@ run_test_cf_request() {
     assert_file_exists "TP-CF-REQ-01 inbound file" "${_in}/${_rid}"
     assert_contains "TP-CF-REQ-01 basename action" "${_rid}" "-add-"
     assert_contains "TP-CF-REQ-01 basename subject" "${_rid}" "-${_user}-"
+    assert_contains "TP-CF-REQ-17 queued submit_app" "$(cat "${_in}/${_rid}")" '"submit_app": "dns-cli"'
+    assert_contains "TP-CF-REQ-17 queued submit_version" "$(cat "${_in}/${_rid}")" '"submit_version":'
 
     _out=$(HOME="${CI_HOME}" \
         CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
@@ -180,6 +182,27 @@ run_test_cf_request() {
     _ec=$?
     assert_eq "TP-CF-REQ-06 extra key exit 1" 1 "${_ec}"
     assert_contains "TP-CF-REQ-06 extra code" "${_err}" "request_invalid"
+
+    # TP-FENCE-06 — dest-legal sudoer `kind` is not a DNS dest key (IJF-M8)
+    _kind_dns="${CI_HOME}/kind-on-dns.json"
+    _cf_req_write "${_kind_dns}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"nope\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.10\",
+  \"kind\": \"login-hook-elev\"
+}"
+    _err=$(HOME="${CI_HOME}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        sh "${SCRIPT}" --json submit "${_kind_dns}" 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-FENCE-06 / TP-CF-REQ-16 DNS dest rejects kind exit 1" 1 "${_ec}"
+    assert_contains "TP-FENCE-06 / TP-CF-REQ-16 DNS dest rejects kind code" "${_err}" "request_invalid"
+    assert_contains "TP-FENCE-06 / TP-CF-REQ-16 DNS dest unknown-key sentence" "${_err}" "unknown key"
+    assert_contains "TP-FENCE-06 / TP-CF-REQ-16 DNS dest no yes/no" "${_err}" "Dest will not ask yes or no"
 
     _plant="${CI_HOME}/plant-submit-by.json"
     _cf_req_write "${_plant}" "{
@@ -334,14 +357,18 @@ run_test_cf_request() {
     assert_contains "TP-CF-REQ-15 stamp writes submit_by" "${_stamp}" 'data["submit_by"]'
     assert_contains "TP-CF-REQ-12 one-off prompt_yes_no" "${_hook}" "prompt_yes_no"
     assert_contains "TP-CF-REQ-12 Approve this request" "${_hook}" "Approve this request"
+    assert_contains "TP-CF-REQ-17 interactive queued by" "${_hook}" "queued by"
     assert_not_contains "TP-CF-REQ-12 no skip/quit menu" "${_hook}" "skip / quit"
     _fence=$(sed -n '/^cf_req_dest_fence()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-13 dest fence helper" "${_fence}" "incorrect_json_format"
     assert_contains "TP-CF-REQ-13 dest fence JSON object" "${_fence}" "not a JSON object"
     assert_contains "TP-CF-REQ-15 dest_fence allows submit_by" "${_fence}" "submit_by"
+    assert_contains "TP-CF-REQ-17 dest_fence allows submit_app" "${_fence}" "submit_app"
+    assert_contains "TP-CF-REQ-17 dest_fence allows submit_version" "${_fence}" "submit_version"
     assert_contains "TP-CF-REQ-14 dest fence User SSOT is JSON subject" "${_fence}" "User SSOT is JSON subject"
     assert_not_contains "TP-CF-REQ-14 dest fence MUST NOT use BN_SUBJECT" "${_fence}" "CF_REQ_BN_SUBJECT"
     _subfn=$(sed -n '/^cf_req_submit()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-REQ-17 submit stamps identity" "${_subfn}" "cf_req_stamp_submit_identity"
     assert_not_contains "TP-CF-REQ-14 submit MUST NOT use BN_SUBJECT" "${_subfn}" "CF_REQ_BN_SUBJECT"
     _expl=$(sed -n '/^cf_req_explain_fence()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-13 human-facing explain" "${_expl}" "Waiting file"

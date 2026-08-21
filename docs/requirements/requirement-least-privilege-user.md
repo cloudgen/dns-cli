@@ -136,7 +136,7 @@ Absent account → success no-op.
 
 **L-M13. Queue ownership.** `setup` **MUST NOT** `chown` dest inbound JSON to `dns-adm` (or any subject). Dest **`sudoer-adm`** takes file-ownership. The JSON username field is **not** the Unix owner. DNS `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any queue move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST** take file-ownership of inbound as `dns-adm` **at the beginning**, then review (`requirement-dns-actor-table` ACT-M4 / ACT-M6). Incident **INC-20260818-003**.
 
-**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
 | Condition | Dest approve / reject / review |
 |-----------|--------------------------------|
@@ -146,6 +146,7 @@ Absent account → success no-op.
 | JSON username field ≠ dest LPU | **MUST NOT** fence |
 | Filename subject token ≠ JSON username field | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
 **Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is the JSON username field. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8 · SJ-M5.
 

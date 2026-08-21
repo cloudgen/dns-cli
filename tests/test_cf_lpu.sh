@@ -2,8 +2,8 @@
 # tests/test_cf_lpu.sh — Type 1 setup / remove-lpu + Type 0 print-sudoers
 # =============================================================================
 # Primary REQs: requirement-least-privilege-user, requirement-three-layer-privilege-model,
-# requirement-sudoer-json-file
-# TP families: TP-LPU-* · TP-PRIV-* · TP-SUDOER-JSON-*
+# requirement-sudoer-json-file, requirement-incorrect-json-format
+# TP families: TP-LPU-* · TP-PRIV-* · TP-SUDOER-JSON-* · TP-FENCE-05/07
 # Host useradd is stubbed (CF_TEST_LPU=1). Never mutates real /etc/passwd.
 # =============================================================================
 
@@ -186,6 +186,7 @@ run_test_cf_lpu() {
     assert_contains "TP-SUDOER-JSON-03 service dns-cli" "${_body}" '"service":"dns-cli"'
     assert_contains "TP-SUDOER-JSON-03 empty args" "${_body}" '"args":[]'
     assert_contains "TP-SUDOER-JSON-10 kind type-2-switch" "${_body}" '"kind":"type-2-switch"'
+    assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 generate type-2-switch dest-owned keys" "${_gen_default}"
     assert_not_contains "TP-SUDOER-JSON-02 no mkdir" "${_body}" "mkdir"
     assert_not_contains "TP-SUDOER-JSON-02 no /usr/bin/cp" "${_body}" "/usr/bin/cp"
     assert_not_contains "TP-SUDOER-JSON-03 no runas root" "${_body}" '"runas":"root"'
@@ -275,6 +276,7 @@ STUB
     assert_contains "TP-SUDOER-JSON-11 runas root" "${_hbody}" '"runas":"root"'
     assert_contains "TP-SUDOER-JSON-11 args interactive" "${_hbody}" '"args":["interactive"]'
     assert_contains "TP-SUDOER-JSON-11 path" "${_hbody}" '"path":"/usr/local/bin/dns-cli"'
+    assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 generate login-hook-elev dest-owned keys" "${_hook_dest}"
 
     # TP-SUDOER-JSON-12 — Type 0 submit refuses hook kind
     _err=$(HOME="${CI_HOME}" \
@@ -310,10 +312,15 @@ STUB
         t_pass "TP-SUDOER-JSON-13 inbound has login-hook-elev"
         assert_contains "TP-SUDOER-JSON-13 inbound runas root" "$(cat "${_hook_in}")" '"runas":"root"'
         assert_contains "TP-SUDOER-JSON-13 inbound interactive" "$(cat "${_hook_in}")" '"interactive"'
+        assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 setup queued hook dest-owned keys" "${_hook_in}"
     else
         t_fail "TP-SUDOER-JSON-13 inbound has login-hook-elev"
     fi
-    assert_file_missing "TP-SUDOER-JSON-13 no /etc/sudoers.d dest" "/etc/sudoers.d/dns-cli-dns-adm"
+    if [ -e "/etc/sudoers.d/dns-cli-dns-adm" ]; then
+        t_skip "TP-SUDOER-JSON-13 live dest present (INC-20260821-001); CF_TEST_LPU setup does not write /etc"
+    else
+        assert_file_missing "TP-SUDOER-JSON-13 no /etc/sudoers.d dest" "/etc/sudoers.d/dns-cli-dns-adm"
+    fi
 
     # TP-SUDOER-JSON-16 — dest Type 0 self_scope is a blockage; setup still writes inbound
     _block="${CI_HOME}/stub-sudoer-block"
@@ -359,6 +366,10 @@ STUB
 
     _fn=$(sed -n '/^lpu_submit_login_hook_sudoer_request()/,/^}/p' "${SCRIPT}")
     assert_not_contains "TP-SUDOER-JSON-18 setup hook write has no chown" "${_fn}" 'chown "${_lpu}'
+
+    # TP-FENCE-07 — live dest unknown-key fence is sibling dest, not this suite.
+    # dest sudoer-cli 1.8.1 still refuses `kind` (INC-20260819-001 CAPA 6).
+    t_skip "TP-FENCE-07 live dest sudoer-cli unknown-key fence (sibling dest; dest 1.8.1 still refuses kind — INC-20260819-001 CAPA 6)"
 
     unset CF_TEST_LPU
     unset CF_LPU_ROOT

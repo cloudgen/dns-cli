@@ -4,12 +4,12 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.6.0 (current) | Yes |
-| 1.5.0 | Yes |
-| 1.4.x | Yes |
-| 1.3.0 | Yes |
-| 1.1.x | Limited (specify vault / `ip`) |
-| 1.0.0 | Limited |
+| 1.11.0 (current) | Yes |
+| 1.10.0 | Yes |
+| 1.9.x | Yes |
+| 1.8.x | Yes |
+| 1.6.x–1.7.x | Limited |
+| 1.5.0 and older | Limited |
 
 ## Reporting a Vulnerability
 

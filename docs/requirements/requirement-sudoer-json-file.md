@@ -119,7 +119,7 @@ This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Typ
 
 **SJ-M5. Queue ownership (sacred).** Type 1 `setup` and Type 0 submit **MUST NOT** `chown` dest inbound JSON. Dest **`sudoer-adm`** takes ownership. The JSON username field is **not** file-ownership. Dest **MUST** take file-ownership when run as **`sudoer-adm`**, then move. Incident **INC-20260818-003**.
 
-**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
 | Condition | Dest approve / reject / review |
 |-----------|--------------------------------|
@@ -129,8 +129,9 @@ This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Typ
 | JSON `username` ≠ dest LPU | **MUST NOT** fence |
 | Filename subject token ≠ JSON `username` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
-**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `username`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences.
+**Incorrect JSON format** includes: not a regular file; not one parseable JSON object; dest-owned closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest-owned sudoer allowlist **MUST** include `kind` (`type-2-switch` \| `login-hook-elev`) as a **known** key. Dest **MUST NOT** treat dest-legal `kind` as unexpected. File-ownership dest-writes `submit_by` after format; dest **MUST NOT** convert file-ownership into `kind`. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `username`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences.
 
 | Door | Who | How | What | Dest Type 0 `username` == `id -un` |
 |------|-----|-----|------|-------------------------------------|
@@ -431,6 +432,7 @@ sudo dns-cli setup
 | **TP-SUDOER-JSON-18** | same | have | setup hook write does not `chown`; law names SJ-M5 |
 | **TP-SUDOER-JSON-19** | same | have | dest MUST NOT fence on file-ownership |
 | **TP-SUDOER-JSON-20** | same | have | dest inbound fence is incorrect JSON format only (SJ-M5 table) |
+| **TP-SUDOER-JSON-21** | same | have | queued inbound keys ⊆ dest-owned allowlist (`kind` known); same assert as **TP-FENCE-05** |
 | **TP-SUDOER-JSON-08** | same | have | generate dest readable without sudo |
 | **TP-PRIV-05** | same | have | generate refuses `/etc` |
 | **TP-PRIV-06** | same | have | submit missing dest CLI fail-closed |

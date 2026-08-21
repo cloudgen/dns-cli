@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 1.12.0) — dest Fence row points at `requirement-incorrect-json-format`  
+**Status**: Active (Version 1.13.0) — dest Fence row points at `requirement-incorrect-json-format`; prevention-set + sudo-command pointers  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,7 +12,7 @@ It exists because the product now creates LPU **`dns-adm`** and must say **who**
 
 Identity F1–F7 live in `requirement-least-privilege-user`. Domain verb semantics live in `requirement-domain-cloudflare-dns`. This file **MUST NOT** invent a second F1–F7 table or a second DNS catalog.
 
-This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-script`, `remove-project-sudoers`, backup/restore. It **is** a **sudoer-approval-submitter**: Type 0 `generate-sudoer-request` / `submit-sudoer-request` queue a JSON grant into sibling `sudoer-cli`. JSON **body** is `requirement-sudoer-json-file`.
+This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-script`, `remove-project-sudoers`, backup/restore. It **is** a **sudoer-approval-submitter**: Type 0 `generate-sudoer-request` / `submit-sudoer-request` queue a JSON grant into sibling `sudoer-cli`. JSON **body** is `requirement-sudoer-json-file`. Closed **what is blocked vs must stay open** is `requirement-privilege-prevention-set`. In-tool password sudo wrappers are `requirement-shell-sudo-command` (Type 2 `sudo -n -u` stays **this** file P-M4).
 
 ### 1.1 Human-facing
 
@@ -46,7 +46,7 @@ This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-sc
 
 | Layer | Privilege | Actor | Responsibilities |
 |-------|-----------|-------|------------------|
-| **Type 0** | Invoking user | Any login | `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), `generate-sudoer-request`, `submit-sudoer-request`, vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified |
+| **Type 0** | Invoking user | Any login | **Operational:** `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), `generate-sudoer-request`, `submit-sudoer-request`, vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified. **Test-purpose (unit test; local test folder):** `test-json-format` / `fence-test`. Type 0 does **not** mean “unit test.” Testers **MUST NOT** queue or dest-write. |
 | **Type 1** | Elevated (password `sudo` / already-root) | Host admin | `setup` (create `dns-adm` + F3/F5/F6), `remove-lpu` |
 | **Type 2** | Dedicated LPU | `dns-adm` | Default-vault `vault` + `add` / `update` / `remove` / `status` / `show` |
 
@@ -137,7 +137,7 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 
 **P-M13. Queue ownership.** Type 1 `setup` and Type 0 `submit-sudoer-request` **MUST NOT** `chown` dest inbound JSON. Dest **`sudoer-adm`** takes ownership, then moves. DNS `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any inbound → accepted/declined move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST** take file-ownership of inbound as `dns-adm` **at the beginning**, then review. JSON username field ≠ Unix owner. Incident **INC-20260818-003**.
 
-**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions.
+**Dest approval fencing conditions (closed).** Dest `approve` / `reject` / review **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
 | Condition | Dest approve / reject / review |
 |-----------|--------------------------------|
@@ -147,6 +147,7 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 | JSON username field ≠ dest LPU | **MUST NOT** fence |
 | Filename subject token ≠ JSON username field | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
+| `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
 
 **Incorrect JSON format** includes: not a regular file; not one parseable JSON object; closed-schema fail; field types/enums invalid; basename grammar fail; basename **action** ≠ JSON `action`. Dest **MUST NOT** take the user from the filename; user SSOT is the JSON username field. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: `requirement-dns-actor-table` ACT-M8 · `requirement-sudoer-json-file` SJ-M5.
 

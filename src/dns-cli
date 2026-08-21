@@ -36,7 +36,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.9.7"
+# VERSION: hard-assign VERSION="1.12.0"
 #
 # =============================================================================
 
@@ -51,10 +51,10 @@ APP_NAME="dns-cli"
 : "${APP_NAME:=dns-cli}"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, submit/approve/reject/interactive DNS inbound, version, about, help.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.9.7"
-: "${VERSION:=1.9.7}"
+VERSION="1.12.0"
+: "${VERSION:=1.11.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -3575,6 +3575,7 @@ lpu_sudoers_normalize_kind() {
 
 lpu_sudoers_json_text_compact() {
     : "${APP_NAME:=dns-cli}"
+    : "${VERSION:=1.12.0}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${SUBMIT_ACTION:=add}"
     _kind=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
@@ -3588,12 +3589,12 @@ lpu_sudoers_json_text_compact() {
     if [ "${_kind}" = "login-hook-elev" ]; then
         _user="${_lpu}"
         _purpose="Allow ${_lpu} login hook to run ${APP_NAME} interactive via sudo -n."
-        printf '%s\n' "{\"schema_version\":1,\"kind\":\"login-hook-elev\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[\"interactive\"]}]}"
+        printf '%s\n' "{\"schema_version\":1,\"kind\":\"login-hook-elev\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"submit_app\":\"${APP_NAME}\",\"submit_version\":\"${VERSION}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[\"interactive\"]}]}"
         return 0
     fi
     _user=$(id -un 2>/dev/null || echo "unknown")
     _purpose="Allow ${_user} to run ${APP_NAME} as ${_lpu}."
-    printf '%s\n' "{\"schema_version\":1,\"kind\":\"type-2-switch\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"commands\":[{\"runas\":\"${_lpu}\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[]}]}"
+    printf '%s\n' "{\"schema_version\":1,\"kind\":\"type-2-switch\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"submit_app\":\"${APP_NAME}\",\"submit_version\":\"${VERSION}\",\"commands\":[{\"runas\":\"${_lpu}\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[]}]}"
 }
 
 lpu_sudoers_trust_tier() {
@@ -5372,6 +5373,7 @@ cf_req_field() {
 # MUST NOT check who submitted / file-ownership / subject == dest LPU.
 cf_req_dest_fence() {
     _jf="$1"
+    _skip_bn="${2:-}"
     : "${APP_NAME:=dns-cli}"
     CF_REQ_FENCE_KIND=""
     CF_REQ_FENCE_MSG=""
@@ -5381,14 +5383,16 @@ cf_req_dest_fence() {
         return 1
     fi
     _bn=$(basename -- "${_jf}")
-    if ! cf_req_parse_basename "${_bn}"; then
-        CF_REQ_FENCE_KIND="incorrect_json_format"
-        CF_REQ_FENCE_MSG="The file name ${_bn} is not a DNS request name (YYYYMMDD-subject-action-n.json). Dest will not ask yes or no. Next: rename or submit a new file."
-        return 1
+    if [ "${_skip_bn}" != "skip-basename" ]; then
+        if ! cf_req_parse_basename "${_bn}"; then
+            CF_REQ_FENCE_KIND="incorrect_json_format"
+            CF_REQ_FENCE_MSG="The file name ${_bn} is not a DNS request name (YYYYMMDD-subject-action-n.json). Dest will not ask yes or no. Next: rename or submit a new file."
+            return 1
+        fi
     fi
     _uk=$(python3 -c '
 import json,sys
-allowed={"schema_version","purpose","subject","action","domain_id","subdomain","ipv4","from_ipv4","mode","ttl","proxied","submit_by"}
+allowed={"schema_version","purpose","subject","action","domain_id","subdomain","ipv4","from_ipv4","mode","ttl","proxied","submit_by","submit_app","submit_version"}
 forbidden=("token","CF_API_TOKEN","user_id","api_token")
 path=sys.argv[1]
 with open(path, encoding="utf-8") as fh:
@@ -5403,6 +5407,13 @@ for k in data:
     if k not in allowed:
         print("unknown:"+k)
         raise SystemExit(3)
+for key in ("submit_app","submit_version"):
+    if key not in data:
+        print("missing:"+key)
+        raise SystemExit(4)
+    if not isinstance(data[key], str) or not data[key]:
+        print("bad-type:"+key)
+        raise SystemExit(4)
 print("ok")
 ' "${_jf}")
     _prc=$?
@@ -5414,6 +5425,9 @@ print("ok")
                 ;;
             unknown:*)
                 CF_REQ_FENCE_MSG="This waiting file has an unknown key. Dest will not ask yes or no. Next: use only the documented request keys and ${APP_NAME} submit again."
+                ;;
+            missing:*|bad-type:*)
+                CF_REQ_FENCE_MSG="This waiting file must include submit_app and submit_version as non-empty strings (which CLI queued it). Dest will not ask yes or no. Next: ${APP_NAME} submit again so the CLI stamps those fields."
                 ;;
             *)
                 CF_REQ_FENCE_MSG="This waiting file is not a JSON object. Dest will not ask yes or no. Next: write one JSON object and ${APP_NAME} submit again."
@@ -5445,7 +5459,7 @@ print("ok")
             return 1
             ;;
     esac
-    if [ "${_action}" != "${CF_REQ_BN_ACTION}" ]; then
+    if [ "${_skip_bn}" != "skip-basename" ] && [ "${_action}" != "${CF_REQ_BN_ACTION}" ]; then
         CF_REQ_FENCE_KIND="incorrect_json_format"
         CF_REQ_FENCE_MSG="This waiting file action ${_action} does not match basename type ${CF_REQ_BN_ACTION}. Dest will not ask yes or no."
         return 1
@@ -5547,6 +5561,8 @@ print("ok")
     CF_REQ_TTL="${_ttl}"
     CF_REQ_PROXIED="${_prox}"
     CF_REQ_SUBMIT_BY=$(cf_req_field "${_jf}" "submit_by")
+    CF_REQ_SUBMIT_APP=$(cf_req_field "${_jf}" "submit_app")
+    CF_REQ_SUBMIT_VERSION=$(cf_req_field "${_jf}" "submit_version")
     return 0
 }
 
@@ -5557,6 +5573,186 @@ cf_req_explain_fence() {
     out_warn "Waiting file ${_bn} is blocked by a fencing condition (incorrect JSON format)."
     out_plain "${CF_REQ_FENCE_MSG}"
     out_plain "This file was not offered for yes or no. Next: fix the JSON and ${APP_NAME} submit it again."
+}
+
+# Type 0 dest Fence tester (IJF-M11). stdin xor --file/positional. No queue. No dest elev.
+cf_req_test_json_format() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${TMPDIR:=/tmp}"
+    if [ -n "${CF_OPT_DIR:-}" ]; then
+        out_die_code request_invalid "test-json-format takes stdin xor --file PATH (not --dir). Next: ${APP_NAME} test-json-format --file PATH"
+    fi
+    _path="${CF_OPT_FILE:-${1:-}}"
+    _tmp=""
+    if [ -n "${CF_OPT_FILE:-}" ] && [ -n "${1:-}" ]; then
+        out_die_code request_invalid "test-json-format takes stdin xor --file PATH (not both). Next: ${APP_NAME} test-json-format --file PATH"
+    fi
+    if [ -z "${_path}" ]; then
+        if [ -t 0 ]; then
+            out_die_code request_invalid "test-json-format needs --file PATH or stdin. Next: ${APP_NAME} test-json-format --file ./YYYYMMDD-subject-action-n.json"
+        fi
+        _tmp=$(mktemp "${TMPDIR}/${APP_NAME}.XXXXXX") || out_die_code vault_insecure "mktemp failed"
+        cat >"${_tmp}" || {
+            rm -f "${_tmp}"
+            out_die_code request_invalid "cannot read stdin"
+        }
+        _path="${_tmp}"
+    fi
+    _skip=""
+    _bn=$(basename -- "${_path}")
+    if ! cf_req_parse_basename "${_bn}"; then
+        _skip="skip-basename"
+    fi
+    if cf_req_dest_fence "${_path}" ${_skip:+${_skip}}; then
+        [ -n "${_tmp}" ] && rm -f "${_tmp}"
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "test-json-format" "ok" "path" "${_path}"
+        else
+            out_success "JSON format is dest-legal (DNS dest allowlist)."
+        fi
+        return 0
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        _msg="${CF_REQ_FENCE_MSG}"
+        [ -n "${_tmp}" ] && rm -f "${_tmp}"
+        out_json_error "${_msg}" "request_invalid"
+        return 1
+    fi
+    cf_req_explain_fence "${_path}"
+    [ -n "${_tmp}" ] && rm -f "${_tmp}"
+    return 1
+}
+
+# Test-purpose Next: running ship unit (checkout src/…). Never GLOBAL_BIN.
+# fence-test / test-json-format do not need an install. ALIGNMENT: requirement-approval-fencing-condition
+cf_req_test_purpose_cmd() {
+    _run=$(util_resolve_running_path)
+    if [ -n "${_run}" ] && [ -f "${_run}" ]; then
+        printf '%s' "${_run}"
+        return 0
+    fi
+    printf '%s' "${APP_NAME}"
+}
+
+# Run the closed dest fence list (incorrect JSON format only). Returns 0 if clear, 1 if matched.
+cf_req_fence_test_apply() {
+    _path="$1"
+    _skip=""
+    _bn=$(basename -- "${_path}")
+    if ! cf_req_parse_basename "${_bn}"; then
+        _skip="skip-basename"
+    fi
+    cf_req_dest_fence "${_path}" ${_skip:+${_skip}}
+}
+
+# Type 0 dest-fence list tester (FC-M6). stdin xor --file xor --dir. No queue. No dest elev.
+# ALIGNMENT: requirement-approval-fencing-condition · requirement-incorrect-json-format
+cf_req_fence_test() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${TMPDIR:=/tmp}"
+    : "${CF_EXPECT_MATCH:=0}"
+    _cmd=$(cf_req_test_purpose_cmd)
+    _dir="${CF_OPT_DIR:-}"
+    _file="${CF_OPT_FILE:-${1:-}}"
+    if [ -n "${_dir}" ] && [ -n "${_file}" ]; then
+        out_die_code request_invalid "fence-test takes --file PATH or --dir DIR or stdin, not both --file and --dir. Next: ${_cmd} fence-test --file PATH"
+    fi
+    if [ -n "${_dir}" ]; then
+        cf_req_fence_test_dir
+        return $?
+    fi
+    if [ "${CF_EXPECT_MATCH}" = "1" ]; then
+        out_die_code request_invalid "--expect-match is only valid with --dir DIR. Next: ${_cmd} fence-test --dir tests/fixtures/fence-test/match --expect-match"
+    fi
+    _path="${_file}"
+    _tmp=""
+    if [ -z "${_path}" ]; then
+        if [ -t 0 ]; then
+            out_die_code request_invalid "fence-test needs --file PATH, --dir DIR, or stdin. Next: ${_cmd} fence-test --file PATH"
+        fi
+        _tmp=$(mktemp "${TMPDIR}/${APP_NAME}.XXXXXX") || out_die_code vault_insecure "mktemp failed"
+        cat >"${_tmp}" || {
+            rm -f "${_tmp}"
+            out_die_code request_invalid "cannot read stdin"
+        }
+        _path="${_tmp}"
+    fi
+    if cf_req_fence_test_apply "${_path}"; then
+        [ -n "${_tmp}" ] && rm -f "${_tmp}"
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "success" "No dest fence matched." "command" "fence-test" "path" "${_path}"
+        else
+            out_success "No dest fence matched."
+        fi
+        return 0
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        _msg="${CF_REQ_FENCE_MSG}"
+        [ -n "${_tmp}" ] && rm -f "${_tmp}"
+        out_json_error "${_msg}" "request_invalid"
+        return 1
+    fi
+    cf_req_explain_fence "${_path}"
+    [ -n "${_tmp}" ] && rm -f "${_tmp}"
+    return 1
+}
+
+cf_req_fence_test_dir() {
+    _dir="${CF_OPT_DIR}"
+    _cmd=$(cf_req_test_purpose_cmd)
+    [ -n "${_dir}" ] || out_die_code request_invalid "fence-test --dir requires DIR. Next: ${_cmd} fence-test --dir tests/fixtures/fence-test/pass"
+    [ -d "${_dir}" ] || out_die_code request_invalid "fence-test --dir is not a directory: ${_dir}. Next: ${_cmd} fence-test --dir tests/fixtures/fence-test/pass"
+    [ -L "${_dir}" ] && out_die_code request_invalid "fence-test refuses a symlink --dir: ${_dir}. Next: ${_cmd} fence-test --dir tests/fixtures/fence-test/pass"
+    _expect="${CF_EXPECT_MATCH:-0}"
+    _n=0
+    _matched=0
+    _passed=0
+    for _fp in "${_dir}"/*.json; do
+        [ -f "${_fp}" ] || continue
+        [ -L "${_fp}" ] && continue
+        _bn=$(basename -- "${_fp}")
+        _n=$((_n + 1))
+        if cf_req_fence_test_apply "${_fp}"; then
+            _passed=$((_passed + 1))
+            out_info "pass ${_bn}"
+        else
+            _matched=$((_matched + 1))
+            out_info "fence-matched ${_bn}"
+        fi
+    done
+    if [ "${_n}" -eq 0 ]; then
+        out_die_code request_invalid "fence-test --dir has no regular .json files: ${_dir}. Next: ${_cmd} fence-test --file PATH"
+    fi
+    if [ "${_expect}" = "1" ]; then
+        if [ "${_passed}" -ne 0 ] || [ "${_matched}" -ne "${_n}" ]; then
+            out_die_code request_invalid "fence-test --expect-match: ${_passed} of ${_n} files had no dest fence (want every file to match). Next: ${_cmd} fence-test --dir ${_dir} --expect-match"
+        fi
+        if [ "${JSON}" -eq 1 ]; then
+            out_json "success" "fence-test: ${_n} files, all matched a dest fence." \
+                "command" "fence-test" \
+                "files" "${_n}" \
+                "matched" "${_matched}" \
+                "passed" "${_passed}" \
+                "expect_match" "1"
+        else
+            out_success "fence-test: ${_n} files, all matched a dest fence."
+        fi
+        return 0
+    fi
+    if [ "${_matched}" -ne 0 ]; then
+        out_die_code request_invalid "fence-test: ${_matched} of ${_n} files matched a dest fence. Next: ${_cmd} fence-test --file PATH"
+    fi
+    if [ "${JSON}" -eq 1 ]; then
+        out_json "success" "fence-test: ${_n} files, no dest fence matched." \
+            "command" "fence-test" \
+            "files" "${_n}" \
+            "matched" "0" \
+            "passed" "${_passed}"
+    else
+        out_success "fence-test: ${_n} files, no dest fence matched."
+    fi
 }
 
 cf_req_verify() {
@@ -5697,6 +5893,7 @@ cf_req_submit() {
     _dest="${_in}/${_rid}"
     cp "${_tmp}" "${_dest}" || out_die_code vault_insecure "cannot write ${_dest}"
     chmod 0640 "${_dest}" 2>/dev/null || true
+    cf_req_stamp_submit_identity "${_dest}"
     cf_req_verify "${_dest}" "${_who}"
     if [ -n "${CF_REQ_SUBMIT_BY}" ]; then
         rm -f "${_dest}" 2>/dev/null || true
@@ -5755,6 +5952,29 @@ cf_req_file_owner() {
     _own=$(stat -c '%U' "${_src}" 2>/dev/null || stat -f '%Su' "${_src}" 2>/dev/null || true)
     [ -n "${_own}" ] || return 1
     printf '%s' "${_own}"
+}
+
+# Type 0 overwrite: submit_app / submit_version from live Config.
+# Dest MUST NOT dest-write these keys. Dest MUST NOT fence if they ≠ dest identity.
+cf_req_stamp_submit_identity() {
+    _jf="$1"
+    : "${APP_NAME:=dns-cli}"
+    : "${VERSION:=1.12.0}"
+    [ -n "${_jf}" ] && [ -f "${_jf}" ] || return 1
+    python3 -c '
+import json, sys
+path, app, ver = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+if not isinstance(data, dict):
+    raise SystemExit(2)
+data["submit_app"] = app
+data["submit_version"] = ver
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+' "${_jf}" "${APP_NAME}" "${VERSION}" || out_die_code vault_insecure "cannot stamp submit_app on ${_jf}"
+    return 0
 }
 
 # Dest-write submit_by (human: submit by) = original file-ownership.
@@ -5900,11 +6120,15 @@ cf_req_interactive() {
         # Approval system: fence first. Match → human-facing explain; no question.
         if ! cf_req_dest_fence "${_f}"; then
             cf_req_explain_fence "${_f}"
+            cf_req_move "${_f}" "declined" >/dev/null
             continue
         fi
         out_info "request $(basename -- "${_f}")"
         out_plain "purpose: ${CF_REQ_PURPOSE}"
         out_plain "action:  ${CF_REQ_ACTION}  domain: ${CF_REQ_DOMAIN}  subdomain: ${CF_REQ_SUBDOMAIN}"
+        if [ -n "${CF_REQ_SUBMIT_APP}" ] || [ -n "${CF_REQ_SUBMIT_VERSION}" ]; then
+            out_plain "queued by ${CF_REQ_SUBMIT_APP} ${CF_REQ_SUBMIT_VERSION}"
+        fi
         if [ -n "${CF_REQ_SUBMIT_BY}" ]; then
             out_plain "submit by: ${CF_REQ_SUBMIT_BY}"
         fi
@@ -5989,11 +6213,15 @@ app_help() {
     out_plain "  remove                         Delete managed A record"
     out_plain "  status | show               Read-only: public IP + real DNS A lookup + Cloudflare API"
     out_empty_line
-    out_info "DNS inbound (anyone submits; dns-adm approves):"
+    out_info "DNS inbound (anyone submits; dns-adm approves — operational):"
     out_plain "  submit FILE          Type 0 — queue self-scoped DNS JSON (not submit-sudoer-request)"
     out_plain "  approve [ID]         Type 1 as dns-adm — re-check, apply dest, move to accepted"
     out_plain "  reject [ID]          Type 1 as dns-adm — re-check, move to declined"
     out_plain "  interactive          Type 1 TTY review loop (login hook target)"
+    out_empty_line
+    out_info "Unit test (local test folder; Type 0 — test-purpose):"
+    out_plain "  test-json-format [--file PATH]  Per-row dest JSON-format fence (stdin xor --file; no queue)"
+    out_plain "  fence-test            Dest fence list against a local JSON file (no sudo; does not queue)"
     out_empty_line
     out_info "Global Options:"
     out_plain "  --quiet, -q          Suppress info/success (errors still shown)"
@@ -6016,6 +6244,9 @@ app_help() {
     out_plain "  --add                Force submit-sudoer-request action=add"
     out_plain "  --update             Force submit-sudoer-request action=update"
     out_plain "  --kind KIND          type-2-switch (default) or login-hook-elev (generate fixture)"
+    out_plain "  --file PATH          test-json-format / fence-test input (xor stdin xor --dir)"
+    out_plain "  --dir DIR            fence-test: every regular .json in DIR (xor --file / stdin)"
+    out_plain "  --expect-match       fence-test --dir: succeed only if every file matches a dest fence"
     out_empty_line
     out_info "Environment:"
     out_plain "  USER_BIN / GLOBAL_BIN  install destinations"
@@ -6039,6 +6270,10 @@ app_help() {
     out_plain "  ${APP_NAME} add --ip 203.0.113.10"
     out_plain "  ${APP_NAME} --json status"
     out_plain "  ${APP_NAME} uninstall --force"
+    out_plain "  ${APP_NAME} test-json-format --file ./20260821-alice-add-1.json"
+    out_plain "  ${APP_NAME} fence-test --file tests/fixtures/fence-test/pass/20260821-alice-add-1.json"
+    out_plain "  ${APP_NAME} fence-test --dir tests/fixtures/fence-test/pass"
+    out_plain "  ${APP_NAME} fence-test --dir tests/fixtures/fence-test/match --expect-match"
     out_empty_line
     out_info "Empty argv shows help (Type N — local-only; no curl|sh; no Cloudflare call)."
     out_info "install copies the program only; it does not create Linux user dns-adm."
@@ -6091,6 +6326,9 @@ app_main() {
     CF_OPT_FROM=""
     CF_OPT_LABEL=""
     CF_OPT_HOME=""
+    CF_OPT_FILE=""
+    CF_OPT_DIR=""
+    CF_EXPECT_MATCH=0
     CF_VAULT_ACTION=""
     CF_VAULT_SUB_OP=""
     CF_VAULT_SUB_LABEL=""
@@ -6135,6 +6373,21 @@ app_main() {
                 export SUDOER_REQUEST_KIND
                 shift
                 ;;
+            --file)
+                if [ -z "${2:-}" ]; then
+                    out_die_code request_invalid "--file requires a path"
+                fi
+                CF_OPT_FILE="$2"
+                shift
+                ;;
+            --dir)
+                if [ -z "${2:-}" ]; then
+                    out_die_code request_invalid "--dir requires DIR"
+                fi
+                CF_OPT_DIR="$2"
+                shift
+                ;;
+            --expect-match) CF_EXPECT_MATCH=1 ;;
             --ip|--subdomain|--zone-id|--account-id|--domain|--domain-id|--user-id|--ttl|--proxied|--token-file|--vault-dir|--mode|--from|--label|--home)
                 _flg="$1"
                 shift
@@ -6191,7 +6444,7 @@ app_main() {
                 out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
             fi
             ;;
-        print-sudoers|generate-sudoer-request|submit-sudoer-request)
+        print-sudoers|generate-sudoer-request|submit-sudoer-request|test-json-format|fence-test)
             if [ "${CF_POSN}" -gt 2 ]; then
                 out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
             fi
@@ -6257,6 +6510,8 @@ app_main() {
         print-sudoers) lpu_print_sudoers ;;
         generate-sudoer-request) lpu_generate_sudoer_request "${CF_POS2:-}" ;;
         submit-sudoer-request) lpu_submit_sudoer_request "${CF_POS2:-}" ;;
+        test-json-format) cf_req_test_json_format "${CF_POS2:-}" ;;
+        fence-test)   cf_req_fence_test "${CF_POS2:-}" ;;
         vault)        cf_vault_dispatch ;;
         ip)           cf_ip_show ;;
         add)          cf_dns_add ;;

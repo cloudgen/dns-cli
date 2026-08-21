@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "purpose": "Update A for home.example.com",
+  "subject": "bob",
+  "action": "update",
+  "submit_app": "other-cli",
+  "submit_version": "0.0.1",
+  "domain_id": "example.com",
+  "subdomain": "home",
+  "ipv4": "203.0.113.20"
+}

@@ -11,8 +11,8 @@ Public product review surface (peer of `tests/`).
 | `index.md` | Report index |
 | `reports/` | Dated review run reports |
 
-**Ship unit:** `src/dns-cli` (**VERSION 1.2.0**)  
+**Ship unit:** `src/dns-cli` (**VERSION 1.11.0**)  
 **Suite:** `./tests/run.sh`  
-**Last suite baseline:** PASS=240 FAIL=0 SKIP=0 (2026-08-17)
+**Last suite baseline:** see `reviews/test-plan.md`
 
-**Review focus:** Type 0 local lifecycle + Cloudflare vault v2 + A-record mode + `ip`; live Type 0 specify on `crms.hk` is optional (`CF_LIVE=1`). No backup/restore/sudoers-file surface.
+**Review focus:** Type 0/1/2 + LPU `dns-adm` + inbound DNS approval + dest-owned sudoer JSON (`kind`) + dest fence catalog. Live Type 0 specify on `crms.hk` is optional (`CF_LIVE=1`). No backup/restore/sudoers-manager extras. This product **is** a sudoer-approval-submitter.
