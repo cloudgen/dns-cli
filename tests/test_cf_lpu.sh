@@ -92,6 +92,7 @@ run_test_cf_lpu() {
     assert_contains "TP-LPU-01 rc heal aligns owner" "${_lrc}" "util_align_rc_owner"
 
     _out=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        SUDOER_CLI="${CI_HOME}/no-such-sudoer-cli" \
         sh "${SCRIPT}" --json setup 2>/dev/null)
     _ec=$?
     assert_eq "TP-LPU-02 re-setup exit 0" 0 "$_ec"
@@ -278,6 +279,20 @@ STUB
     assert_contains "TP-SUDOER-JSON-11 path" "${_hbody}" '"path":"/usr/local/bin/dns-cli"'
     assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 generate login-hook-elev dest-owned keys" "${_hook_dest}"
 
+    # TP-SUDOER-JSON-22 — GLOBAL_BIN isolation (CI gbin) MUST NOT become grant path
+    mkdir -p "${CI_HOME}/gbin"
+    printf '#!/bin/sh\nexit 0\n' >"${CI_HOME}/gbin/${APP_NAME}"
+    chmod 0755 "${CI_HOME}/gbin/${APP_NAME}"
+    _gbin_hook="${CI_HOME}/hook-gbin-path.json"
+    _out=$(HOME="${CI_HOME}" GLOBAL_BIN="${CI_HOME}/gbin" \
+        sh "${SCRIPT}" generate-sudoer-request --allow-test-local --kind login-hook-elev "${_gbin_hook}" 2>&1)
+    _ec=$?
+    assert_eq "TP-SUDOER-JSON-22 generate with CI GLOBAL_BIN exit 0" 0 "${_ec}"
+    _gbbody=$(cat "${_gbin_hook}" 2>/dev/null || true)
+    assert_contains "TP-SUDOER-JSON-22 path stays production" "${_gbbody}" '"path":"/usr/local/bin/dns-cli"'
+    assert_not_contains "TP-SUDOER-JSON-22 no CI gbin path" "${_gbbody}" "${CI_HOME}/gbin"
+    assert_not_contains "TP-SUDOER-JSON-22 no .ci-homes path" "${_gbbody}" ".ci-homes"
+
     # TP-SUDOER-JSON-12 — Type 0 submit refuses hook kind
     _err=$(HOME="${CI_HOME}" \
         SUDOER_CLI="${_stub_dir}/bin/sudoer-cli" \
@@ -312,6 +327,8 @@ STUB
         t_pass "TP-SUDOER-JSON-13 inbound has login-hook-elev"
         assert_contains "TP-SUDOER-JSON-13 inbound runas root" "$(cat "${_hook_in}")" '"runas":"root"'
         assert_contains "TP-SUDOER-JSON-13 inbound interactive" "$(cat "${_hook_in}")" '"interactive"'
+        assert_contains "TP-SUDOER-JSON-13 inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli"'
+        assert_not_contains "TP-SUDOER-JSON-13 inbound not CI gbin" "$(cat "${_hook_in}")" "/gbin/"
         assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 setup queued hook dest-owned keys" "${_hook_in}"
     else
         t_fail "TP-SUDOER-JSON-13 inbound has login-hook-elev"
@@ -360,12 +377,15 @@ STUB
         t_pass "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
         _hook_owner=$(stat -c '%U' "${_hook_in}" 2>/dev/null || stat -f '%Su' "${_hook_in}")
         assert_eq "TP-SUDOER-JSON-18 hook JSON owner is writer" "${_user}" "${_hook_owner}"
+        assert_contains "TP-SUDOER-JSON-22 setup inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli"'
     else
         t_fail "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
     fi
 
     _fn=$(sed -n '/^lpu_submit_login_hook_sudoer_request()/,/^}/p' "${SCRIPT}")
     assert_not_contains "TP-SUDOER-JSON-18 setup hook write has no chown" "${_fn}" 'chown "${_lpu}'
+    _din=$(sed -n '/^lpu_detect_sudoer_inbound()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-SUDOER-JSON-24 test-mode skips live inbound" "${_din}" "lpu_test_mode"
 
     # TP-FENCE-07 — live dest unknown-key fence is sibling dest, not this suite.
     # dest sudoer-cli 1.8.1 still refuses `kind` (INC-20260819-001 CAPA 6).
@@ -392,6 +412,7 @@ STUB
         assert_contains "TP-PRIV-10 P-M13 dest fence table" "${_tbody}" "Dest approval fencing conditions (closed)"
         assert_contains "TP-PRIV-10 dest fence is incorrect JSON format" "${_tbody}" "incorrect JSON format"
         assert_contains "TP-PRIV-10 MUST NOT extra dest fence" "${_tbody}" "Who submitted / dest Type 0 self-scope"
+        assert_contains "TP-SUDOER-JSON-24 P-M14 test-mode inbound" "${_tbody}" "P-M14"
     else
         t_fail "TP-PRIV-09 missing requirement-three-layer-privilege-model.md"
     fi
@@ -415,6 +436,8 @@ STUB
         assert_contains "TP-SUDOER-JSON-17 hook dest" "${_sbody}" "/etc/sudoers.d/dns-cli-dns-adm"
         assert_contains "TP-SUDOER-JSON-17 F6 dest" "${_sbody}" "/etc/dns-adm/sudoers"
         assert_contains "TP-SUDOER-JSON-18 SJ-M5" "${_sbody}" "SJ-M5"
+        assert_contains "TP-SUDOER-JSON-24 SJ-M6 test-mode inbound" "${_sbody}" "SJ-M6"
+        assert_contains "TP-SUDOER-JSON-24 AC-16" "${_sbody}" "AC-16"
         assert_contains "TP-SUDOER-JSON-18 setup MUST NOT chown inbound" "${_sbody}" "MUST NOT \`chown\` dest inbound"
         assert_contains "TP-SUDOER-JSON-19 dest MUST NOT fence on file-ownership" "${_sbody}" "MUST NOT** fence on file-ownership"
         assert_contains "TP-SUDOER-JSON-20 dest fence is incorrect JSON format" "${_sbody}" "incorrect JSON format"
@@ -430,6 +453,7 @@ STUB
         assert_contains "TP-LPU-07 L-M13 dest fence table" "${_lbody}" "Dest approval fencing conditions (closed)"
         assert_contains "TP-LPU-07 dest fence is incorrect JSON format" "${_lbody}" "incorrect JSON format"
         assert_contains "TP-LPU-07 MUST NOT extra dest fence" "${_lbody}" "Who submitted / dest Type 0 self-scope"
+        assert_contains "TP-SUDOER-JSON-24 L-M14 test-mode inbound" "${_lbody}" "L-M14"
         assert_contains "TP-LPU-07 MUST NOT fence filename subject" "${_lbody}" "Filename subject token"
     else
         t_fail "TP-LPU-07 missing requirement-least-privilege-user.md"

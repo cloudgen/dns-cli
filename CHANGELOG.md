@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.13.0] - 2026-09-01
+
+### Added
+
+- Storage law names **two** folders: **cache folder** (preferred `/dev/shm/cache/cache-dns-cli`, fallback XDG `cache-dns-cli`) **and** **persistency folder** `${HOME}/.local/dns-cli`. About human: **Cache folder (preferred)/(fallback)** + **Persistence storage**. JSON: `cache_preferred` / `cache_fallback` / `persistence_storage`. **MUST NOT** use `${HOME}/.local/bin`, vaults, or `/var/dns-cli` as persistency. **TP-CLI-17**. Ship unit **`VERSION="1.13.0"`**.
+
+### Changed
+
+- Incident **INC-20260821-001** ship-unit: sudoer JSON emit/verify pin `commands[].path` to `/usr/local/bin/dns-cli`. Login-hook `sudo -n` uses the same identity. `$GLOBAL_BIN` stays install isolation (CI `.ci-homes/…/gbin` **MUST NOT** be the grant). `CF_TEST_LPU` setup does not auto-queue live dest inbound unless `SUDOER_QUEUE_INBOUND` is set. **TP-SUDOER-JSON-22** · **TP-SUDOER-JSON-24**. Law **SJ-M6** / **P-M14** / **L-M14** / **PREV-TEST-INBOUND**. This product still **MUST NOT** rewrite `/etc/sudoers.d`.
+- Incident **INC-20260823-001**: `dns-adm` `ls dns-request` → Permission denied. F4 is a symlink to `/var/dns-cli/dns-request`; live inbound is **`root:root` `3773`**. Setup `lpu_chown_tree`s `/var/dns-cli` only. Archives are `root:root` `0700`. Law F5 already requires `dns-adm:dns-adm` on the trio directories. **MUST NOT** `chown -R` inbound JSON (**003**). **MUST NOT** rewrite `/etc/sudoers.d`.
+
 ## [1.12.0] - 2026-08-21
 
 ### Added

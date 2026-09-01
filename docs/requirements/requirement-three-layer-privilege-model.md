@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 1.13.0) — dest Fence row points at `requirement-incorrect-json-format`; prevention-set + sudo-command pointers  
+**Status**: Active (Version 1.14.0) — P-M14 test-mode MUST NOT write live dest inbound  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -129,7 +129,9 @@ Unlisted live tools are **not** forbidden. **MUST NOT** copy Table C into the fr
 
 **P-M9.** Type 0 submit default action is **update** when `/etc/sudoers.d/dns-cli-<user>` exists; else **add**. `--add` / `--update` override. F6 dest **MUST NOT** count as that probe. Missing dest CLI / approver / inbound → fail closed; next `sudo sudoer-cli setup`. Type 0 **MUST** refuse `kind=login-hook-elev`.
 
-**P-M10.** Type 1 `setup` **MUST** auto-queue `login-hook-elev` when sibling CLI + `sudoer-adm` + writable inbound exist (action **update** when `/etc/sudoers.d/dns-cli-dns-adm` exists). **MUST** write inbound with dest request-id grammar. **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope (`username` == `id -un`) **MUST NOT** apply to `setup` — that check is a **blockage**, not dest approval. Missing sibling → skip; setup still succeeds. **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. `--json` **MUST** include `login_hook_sudoer`.
+**P-M10.** Type 1 `setup` **MUST** auto-queue `login-hook-elev` when sibling CLI + `sudoer-adm` + writable inbound exist (action **update** when `/etc/sudoers.d/dns-cli-dns-adm` exists). **MUST** write inbound with dest request-id grammar. **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope (`username` == `id -un`) **MUST NOT** apply to `setup` — that check is a **blockage**, not dest approval. Missing sibling → skip; setup still succeeds. **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. `--json` **MUST** include `login_hook_sudoer`. **P-M14** applies.
+
+**P-M14. Test-mode inbound.** When `CF_TEST_LPU=1`, Type 1 `setup` and Type 0 `submit-sudoer-request` **MUST NOT** write live dest inbound unless `SUDOER_QUEUE_INBOUND` is set to an explicit stub directory. Missing stub → skip. Live host auto-queue is unchanged when `CF_TEST_LPU` is unset. Peer: `requirement-sudoer-json-file` **SJ-M6**. Incident **INC-20260821-001**.
 
 **P-M11. Submit vs setup door.** `submit-sudoer-request` is Type 0: current login, **no sudo**, `type-2-switch` only. `setup` is Type 1: host admin, **password `sudo` / already root**. Dest approval reviews the JSON and does **not** test who submitted. **MUST NOT** confuse these doors.
 
@@ -262,6 +264,7 @@ sudo -n -u dns-adm dns-cli status home
 | AC-P11 | Three dests named: `/etc/sudoers.d/dns-cli-<user>` (switch), `/etc/sudoers.d/dns-cli-dns-adm` (hook), `/etc/dns-adm/sudoers` (F6) |
 | AC-P12 | Setup/submit MUST NOT `chown` dest inbound; DNS queue move `chown`s to `dns-adm` first (P-M13) |
 | AC-P13 | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (P-M13) |
+| AC-P14 | `CF_TEST_LPU=1` MUST NOT write live dest inbound unless `SUDOER_QUEUE_INBOUND` is a stub (P-M14) |
 
 ---
 
@@ -291,6 +294,7 @@ sudo -n -u dns-adm dns-cli status home
 | **TP-SUDOER-JSON-01..03,08,10..15** | `tests/test_cf_lpu.sh` | have | JSON body identity + two kinds + setup auto-submit |
 | **TP-PRIV-09** | `tests/test_cf_lpu.sh` | have | §2.1a role table (printer / generator / submitter) |
 | **TP-PRIV-10** | `tests/test_cf_lpu.sh` | have | P-M13 dest inbound fence is incorrect JSON format only |
+| **TP-SUDOER-JSON-24** | `tests/test_cf_lpu.sh` | have | P-M14 / SJ-M6 `CF_TEST_LPU` skips live dest inbound |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -301,6 +305,7 @@ sudo -n -u dns-adm dns-cli status home
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-01 | Active 1.14.0 | P-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |
 | 2026-08-19 | Active 1.12.0 | Dest Fence row points at `requirement-incorrect-json-format` |
 | 2026-08-19 | Active 1.11.0 | P-M13 user SSOT is the JSON username field, not the filename token |
 | 2026-08-19 | Active 1.10.0 | P-M13 login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** |
@@ -318,6 +323,6 @@ sudo -n -u dns-adm dns-cli status home
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-09-01  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

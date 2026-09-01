@@ -49,17 +49,18 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-03 | version JSON | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-04 | help local verbs; no online; no backup/restore/sudoers | test_cli | requirement-shell-cli-interface · bootstrap-chain | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-06 | about JSON storage; no domain fields | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-06 | about JSON storage (cache + persistency keys); no domain fields | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-07 | empty argv Type N help | test_cli | requirement-shell-cli-zero-arguments | **have** |
 | TP-CLI-08 | unknown fail-closed | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-09 | quiet suppresses version | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-10 | online verbs rejected | test_cli | requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | class / defensive | **have** |
-| TP-CLI-12 | storage isolation | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-12 | storage isolation (cache leaf) | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | backup/restore/sudoers verbs unknown | test_cli | requirement-bootstrap-chain · interface | **have** |
 | TP-CLI-14 | Dual mention: each routed verb in ≥2 REQs (CLI + topic-owner) | test_cli | requirement-shell-cli-interface CI-M1 | **have** |
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 | TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
+| TP-CLI-17 | about cache folder + persistency folder `${HOME}/.local/dns-cli` | test_cli | requirement-shell-cli-storage | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
 | TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |
@@ -215,6 +216,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-SUDOER-JSON-19 | dest MUST NOT fence on file-ownership | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
 | TP-SUDOER-JSON-20 | dest inbound fence is incorrect JSON format | test_cf_lpu | requirement-sudoer-json-file SJ-M5 | **have** |
 | TP-SUDOER-JSON-21 | queued inbound keys ⊆ dest-owned allowlist (`kind` known) | test_cf_lpu | requirement-sudoer-json-file · requirement-incorrect-json-format IJF-M9 | **have** |
+| TP-SUDOER-JSON-22 | redirected `GLOBAL_BIN` still emits `/usr/local/bin/dns-cli` | test_cf_lpu | requirement-sudoer-json-file · INC-20260821-001 | **have** |
+| TP-SUDOER-JSON-24 | `CF_TEST_LPU` inbound detect skips live dest unless stub `SUDOER_QUEUE_INBOUND` | test_cf_lpu | requirement-sudoer-json-file SJ-M6 · three-layer P-M14 | **have** |
 
 ### TP-CF-DNS (Cloudflare DNS + ipinfo)
 

@@ -24,6 +24,7 @@ run_test_cf_approver() {
     assert_contains "TP-CF-APR-01 hook begin" "${_brc}" "# BEGIN dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook end" "${_brc}" "# END dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook sudo -n" "${_brc}" "sudo -n"
+    assert_contains "TP-CF-APR-01 hook production bin" "${_brc}" "sudo -n /usr/local/bin/dns-cli interactive"
     assert_contains "TP-CF-APR-01 hook interactive" "${_brc}" "interactive"
     assert_file_exists "TP-CF-APR-02 .profile created" "${_home}/.profile"
     _prf=$(cat "${_home}/.profile")

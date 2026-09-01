@@ -452,7 +452,7 @@ dns-cli --vault-dir /home/alice/.config/dns-cli/vault vault account list
 | `requirement-application-local-vault` | Path + `--vault-dir` / `CF_VAULT_DIR` specify |
 | `requirement-least-privilege-user` | Default dest owner `dns-adm` |
 | `requirement-three-layer-privilege-model` | Type 2 default-vault vs Type 0 specify |
-| `requirement-shell-cli-storage` | Scratch ≠ vault |
+| `requirement-shell-cli-storage` | Cache folder + persistency folder ≠ vault |
 | `requirement-project-folder` | Pointer only (no second path SSOT) |
 | `requirement-shell-interactive-vs-noninteractive` | Collect / clear confirm |
 | `requirement-shell-output-requirements` | Redaction; `out_die_code` |

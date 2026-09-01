@@ -81,6 +81,10 @@ A name in §2.2 is **not** the example. Every **shipped** `util_*` **MUST** have
 | `util_resolve_running_path` | `requirement-shell-local-self-management` §2.7a | yes |
 | `util_get_install_bin_path` | `requirement-shell-local-self-management` §2.7a | yes |
 | `util_resolve_storage` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_preferred_cache_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_fallback_cache_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_persistent_storage_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_resolve_persistent_storage` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_get_current_shell` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_backup` | **this file** §2.2b (no `requirement-*-backup-strategy` on this product) | yes |
 | `util_sha256_file` | **`LM-ONLINE-INSTALL`** only | **no** — local-only; do not specialize |
@@ -205,7 +209,7 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 | `requirement-shell-cli-interface` | Dispatch |
 | `requirement-shell-output-requirements` | `out_*` + `util_json_escape` |
 | `requirement-shell-local-self-management` | `inst_*` + path `util_*` |
-| `requirement-shell-cli-storage` | `util_resolve_storage` + `util_get_current_shell` |
+| `requirement-shell-cli-storage` | Cache + persistency `util_*` + `util_get_current_shell` |
 | `requirement-domain-cloudflare-dns` | `cf_dns_*` / `cf_ip_*` |
 | `requirement-cloudflare-vault` | `cf_vault_*` |
 | `requirement-least-privilege-user` | `lpu_*` |

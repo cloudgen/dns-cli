@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.11.0) — dest Fence row points at `requirement-incorrect-json-format`  
+**Status**: Active (Version 1.12.0) — L-M14 test-mode MUST NOT write live dest inbound  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -128,7 +128,9 @@ Absent account → success no-op.
 
 **L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, and login-hook rc. After any create or modify of that home’s `.bashrc` / `.profile` (and the same rc class), dest **MUST** align **shell-rc file ownership** to **`dns-adm`**. Writer euid **MUST NOT** remain the owner. This is **not** queue file-ownership (L-M13).
 
-**L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`.
+**L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`. **L-M14** applies.
+
+**L-M14. Test-mode inbound.** When `CF_TEST_LPU=1`, `setup` **MUST NOT** write live dest inbound unless `SUDOER_QUEUE_INBOUND` is set to an explicit stub directory. Missing stub → skip. Peer: **SJ-M6** / **P-M14**. Incident **INC-20260821-001**.
 
 **L-M11. Submit vs setup door.** Who may **submit**: current login, Type 0, no sudo, `type-2-switch` only. Who may **setup**: host admin, Type 1, password `sudo` / already root. **MUST NOT** confuse them. Dest approval does **not** test who submitted.
 
@@ -258,6 +260,7 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-01 | Active 1.12.0 | L-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |
 | 2026-08-19 | Active 1.11.0 | Dest Fence row points at `requirement-incorrect-json-format` |
 | 2026-08-19 | Active 1.10.0 | L-M13 user SSOT is the JSON username field, not the filename token |
 | 2026-08-19 | Active 1.9.0 | L-M13 login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** |
@@ -274,6 +277,6 @@ Absent account → success no-op.
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-09-01  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

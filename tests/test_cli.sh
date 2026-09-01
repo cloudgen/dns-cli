@@ -76,6 +76,9 @@ run_test_cli() {
     assert_eq "TP-CLI-06 about --json exit 0" 0 "$_ec"
     assert_contains "TP-CLI-06 type about" "$_out" '"type":"about"'
     assert_contains "TP-CLI-06 effective_storage" "$_out" '"effective_storage"'
+    assert_contains "TP-CLI-06 cache_preferred" "$_out" '"cache_preferred"'
+    assert_contains "TP-CLI-06 cache_fallback" "$_out" '"cache_fallback"'
+    assert_contains "TP-CLI-06 persistence_storage" "$_out" '"persistence_storage"'
     assert_contains "TP-CLI-06 vault_dir" "$_out" '"vault_dir"'
     assert_contains "TP-CLI-06 token_present" "$_out" '"token_present"'
     assert_not_contains "TP-CLI-06 no raw token key" "$_out" '"token":"'
@@ -138,6 +141,29 @@ run_test_cli() {
     else
         t_fail "TP-CLI-12 effective_storage missing: '${_eff:-empty}'"
     fi
+    assert_contains "TP-CLI-12 cache leaf uses cache-app" "$_out" "cache-${APP_NAME}"
+
+    # TP-CLI-17 persistency folder + about cache labels
+    _persist=$(printf '%s' "$_out" | sed -n 's/.*"persistence_storage":"\([^"]*\)".*/\1/p' | head -n1)
+    _pref=$(printf '%s' "$_out" | sed -n 's/.*"cache_preferred":"\([^"]*\)".*/\1/p' | head -n1)
+    assert_eq "TP-CLI-17 persistency folder path" "${CI_HOME}/.local/${APP_NAME}" "${_persist}"
+    if [ -n "${_persist}" ] && [ -d "${_persist}" ]; then
+        t_pass "TP-CLI-17 persistency folder exists"
+    else
+        t_fail "TP-CLI-17 persistency folder missing: '${_persist:-empty}'"
+    fi
+    assert_eq "TP-CLI-17 cache preferred shm leaf" "/dev/shm/cache/cache-${APP_NAME}" "${_pref}"
+    case "${_persist}" in
+        */.local/bin|*/.local/bin/) t_fail "TP-CLI-17 persistency must not be USER_BIN" ;;
+        */.local/vaults/*) t_fail "TP-CLI-17 persistency must not be vault" ;;
+        *) t_pass "TP-CLI-17 persistency is not bin or vault" ;;
+    esac
+    _hum=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" sh "${SCRIPT}" about 2>/dev/null)
+    assert_contains "TP-CLI-17 human Cache folder preferred" "$_hum" "Cache folder (preferred):"
+    assert_contains "TP-CLI-17 human Cache folder fallback" "$_hum" "Cache folder (fallback):"
+    assert_contains "TP-CLI-17 human Persistence storage" "$_hum" "Persistence storage:"
+    assert_not_contains "TP-CLI-17 no Storage (effective) label" "$_hum" "Storage (effective):"
+    assert_not_contains "TP-CLI-17 no Storage (fallback) label" "$_hum" "Storage (fallback):"
     ci_cleanup_env
 
     # TP-CLI-13 trimmed parent domain / sudoers-manager extras fail closed

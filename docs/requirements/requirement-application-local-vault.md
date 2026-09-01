@@ -148,7 +148,7 @@ Specify is the **QA / test / live-operator** path: Type 0 as the invoking user (
 |-----|--------------|
 | `requirement-cloudflare-vault` | Schema, token files, `vault` verbs — consumes this path |
 | `requirement-least-privilege-user` | Default dest is F5 |
-| `requirement-shell-cli-storage` | Scratch ≠ vault |
+| `requirement-shell-cli-storage` | Cache folder + persistency folder ≠ vault |
 | `requirement-project-folder` | Pointer only |
 | `requirement-shell-local-self-management` | Uninstall does not wipe vault |
 | `requirement-shell-cli-interface` | `--vault-dir` flag |

@@ -29,6 +29,7 @@
 | P13 | Type 1 elevation fail-closed | `setup` / `remove-lpu` without root/sudo fail closed (**TP-PRIV-03**). Do not treat “no sudo in CI” as interactive Type 1 coverage. |
 | P14 | Sudoer command identity (INC-20260821-001) | Queued `commands[].path` is `/usr/local/bin/dns-cli` even when tests set `GLOBAL_BIN` to a CI gbin. Live dest `/etc/sudoers.d/dns-cli-dns-adm` is not a test path. Do not rewrite `/etc/sudoers.d` from this product. |
 | P15 | Type 0 **test-purpose** `fence-test` (FC-M6) | Local test folder; `--file` xor `--dir`; no sudo except wrap chmod/chown of that folder; no queue. Help lists testers apart from operational. **TP-FENCE-09..15**. Per-row `test-json-format` remains. |
+| P16 | F5 trio directory owner (INC-20260823-001) | `/var/dns-cli/dns-request` · `dns-accepted` · `dns-declined` are **`dns-adm:dns-adm`** (inbound `3773`, archives `0700`). F4 symlink present ≠ listable. Do not `chown -R` inbound files. Do not cite **003** to skip directory `chown`. |
 
 ---
 
@@ -59,6 +60,6 @@
 | Dest fence catalog | `requirement-approval-fencing-condition.md` | Closed dest refuse list; dest tables still print |
 | Dest fence | `requirement-incorrect-json-format.md` | Independent dest Fence; dest-owned allowlist; sudoer `kind` known |
 | Idempotency | `requirement-shell-idempotency.md` | Re-install |
-| Storage | `requirement-shell-cli-storage.md` | Isolation |
+| Storage | `requirement-shell-cli-storage.md` | Cache folder + persistency folder; isolation |
 
 **Do not review as this product’s law:** folder-archive backup, restore dest whitelist, `print-sudoers-install-script` / `remove-project-sudoers` (those remain on sibling **folder-backup**). **Do** review JSON sudoer generate/submit — this product **is** a sudoer-approval-submitter.

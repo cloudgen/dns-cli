@@ -1,16 +1,16 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 2.3.0)  
+**Status**: Active (Version 2.4.0)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, and scratch/cache. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`.
+Define **project folder structure** and path ownership for the dns-cli CLI: source layout, install locations, scratch/cache, and persistency-folder pointer. This product has **no** durable host backup deposit. Durable Cloudflare vault **path** is `requirement-application-local-vault` (default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`). Schema is `requirement-cloudflare-vault`. LPU home is `requirement-least-privilege-user`. Cache + persistency shapes are `requirement-shell-cli-storage`.
 
 ### 1.1 Human-facing
 
-**In one sentence:** This file says **where** the program lives (source, install path, scratch) — not where API tokens live.
+**In one sentence:** This file says **where** the program lives (source, install path, scratch, persistency pointer) — not where API tokens live.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -20,7 +20,7 @@ Define **project folder structure** and path ownership for the dns-cli CLI: sour
 
 | Includes | Excludes |
 |----------|----------|
-| Source + install + scratch | Cloudflare token files |
+| Source + install + scratch + persistency pointer | Cloudflare token files |
 | `where-is-me` path truth | `/etc/sudoers.d` |
 
 | Surface | What you open | What for |
@@ -65,18 +65,20 @@ Rules:
 4. Uninstall **MUST** remove only the managed binary path for the install mode used.  
 5. Managed binary mode **MUST** be **`0755`** after install (see `requirement-shell-local-self-management` §2.3.1).
 
-### 2.3 Scratch / cache (CLI own volatile)
+### 2.3 Scratch / cache / persistency (CLI own storage)
 
 | Purpose | Pattern |
 |---------|---------|
-| Effective storage root | From `util_resolve_storage` (see `requirement-shell-cli-storage`) |
-| Install staging | `mktemp` under the effective storage root |
+| Cache folder root | From `util_resolve_storage` (see `requirement-shell-cli-storage`) |
+| Persistency folder | `${HOME}/.local/dns-cli` via `util_resolve_persistent_storage` (same REQ) |
+| Install staging | `mktemp` under the cache root |
 
 Rules:
 
-1. Scratch **MUST** be per-user isolated (`APP_NAME` + `USERNAME`).  
+1. Scratch **MUST** be isolated (app identity on the cache leaf; home/XDG on fallback).  
 2. Temps **MUST** clean up after success/failure of install staging.  
-3. Scratch is **not** a durable backup deposit and **not** the Cloudflare vault.
+3. Scratch is **not** a durable backup deposit and **not** the Cloudflare vault.  
+4. Persistency folder **MUST NOT** be `${HOME}/.local/bin`, `${HOME}/.local/vaults/dns-cli/`, or `/var/dns-cli`. Shapes stay on `requirement-shell-cli-storage`.
 
 ### 2.4 Implementation Notes (this project)
 
@@ -137,7 +139,7 @@ Rules:
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-local-self-management` | Place/remove binary |
-| `requirement-shell-cli-storage` | Scratch resolve |
+| `requirement-shell-cli-storage` | Cache folder + persistency folder |
 | `requirement-application-local-vault` | Default dest path |
 | `requirement-cloudflare-vault` | Durable vault schema |
 | `requirement-least-privilege-user` | `/etc/dns-adm` |
@@ -152,12 +154,13 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup layout + `/var/backup` deposit |
 | 2026-08-13 | Active 2.0.0 | cli-template: retarget; remove deposit |
+| 2026-08-30 | Active 2.4.0 | Persistency folder pointer `${HOME}/.local/dns-cli` (storage REQ owns shapes) |
 | 2026-08-18 | Active 2.3.0 | Default vault pointer `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` |
 | 2026-08-17 | Active 2.2.0 | LPU home + default vault `/etc/dns-adm/vault/` |
 | 2026-08-16 | Active 2.1.0 | dns-cli target paths; vault pointer only |
 
 ---
 
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-08-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

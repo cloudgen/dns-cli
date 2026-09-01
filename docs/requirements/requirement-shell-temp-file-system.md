@@ -9,7 +9,7 @@
 
 This requirement is the **project Single Source of Truth** for **scratch file leaves** in dns-cli: unique names, cleanup, and modes.
 
-**Root resolve** stays in `requirement-shell-cli-storage` (`util_resolve_storage`, `EFFECTIVE_STORAGE_DIR`, export `TMPDIR`). This file owns **how** a temp file is created under that root.
+**Cache root resolve** stays in `requirement-shell-cli-storage` (`util_resolve_storage`, `EFFECTIVE_STORAGE_DIR`, export `TMPDIR`). **Persistency folder** also stays on that REQ (`${HOME}/.local/dns-cli`). This file owns **how** a temp file is created under the cache root.
 
 ### 1.1 Human-facing
 
@@ -18,7 +18,7 @@ This requirement is the **project Single Source of Truth** for **scratch file le
 | Box | Meaning | Example |
 |-----|---------|---------|
 | You / this login | Convert a private sudoer JSON, or rewrite `.bashrc` | `dns-cli generate-sudoer-request` |
-| The other role | Root of the scratch tree | `requirement-shell-cli-storage` |
+| The other role | Root of the scratch tree (cache folder, not persistency) | `requirement-shell-cli-storage` |
 | Not this file | Queued DNS JSON schema | `requirement-cloudflare-dns-request` |
 
 | Includes | Excludes |

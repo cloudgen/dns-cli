@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-privilege-prevention-set.md
-**Status**: Active (Version 1.0.0)
+**Status**: Active (Version 1.1.0)
 **Area**: architecture
 **Key**: `requirement-privilege-prevention-set`
 **id**: RQ-PRIVILEGE-PREVENTION-SET
@@ -95,6 +95,7 @@ Each row is a **real** product stop. How the stop is implemented lives on the **
 | **PREV-EMPTY-INT** | Empty argv becoming `interactive` | any uid | Empty argv is Type N help | CLI · zero-arguments |
 | **PREV-HELP** | Listing a verb in `help` that has no dispatcher arm | help | Must not list | CLI |
 | **PREV-HANG** | Prompt or hang when `TTY` is not `1`; login hook hanging `scp` / CI | `interactive` / hook | Fail closed; hook skips / warns and login continues | interactive · dest |
+| **PREV-TEST-INBOUND** | `CF_TEST_LPU=1` `setup` / Type 0 submit writing **live** dest inbound | Type 1 stub / suite | Skip unless `SUDOER_QUEUE_INBOUND` is an explicit stub directory. Live host auto-queue is unchanged when `CF_TEST_LPU` is unset | sudoer-json-file SJ-M6 · three-layer P-M14 |
 
 ### 2.3 What this product does **not** block (must remain open)
 
@@ -173,7 +174,8 @@ These steps stay **allowed** after elev. The extra gate is confirm or `--force` 
 5. Put Table C OS tools into Table A / `print-sudoers`.  
 6. Write `/etc/sudoers.d` from this product.  
 7. Use `--force` to skip Type 1 authz or to auto-approve dest `interactive`.  
-8. Document bootstrap as `sudo -n dns-cli setup`.
+8. Document bootstrap as `sudo -n dns-cli setup`.  
+9. From `CF_TEST_LPU=1` `setup`, write live dest inbound when `SUDOER_QUEUE_INBOUND` is unset (**PREV-TEST-INBOUND**). Do **not** treat this row as a live-host setup skip (**OPEN-NO-CI** stays).
 
 **Violating this rule is a critical privilege / invented-wall regression.**
 
@@ -190,6 +192,6 @@ These steps stay **allowed** after elev. The extra gate is confirm or `--force` 
 | `docs/requirements/requirement-sudoer-json-file.md` | Type 0 submitter |
 | `./src/dns-cli` | Ship unit |
 
-**Last Updated**: 2026-08-20  
+**Last Updated**: 2026-09-01  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
