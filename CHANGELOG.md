@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.17.0] - 2026-09-03
+
+### Changed
+
+- Interactive empty argv (`TTY=1`, no command) opens the **numbered main menu** (same handler as `menu` / `main`). Off-TTY empty argv stays Type N help. Numbered-row explain uses default CLI main menu style SGR **3;37** (italic + light gray). **TP-CLI-19**. Ship unit **`VERSION="1.17.0"`**.
+
 ## [1.16.0] - 2026-09-03
 
 ### Changed

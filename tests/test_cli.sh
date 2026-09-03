@@ -89,7 +89,7 @@ run_test_cli() {
     assert_not_contains "TP-CLI-06 no CHECKSUM" "$_out" "CHECKSUM"
     assert_not_contains "TP-CLI-06 no SCRIPT_URL" "$_out" "SCRIPT_URL"
 
-    # TP-CLI-07 empty argv = Type N help (not install)
+    # TP-CLI-07 off-TTY empty argv = Type N help (not install)
     _out=$(sh "${SCRIPT}" 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-07 empty argv exit 0" 0 "$_ec"
@@ -189,7 +189,7 @@ run_test_cli() {
     assert_not_contains "TP-CLI-18 no frozen board title" "$_plain" "numbered list of live commands"
     assert_contains "TP-CLI-18 bold SGR 1" "$_out" "${_esc}[1m"
     assert_contains "TP-CLI-18 italic SGR 3" "$_out" "${_esc}[3m"
-    assert_contains "TP-CLI-18 light-gray italic SGR 90;3" "$_out" "${_esc}[90;3m"
+    assert_contains "TP-CLI-18 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
     assert_contains "TP-CLI-18 ip row" "$_plain" "6. ip: Show public IPv4 (no vault)"
     assert_contains "TP-CLI-18 Exit 99" "$_plain" "99. Exit"
     assert_not_contains "TP-CLI-18 no install row" "$_plain" "install:"
@@ -202,6 +202,17 @@ run_test_cli() {
     assert_contains "TP-CLI-18 off-TTY menu is help" "$_out" "Usage:"
     _out=$(sh "${SCRIPT}" --json menu 2>/dev/null)
     assert_contains "TP-CLI-18 off-TTY menu --json" "$_out" '"type":"success"'
+
+    # TP-CLI-19 TTY empty argv draws the same numbered main menu as `menu`
+    _out=$(printf '99\n' | TTY=1 sh "${SCRIPT}" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-19 TTY empty argv exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-19 header APP_NAME(APP_VERSION) - SHORT_DESC" "$_plain" "${APP_NAME}(${APP_VERSION}) - ${_short_desc}"
+    assert_contains "TP-CLI-19 ip row" "$_plain" "6. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-19 Exit 99" "$_plain" "99. Exit"
+    assert_contains "TP-CLI-19 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
+    assert_not_contains "TP-CLI-19 TTY empty argv is not help dump" "$_plain" "Usage:"
 
     # TP-CF-ACTOR-* — routed; help lists them; missing inbound/file fails closed (not unknown)
     _help=$(sh "${SCRIPT}" help 2>/dev/null)

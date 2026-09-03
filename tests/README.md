@@ -16,7 +16,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 |------|--------|-------------|
 | `run.sh` | Entrypoint | — |
 | `helpers.sh` | Asserts + isolated HOME | — |
-| `test_cli.sh` | CLI surface, Type N empty argv, offline reject, trimmed-verb reject, **dual mention**, actor-table split, dest fence catalog, **fence-test**, dest-owned `submit_app`, **cache + persistency folder**, **main-menu header + gray-italic rows** | **TP-CLI-*** (incl. **TP-CLI-17** · **TP-CLI-18**) · **TP-CF-ACTOR-*** · **TP-FENCE-01..04** · **TP-FENCE-08..17** |
+| `test_cli.sh` | CLI surface, Type N empty argv, offline reject, trimmed-verb reject, **dual mention**, actor-table split, dest fence catalog, **fence-test**, dest-owned `submit_app`, **cache + persistency folder**, **main-menu header + gray-italic rows**, **TTY empty argv menu** | **TP-CLI-*** (incl. **TP-CLI-17** · **TP-CLI-18** · **TP-CLI-19**) · **TP-CF-ACTOR-*** · **TP-FENCE-01..04** · **TP-FENCE-08..17** |
 | `fixtures/fence-test/` | Local corpus for Type 0 `fence-test` (`pass/` / `match/`) | **TP-FENCE-09..14** |
 | `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
 | `test_cf_vault.sh` | Vault 0700/0600, HOME fail-closed, last-label, redaction, **`--vault-dir` specify** | **TP-CF-VAULT-*** · **TP-AV-*** |

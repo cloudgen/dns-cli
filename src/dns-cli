@@ -12,7 +12,7 @@
 # - requirement-bootstrap-chain.md
 # - requirement-project-folder.md
 # - requirement-shell-cli-interface.md
-# - requirement-shell-cli-zero-arguments.md  (Type N empty argv = help)
+# - requirement-shell-cli-zero-arguments.md  (Type N: TTY empty argv = menu; off-TTY = help)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
 # - requirement-shell-idempotency.md
@@ -36,7 +36,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.16.0"
+# VERSION: hard-assign VERSION="1.17.0"
 #
 # =============================================================================
 
@@ -54,8 +54,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.16.0"
-: "${VERSION:=1.16.0}"
+VERSION="1.17.0"
+: "${VERSION:=1.17.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -454,7 +454,7 @@ out_double_line() { out_text plain "============================================
 # =============================================================================
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.16.0}"
+    : "${VERSION:=1.17.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -6347,8 +6347,8 @@ cf_req_interactive() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Print "N. verb: explain". On TTY the explain (or Exit label) is light-gray
-# italic. Off-TTY the same words with no CSI.
+# Print "N. verb: explain". On TTY the explain is italic + light gray
+# (SGR 3+37). Exit (no explain) stays unstyled. Off-TTY: no CSI.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6364,17 +6364,13 @@ app_default_print_row() {
     _desc="${3-}"
     if [ -n "${_desc}" ]; then
         if [ "${TTY}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ]; then
-            out_plain "${_num}. ${_verb}: $(printf '\033[90;3m%s\033[0m' "${_desc}")"
+            out_plain "${_num}. ${_verb}: $(printf '\033[3;37m%s\033[0m' "${_desc}")"
         else
             out_plain "${_num}. ${_verb}: ${_desc}"
         fi
         return 0
     fi
-    if [ "${TTY}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ]; then
-        out_plain "${_num}. $(printf '\033[90;3m%s\033[0m' "${_verb}")"
-    else
-        out_plain "${_num}. ${_verb}"
-    fi
+    out_plain "${_num}. ${_verb}"
 }
 
 # =============================================================================
@@ -6384,7 +6380,7 @@ app_default_print_row() {
 # GENERAL PURPOSE:
 # Print the case-3 numbered list of live operational commands. Header is
 # APP_NAME(VERSION) - SHORT_DESCRIPTION via util_app_ident. On TTY, each
-# row's explain text is light-gray italic (SGR 90 + SGR 3).
+# row's explain text is italic + light gray (SGR 3 + SGR 37).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6393,7 +6389,7 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.16.0}"
+    : "${VERSION:=1.17.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
@@ -6486,8 +6482,9 @@ app_default_run_pick() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Case 3 default interaction: TTY draws the numbered list (ignore --json);
-# off-TTY reuses app_help and follows --json. Choice is read in this shell.
+# TTY draws the numbered list (ignore --json on menu/main and on TTY
+# empty argv); off-TTY reuses app_help and follows --json. Choice is
+# read in this shell.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6578,6 +6575,7 @@ app_help() {
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
     out_plain "  menu                 Numbered list of live commands. Alias: main"
+    out_plain "                       At a TTY, no arguments opens this list"
     out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"
     out_plain "  generate-sudoer-request [path]"
     out_plain "                       Write a local JSON grant you can review (not inbound)"
@@ -6653,6 +6651,7 @@ app_help() {
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode generate / submit"
     out_empty_line
     out_info "Examples:"
+    out_plain "  ${APP_NAME}"
     out_plain "  ${APP_NAME} menu"
     out_plain "  ${APP_NAME} install"
     out_plain "  sudo ${APP_NAME} setup"
@@ -6685,7 +6684,8 @@ app_help() {
 #
 # GENERAL PURPOSE:
 # Single dispatcher for dns-cli (Type 0 lifecycle + Cloudflare domain).
-# Empty argv = Type N help (not install-ensure, not DNS).
+# Empty argv: TTY = numbered main menu; off-TTY = Type N help
+# (not install-ensure, not DNS).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
@@ -6745,9 +6745,21 @@ app_main() {
     export EFFECTIVE_STORAGE_DIR STORAGE_DIR PERSISTENT_STORAGE_DIR
     export TMPDIR="${EFFECTIVE_STORAGE_DIR}"
 
-    # Type N: empty argv → help (no Cloudflare / ipinfo)
+    # Interactive capability SSOT — measure once in main (no-retest-tty).
+    # Honor TTY=1 already set (tests); otherwise [ -t outside helpers.
+    if [ "${TTY:-0}" != "1" ]; then
+        TTY=0
+        [ -t 0 ] && [ -t 1 ] && TTY=1
+    fi
+
+    # Type N empty argv: TTY → numbered main menu; off-TTY → help.
+    # MUST NOT install, call Cloudflare, or mutate the vault.
     if [ $# -eq 0 ]; then
-        app_help
+        if [ "${TTY}" -eq 1 ]; then
+            app_default
+        else
+            app_help
+        fi
         return 0
     fi
 

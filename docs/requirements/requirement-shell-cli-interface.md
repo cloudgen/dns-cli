@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.8.0) — Type 0 **`menu`/`main`** (default interaction case 3)  
+**Status**: Active (Version 3.9.0) — Type 0 **`menu`/`main`**; TTY empty argv = same list  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -67,7 +67,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 
 1. **Single entry:** `app_main` **MUST** parse global flags and route commands.  
 2. **Unknown command:** **MUST** fail loudly with pointer to `help` (via output SSOT).  
-3. **Empty argv:** **Type N → help** (`requirement-shell-cli-zero-arguments.md`).  
+3. **Empty argv:** **Type N** — TTY → numbered main menu; off-TTY → help (`requirement-shell-cli-zero-arguments.md`).  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).  
 6. Trimmed parent verbs (`backup`, `restore`, `print-sudoers-install-script`, `remove-project-sudoers`) **MUST** fail as unknown. `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **are** in scope.
@@ -128,7 +128,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
-| *(no args — empty argv)* | Type 0 | `app_main` → `app_help` | **Type N help** — not install |
+| *(no args — empty argv)* | Type 0 | `app_main` → `app_default` (TTY) / `app_help` (off-TTY) | **Type N** — TTY numbered list; off-TTY help; not install |
 | `install` | Type 0 | `inst_local_install` | Copy running ship unit to privilege-correct bin; idempotent unless `--force` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
@@ -273,6 +273,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
 | 2026-09-03 | Active 3.8.0 | `menu` / `main` case 3 default interaction |
+| 2026-09-03 | Active 3.9.0 | TTY empty argv → same numbered list as `menu`/`main` |
 | 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
 | 2026-08-20 | Active 3.6.0 | Type 0 `test-json-format`; dual mention on dest Fence REQ |
 | 2026-08-18 | Active 3.5.0 | CI-M1a — topic-owner MUST include a complete `dns-cli …` sample per verb |
@@ -285,6 +286,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-08-21  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
