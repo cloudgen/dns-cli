@@ -4,9 +4,9 @@
 **Class:** software-development · **B = hop 1** from **A = cli-template** · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-08-19  
-**Ship unit VERSION:** 1.11.0  
-**Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh` PASS=619 FAIL=0 SKIP=1)
+**Last plan update:** 2026-09-03  
+**Ship unit VERSION:** 1.18.0  
+**Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** have)
 
 ---
 
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.11.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.18.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -40,11 +40,12 @@
 | Class | `requirement-class-software-dev.md` | posix-sh, local-only residual |
 | Bootstrap chain | `requirement-bootstrap-chain.md` | A = cli-template hop 0; this product B = dns-cli hop 1 |
 | Project folder | `requirement-project-folder.md` | `src/`, bins; no `/var/backup` |
-| CLI interface | `requirement-shell-cli-interface.md` | Type 0/1/2 commands, flags, dispatch; **CI-M1** every verb in ≥2 REQs |
+| CLI interface | `requirement-shell-cli-interface.md` | Commands, flags, dispatch; **CI-M1** every verb in ≥2 REQs; family `sudoers` not dispatched |
 | LPU | `requirement-least-privilege-user.md` | `dns-adm` F1–F7; `setup` Implemented; F5 dest `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; Type 2 switch Implemented |
 | Three-layer | `requirement-three-layer-privilege-model.md` | Tables A/B/C + **§2.1a role table**; print sudoer file / generate+submit Implemented; Type 2 switch Implemented |
 | JSON sudoer file | `requirement-sudoer-json-file.md` | **§2.0 role table** (printer / submitter / `sudoer-adm`); generate dest + submit; `runas=dns-adm` |
-| Empty argv Type N | `requirement-shell-cli-zero-arguments.md` | Empty = help |
+| Empty argv | `requirement-shell-cli-zero-arguments.md` | Off-TTY empty argv = help; TTY empty argv = main menu |
+| Default interaction | `requirement-shell-cli-default-interaction.md` | Daily DNS list + family **sudoers** submenu; Exit **99**; Back **8** / Exit **9**; `sudoers` not a command |
 | Local self-management | `requirement-shell-local-self-management.md` | install/uninstall; mode 0755 |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*`; JSON errors |
 | Modular design | `requirement-shell-modular-function-design.md` | `cf_` domain prefix |

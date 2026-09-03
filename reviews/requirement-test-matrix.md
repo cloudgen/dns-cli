@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
-**Updated:** 2026-08-21  
-**Product VERSION:** 1.11.0  
+**Updated:** 2026-09-03  
+**Product VERSION:** 1.18.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -15,9 +15,9 @@
 | requirement-least-privilege-user | architecture | TP-LPU-01..08 · **TP-SUDOER-JSON-24** | **have** 01–08 (stub); **TP-LPU-03** Type 2 switch / `lpu_required`; **07** dest fence table; **L-M14** test-mode inbound; **08** `dns-cli-hook` alias |
 | requirement-three-layer-privilege-model | architecture | TP-PRIV-01..10 · **TP-SUDOER-JSON-24** | **have** — print-sudoers / setup / generate+submit / role table / dest fence table / **P-M14** test-mode inbound |
 | requirement-sudoer-json-file | architecture | TP-SUDOER-JSON-01..03,08..22 · **24** · TP-PRIV-05..08 | **have** — two JSON kinds + dest-owned queued allowlist + independent dest + role table + setup auto-submit + dest fence table + grant path pin + `login-hook-elev` `dns-cli-hook` + test-mode inbound skip |
-| requirement-shell-cli-interface | shell | TP-CLI-* (incl. **TP-CLI-14** · **TP-CLI-15** · **TP-CLI-16** · **TP-CLI-18**) · **TP-FENCE-09..15** | Commands, flags, dispatch; dual mention; test-purpose `fence-test`; `menu`/`main` |
-| requirement-shell-cli-default-interaction | shell | **TP-CLI-18** · TP-CLI-07 · TP-CLI-14 · TP-CLI-15 | Case 3 numbered menu; header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; gray-italic explain |
-| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 | Type N help |
+| requirement-shell-cli-interface | shell | TP-CLI-* (incl. **TP-CLI-14** · **TP-CLI-15** · **TP-CLI-16** · **TP-CLI-18** · **TP-CLI-20**) · **TP-FENCE-09..15** | Commands, flags, dispatch; dual mention; test-purpose `fence-test`; `menu`/`main`; family `sudoers` not dispatched |
+| requirement-shell-cli-default-interaction | shell | **TP-CLI-18** · **TP-CLI-19** · **TP-CLI-20** · TP-CLI-07 · TP-CLI-14 · TP-CLI-15 | Case 3 numbered menu; family sudoers submenu; header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; gray-italic explain |
+| requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · **TP-CLI-19** | Off-TTY empty argv = help; TTY empty argv = main menu |
 | requirement-shell-local-self-management | shell | TP-LC-* (incl. **09/10** mode) | install/uninstall/where-is-me; **0755** |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 | JSON / quiet / errors |
 | requirement-shell-modular-function-design | shell | (indirect) | no `fb_*`; `app_main` / `out_*` |

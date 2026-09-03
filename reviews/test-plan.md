@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.11.0  
-**Last plan update:** 2026-08-21  
-**Last suite run:** PASS=649 FAIL=0 SKIP=2 (2026-08-21; **TP-FENCE-07** skip live sibling dest `kind`; **TP-SUDOER-JSON-13** skip live dest present INC-20260821-001)
+**Product VERSION:** 1.18.0  
+**Last plan update:** 2026-09-03  
+**Last suite run:** PASS=730 FAIL=18 SKIP=1 (2026-09-03; **TP-CLI-18** · **TP-CLI-20** have; **TP-FENCE-07** skip live sibling dest `kind`; **TP-CF-REQ** 18 FAIL hyphenated login vs basename parser, unchanged)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -61,8 +61,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 | TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
 | TP-CLI-17 | about cache folder + persistency folder `${HOME}/.local/dns-cli` | test_cli | requirement-shell-cli-storage | **have** |
-| TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + SGR 3;37 explain; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + SGR 3;37 explain; family sudoers; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-19 | TTY empty argv draws the same numbered main menu | test_cli | requirement-shell-cli-zero-arguments · default-interaction | **have** |
+| TP-CLI-20 | sudoers submenu Back 8 / Exit 9; `sudoers` is not a live command | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
 | TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |

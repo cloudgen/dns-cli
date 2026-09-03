@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.18.0] - 2026-09-03
+
+### Changed
+
+- **Main menu:** daily DNS work is rows **1–10** (`vault` is **1**). Family **sudoers** is **11** (grant/drafts + `remove-lpu`). Exit stays **99**. The sudoers submenu uses Back **8** / Exit **9**. `sudoers` is not a live CLI command. Help describes the list as daily DNS work plus family sudoers (not a typed command). README Description leads with who types what. Law: `requirement-shell-cli-default-interaction` **1.3.0**. Suite **TP-CLI-18** · **TP-CLI-20**. Ship unit **`VERSION="1.18.0"`**.
+
 ## [1.17.0] - 2026-09-03
 
 ### Changed

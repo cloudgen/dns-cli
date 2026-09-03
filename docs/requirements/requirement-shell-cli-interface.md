@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.9.0) — Type 0 **`menu`/`main`**; TTY empty argv = same list  
+**Status**: Active (Version 3.10.0) — Type 0 **`menu`/`main`**; family `sudoers` is not dispatched  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -70,7 +70,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 3. **Empty argv:** **Type N** — TTY → numbered main menu; off-TTY → help (`requirement-shell-cli-zero-arguments.md`).  
 4. **No raw user I/O:** User-facing messages **MUST** go through `out_*`.  
 5. Script end **MUST** call `app_main "$@"` (no basename gate that blocks dispatch).  
-6. Trimmed parent verbs (`backup`, `restore`, `print-sudoers-install-script`, `remove-project-sudoers`) **MUST** fail as unknown. `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **are** in scope.
+6. Trimmed parent verbs (`backup`, `restore`, `print-sudoers-install-script`, `remove-project-sudoers`) **MUST** fail as unknown. `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **are** in scope. Menu family token `sudoers` **MUST** fail as unknown (`requirement-shell-cli-default-interaction`).
 
 **CI-M1. Dual mention.** Every routed product verb **MUST** be named in **at least two** Active registered requirements: this file (dispatch / help) **and** a topic-owner. **MUST NOT** leave a verb only here — this file is product-local and is not a portable inventory. The same rule applies to Python (`requirement-python-cli-interface`) and Node (`requirement-nodejs-cli-interface`) products. Topic owners:
 
@@ -135,7 +135,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
-| `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY; off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented** |
+| `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY (daily DNS + family `sudoers` submenu); off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented**. Token `sudoers` is **not** a command |
 | `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-cli-hook` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Implemented** (1.5.0) |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
@@ -259,7 +259,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have | includes stripped-verb fail-closed |
 | **TP-CLI-14** | `tests/test_cli.sh` | have | CI-M1 dual mention — each routed verb in ≥2 REQs |
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
-| **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; off-TTY help |
+| **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family sudoers; off-TTY help |
+| **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers submenu Back/Exit; `sudoers` not dispatched |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
@@ -272,9 +273,10 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
+| 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
 | 2026-09-03 | Active 3.8.0 | `menu` / `main` case 3 default interaction |
 | 2026-09-03 | Active 3.9.0 | TTY empty argv → same numbered list as `menu`/`main` |
-| 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
+| 2026-09-03 | Active 3.10.0 | Menu family `sudoers` is not a dispatcher token |
 | 2026-08-20 | Active 3.6.0 | Type 0 `test-json-format`; dual mention on dest Fence REQ |
 | 2026-08-18 | Active 3.5.0 | CI-M1a — topic-owner MUST include a complete `dns-cli …` sample per verb |
 | 2026-08-18 | Active 3.4.0 | Dual mention CI-M1 — every verb in ≥2 REQs |

@@ -190,12 +190,19 @@ run_test_cli() {
     assert_contains "TP-CLI-18 bold SGR 1" "$_out" "${_esc}[1m"
     assert_contains "TP-CLI-18 italic SGR 3" "$_out" "${_esc}[3m"
     assert_contains "TP-CLI-18 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
-    assert_contains "TP-CLI-18 ip row" "$_plain" "6. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-18 vault first" "$_plain" "1. vault: Store or inspect Cloudflare vault"
+    assert_contains "TP-CLI-18 ip row" "$_plain" "2. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-18 family sudoers" "$_plain" "11. sudoers: Grant and drafts"
     assert_contains "TP-CLI-18 Exit 99" "$_plain" "99. Exit"
+    assert_not_contains "TP-CLI-18 no generate on main" "$_plain" "generate-sudoer-request:"
+    assert_not_contains "TP-CLI-18 no print-sudoers on main" "$_plain" "print-sudoers:"
+    assert_not_contains "TP-CLI-18 no submit-sudoer on main" "$_plain" "submit-sudoer-request:"
+    assert_not_contains "TP-CLI-18 no remove-lpu on main" "$_plain" "remove-lpu:"
     assert_not_contains "TP-CLI-18 no install row" "$_plain" "install:"
     assert_not_contains "TP-CLI-18 no version row" "$_plain" "version:"
     assert_not_contains "TP-CLI-18 no help row" "$_plain" "help:"
     assert_not_contains "TP-CLI-18 no test-json-format row" "$_plain" "test-json-format:"
+    assert_not_contains "TP-CLI-18 no setup row" "$_plain" "setup:"
     _out=$(sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-18 off-TTY menu exit 0" 0 "$_ec"
@@ -209,10 +216,48 @@ run_test_cli() {
     assert_eq "TP-CLI-19 TTY empty argv exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-19 header APP_NAME(APP_VERSION) - SHORT_DESC" "$_plain" "${APP_NAME}(${APP_VERSION}) - ${_short_desc}"
-    assert_contains "TP-CLI-19 ip row" "$_plain" "6. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-19 ip row" "$_plain" "2. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-19 family sudoers" "$_plain" "11. sudoers: Grant and drafts"
     assert_contains "TP-CLI-19 Exit 99" "$_plain" "99. Exit"
     assert_contains "TP-CLI-19 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
     assert_not_contains "TP-CLI-19 TTY empty argv is not help dump" "$_plain" "Usage:"
+
+    # TP-CLI-20 sudoers family submenu: Back 8 / Exit 9; sudoers is not dispatched
+    _out=$(printf '11\n8\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-20 TTY submenu back exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-20 submenu title" "$_plain" "sudoers (grant and drafts)"
+    assert_contains "TP-CLI-20 submenu generate row" "$_plain" "1. generate-sudoer-request:"
+    assert_contains "TP-CLI-20 submenu submit row" "$_plain" "2. submit-sudoer-request:"
+    assert_contains "TP-CLI-20 submenu print row" "$_plain" "3. print-sudoers:"
+    assert_contains "TP-CLI-20 submenu remove-lpu row" "$_plain" "4. remove-lpu:"
+    assert_contains "TP-CLI-20 submenu Back 8" "$_plain" "8. Back"
+    assert_contains "TP-CLI-20 submenu Exit 9" "$_plain" "9. Exit"
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    assert_eq "TP-CLI-20 back reprints main vault twice" 2 "$_nvault"
+    assert_eq "TP-CLI-20 back showed submenu once" 1 "$_ngen"
+    _out=$(printf '11\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-20 TTY submenu Exit 9 leaves" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    assert_eq "TP-CLI-20 Exit 9 main once" 1 "$_nvault"
+    assert_eq "TP-CLI-20 Exit 9 showed submenu" 1 "$_ngen"
+    _out=$(printf 'sudoers\n8\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-20 pick sudoers opens submenu" "$_plain" "1. generate-sudoer-request:"
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    assert_eq "TP-CLI-20 pick sudoers then back reprints main" 2 "$_nvault"
+    _err=$(sh "${SCRIPT}" sudoers 2>&1 >/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-20 sudoers not a live command" 1 "$_ec"
+    assert_contains "TP-CLI-20 sudoers unknown" "$_err" "Unknown command"
+    _out=$(printf '12\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-20 invalid pick warns" "$_plain" "Not a menu choice"
 
     # TP-CF-ACTOR-* — routed; help lists them; missing inbound/file fails closed (not unknown)
     _help=$(sh "${SCRIPT}" help 2>/dev/null)

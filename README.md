@@ -1,19 +1,21 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.17.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.18.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
 
-POSIX `/bin/sh` CLI specialized from **cli-template**: Type 0 lifecycle plus a local Cloudflare vault and IPv4 **A-record** verbs. One vault holds many **domain-ids** (apex names). Each domain-id is one API binding (one token, one zone, one `user_id`) and may hold many subdomains.
+**dns-cli** stores Cloudflare API tokens in a vault on this machine and creates or updates IPv4 **A records**. One vault can hold many domains. Each domain is one API binding (one token, one zone, one `user_id`) and may hold many host names. The default is one IPv4 per host; **round-robin** allows several distinct IPv4 rows on the same name. IPv6 / AAAA are out of scope.
 
-Each subdomain has a stored **A-record mode**. The default is **non-round-robin** (one IPv4). **Round-robin** means several distinct IPv4 A rows on the same FQDN. Mode may switch only when `ipv4_count` is 0 or 1. IPv6 / AAAA are out of scope.
+| You | Another role | Not this |
+|-----|--------------|----------|
+| Install the program, store a token, add or update an A record, drop a DNS request file | Dedicated account **dns-adm** reviews waiting files after `sudo dns-cli setup` | An online `curl\|sh` installer; IPv6; putting the token on the command line |
 
-Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.17.0**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** + Type 1 **`setup` / `remove-lpu`** + Type 0 **`print-sudoers`** + Type 0 **JSON sudoer generate/submit** (`type-2-switch`) + **`setup` writes `login-hook-elev` into dest inbound without changing ownership** + sudoer grant path pin **`/usr/local/bin/dns-cli`** (tests do not copy `$GLOBAL_BIN`; `CF_TEST_LPU` does not write live dest inbound unless a stub queue is set) + persistency **`${HOME}/.local/dns-cli`** + default dest **`${dns-adm home}/.local/vaults/dns-cli/`** + Type 2 **`sudo -n -u dns-adm` switch** + inbound **DNS** **`submit` / `approve` / `reject` / `interactive`** (login-hook takes inbound ownership **at the beginning**, **fences** JSON format first with a human-facing match, then asks a **one-off yes/no** — **yes** = approve, **no** = reject; user SSOT is the JSON field, not the filename) + Type 0 **test-purpose** **`test-json-format`** / **`fence-test`** (local test folder; no queue) **are implemented**. Prompt helpers consume the `TTY` SSOT. `install` (including `sudo … install`) places the program only — it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
+At a keyboard, typing only `dns-cli` opens a numbered list of daily DNS jobs. In a script it prints help. Grant and draft work sits under **sudoers** on that list — `sudoers` is not a command you type after the program name. `install` places the program only; it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
 
 Install **location** is still **both**:
 
-- **local** → `~/.local/bin/dns-cli` (normal user)
+- **local** → `~/.local/bin/dns-cli` (this login)
 - **global** → `/usr/local/bin/dns-cli` (root / `--global`)
 
 The *channel* is local-only (no online `curl|sh`). Local vs global here means where the binary is placed, not an online vs offline download.
@@ -23,8 +25,8 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 ## Features
 
 - **Self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
-- **Type N empty argv**: at a keyboard, no arguments opens the numbered main menu; in a script it still shows help (does not install, submit, or mutate DNS)
-- **Numbered main menu**: `dns-cli` (TTY, no args) or `dns-cli menu` (alias `main`); header **dns-cli**(*version*) - short description; row explain text is light gray italics
+- **No arguments**: at a keyboard, the numbered main menu; in a script, help (does not install, submit, or mutate DNS)
+- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); daily DNS work first, then family **sudoers**; header **dns-cli**(*version*) - short description; row explain text is light gray italics
 - **Managed binary mode 0755**: global install stays readable and runnable
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
@@ -39,7 +41,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 ## Quick Installation
 
-**Local (Type 0 day-to-day):**
+**Local (this login):**
 
 ```sh
 # From this repository checkout
@@ -67,24 +69,21 @@ This product is **local-only** for its install channel (no default `SCRIPT_URL` 
 sudo dns-cli setup
 ```
 
-**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Off-TTY these commands print help.
+**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Off-TTY these commands print help. `sudoers` is not a typed CLI command.
 
 ```text
-[INFO] **dns-cli**(*1.17.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
-1. remove-lpu: *Remove Linux user dns-adm*
-2. print-sudoers: *Print the sudoer file (does not install dest)*
-3. generate-sudoer-request: *Write a local JSON grant you can review*
-4. submit-sudoer-request: *Queue a type-2-switch grant as this login*
-5. vault: *Store or inspect Cloudflare vault*
-6. ip: *Show public IPv4 (no vault)*
-7. add: *Ensure one A record*
-8. update: *Update existing A record*
-9. remove: *Delete managed A record*
-10. status: *Show public IP and DNS A records*
-11. submit: *Queue a DNS request JSON file*
-12. approve: *Apply a waiting DNS request*
-13. reject: *Decline a waiting DNS request*
-14. interactive: *Review waiting DNS requests one by one*
+[INFO] **dns-cli**(*1.18.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+1. vault: *Store or inspect Cloudflare vault*
+2. ip: *Show public IPv4 (no vault)*
+3. add: *Ensure one A record*
+4. update: *Update existing A record*
+5. remove: *Delete managed A record*
+6. status: *Show public IP and DNS A records*
+7. submit: *Queue a DNS request JSON file*
+8. approve: *Apply a waiting DNS request*
+9. reject: *Decline a waiting DNS request*
+10. interactive: *Review waiting DNS requests one by one*
+11. sudoers: *Grant and drafts*
 99. Exit
 Choice: 
 ```
@@ -396,6 +395,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-03 — version **1.18.0** (main menu daily DNS work + family **sudoers** submenu).
 2026-09-03 — version **1.17.0** (TTY empty argv opens the numbered main menu; off-TTY stays help).
 2026-09-03 — version **1.16.0** (login hook is `/usr/local/bin/dns-cli-hook`; `setup` creates the symlink when missing).
 2026-09-03 — version **1.15.0** (`dns-cli menu` header **dns-cli**(*1.15.0*) - short description; row explain light gray italics).

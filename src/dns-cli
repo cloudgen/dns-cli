@@ -13,6 +13,7 @@
 # - requirement-project-folder.md
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md  (Type N: TTY empty argv = menu; off-TTY = help)
+# - requirement-shell-cli-default-interaction.md (TTY menu; sudoers family + submenu)
 # - requirement-shell-local-self-management.md
 # - requirement-shell-cli-storage.md
 # - requirement-shell-idempotency.md
@@ -36,7 +37,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.17.0"
+# VERSION: hard-assign VERSION="1.18.0"
 #
 # =============================================================================
 
@@ -54,8 +55,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.17.0"
-: "${VERSION:=1.17.0}"
+VERSION="1.18.0"
+: "${VERSION:=1.18.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -454,7 +455,7 @@ out_double_line() { out_text plain "============================================
 # =============================================================================
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.17.0}"
+    : "${VERSION:=1.18.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -6378,9 +6379,7 @@ app_default_print_row() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Print the case-3 numbered list of live operational commands. Header is
-# APP_NAME(VERSION) - SHORT_DESCRIPTION via util_app_ident. On TTY, each
-# row's explain text is italic + light gray (SGR 3 + SGR 37).
+# Daily DNS list plus family sudoers. Grant/draft verbs are not main rows.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6389,25 +6388,48 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.17.0}"
+    : "${VERSION:=1.18.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
-    app_default_print_row 1 "remove-lpu" "Remove Linux user dns-adm"
-    app_default_print_row 2 "print-sudoers" "Print the sudoer file (does not install dest)"
-    app_default_print_row 3 "generate-sudoer-request" "Write a local JSON grant you can review"
-    app_default_print_row 4 "submit-sudoer-request" "Queue a type-2-switch grant as this login"
-    app_default_print_row 5 "vault" "Store or inspect Cloudflare vault"
-    app_default_print_row 6 "ip" "Show public IPv4 (no vault)"
-    app_default_print_row 7 "add" "Ensure one A record"
-    app_default_print_row 8 "update" "Update existing A record"
-    app_default_print_row 9 "remove" "Delete managed A record"
-    app_default_print_row 10 "status" "Show public IP and DNS A records"
-    app_default_print_row 11 "submit" "Queue a DNS request JSON file"
-    app_default_print_row 12 "approve" "Apply a waiting DNS request"
-    app_default_print_row 13 "reject" "Decline a waiting DNS request"
-    app_default_print_row 14 "interactive" "Review waiting DNS requests one by one"
+    app_default_print_row 1 "vault" "Store or inspect Cloudflare vault"
+    app_default_print_row 2 "ip" "Show public IPv4 (no vault)"
+    app_default_print_row 3 "add" "Ensure one A record"
+    app_default_print_row 4 "update" "Update existing A record"
+    app_default_print_row 5 "remove" "Delete managed A record"
+    app_default_print_row 6 "status" "Show public IP and DNS A records"
+    app_default_print_row 7 "submit" "Queue a DNS request JSON file"
+    app_default_print_row 8 "approve" "Apply a waiting DNS request"
+    app_default_print_row 9 "reject" "Decline a waiting DNS request"
+    app_default_print_row 10 "interactive" "Review waiting DNS requests one by one"
+    app_default_print_row 11 "sudoers" "Grant and drafts"
     app_default_print_row 99 "Exit"
+}
+
+# =============================================================================
+# app_default_print_sudoers_menu() - Sudoers family submenu (TTY)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Family submenu. Token sudoers is menu-only (not dispatched).
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_print_sudoers_menu() {
+    : "${APP_NAME:=dns-cli}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+
+    out_info "$(util_app_ident) - sudoers (grant and drafts)"
+    app_default_print_row 1 "generate-sudoer-request" "Write a local JSON grant you can review"
+    app_default_print_row 2 "submit-sudoer-request" "Queue a type-2-switch grant as this login"
+    app_default_print_row 3 "print-sudoers" "Print the sudoer file (does not install dest)"
+    app_default_print_row 4 "remove-lpu" "Remove Linux user dns-adm"
+    app_default_print_row 8 "Back"
+    app_default_print_row 9 "Exit"
 }
 
 # =============================================================================
@@ -6415,7 +6437,8 @@ app_default_print_menu() {
 # =============================================================================
 #
 # GENERAL PURPOSE:
-# Map a number or verb token to the live handler. Exit tokens are no-ops.
+# Main-list numbers/verbs. Family sudoers is opened by the caller. Submenu
+# verbs MAY shortcut here. Back vs Exit return codes are owned by the loops.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6425,48 +6448,48 @@ app_default_print_menu() {
 app_default_run_pick() {
     _pick="${1:-}"
     case "${_pick}" in
-        1|remove-lpu)
-            lpu_remove
-            ;;
-        2|print-sudoers)
-            lpu_print_sudoers
-            ;;
-        3|generate-sudoer-request)
-            lpu_generate_sudoer_request "${CF_POS2:-}"
-            ;;
-        4|submit-sudoer-request)
-            lpu_submit_sudoer_request "${CF_POS2:-}"
-            ;;
-        5|vault)
+        1|vault)
             : "${CF_VAULT_ACTION:=input}"
             cf_vault_dispatch
             ;;
-        6|ip)
+        2|ip)
             cf_ip_show
             ;;
-        7|add)
+        3|add)
             cf_dns_add
             ;;
-        8|update)
+        4|update)
             cf_dns_update
             ;;
-        9|remove)
+        5|remove)
             cf_dns_remove
             ;;
-        10|status|show)
+        6|status|show)
             cf_dns_status
             ;;
-        11|submit)
+        7|submit)
             cf_req_submit "${CF_POS2:-}"
             ;;
-        12|approve)
+        8|approve)
             cf_req_approve "${CF_POS2:-}"
             ;;
-        13|reject)
+        9|reject)
             cf_req_reject "${CF_POS2:-}"
             ;;
-        14|interactive)
+        10|interactive)
             cf_req_interactive
+            ;;
+        generate-sudoer-request)
+            lpu_generate_sudoer_request "${CF_POS2:-}"
+            ;;
+        submit-sudoer-request)
+            lpu_submit_sudoer_request "${CF_POS2:-}"
+            ;;
+        print-sudoers)
+            lpu_print_sudoers
+            ;;
+        remove-lpu)
+            lpu_remove
             ;;
         99|exit|quit|Exit|QUIT)
             ;;
@@ -6478,13 +6501,95 @@ app_default_run_pick() {
 }
 
 # =============================================================================
+# app_default_run_sudoers_pick() - Run one sudoers-submenu choice
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Map a submenu number or member verb to the live handler. Back/Exit are
+# owned by the submenu loop. Returns 1 if the pick is not a member.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_run_sudoers_pick() {
+    _pick="${1:-}"
+
+    case "${_pick}" in
+        1|generate-sudoer-request)
+            lpu_generate_sudoer_request "${CF_POS2:-}"
+            ;;
+        2|submit-sudoer-request)
+            lpu_submit_sudoer_request "${CF_POS2:-}"
+            ;;
+        3|print-sudoers)
+            lpu_print_sudoers
+            ;;
+        4|remove-lpu)
+            lpu_remove
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+# =============================================================================
+# app_default_sudoers_loop() - Interactive sudoers submenu
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Show the grant/draft/LPU list. Back returns 1 (main list). Exit or a run
+# returns 0 (leave menu). Never hangs off-TTY (caller is TTY-only).
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_sudoers_loop() {
+    : "${APP_NAME:=dns-cli}"
+    : "${_menu_json:=0}"
+    : "${_menu_quiet:=0}"
+
+    while true; do
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        app_default_print_sudoers_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            return 0
+        fi
+        case "${_pick}" in
+            8|back|Back)
+                return 1
+                ;;
+            9|99|exit|quit|Exit|QUIT)
+                return 0
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_sudoers_pick "${_pick}"; then
+            return 0
+        fi
+        out_warn "Not a menu choice. Type 1-4, 8 back, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+    done
+}
+
+# =============================================================================
 # app_default() - Interactive numbered menu / off-TTY help
 # =============================================================================
 #
 # GENERAL PURPOSE:
 # TTY draws the numbered list (ignore --json on menu/main and on TTY
 # empty argv); off-TTY reuses app_help and follows --json. Choice is
-# read in this shell.
+# read in this shell. Family sudoers opens the submenu.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6529,6 +6634,21 @@ app_default() {
                 export JSON QUIET
                 return 0
                 ;;
+            11|sudoers)
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                if app_default_sudoers_loop; then
+                    JSON="${_menu_json}"
+                    QUIET="${_menu_quiet}"
+                    export JSON QUIET
+                    return 0
+                fi
+                JSON=0
+                QUIET=0
+                export JSON QUIET
+                continue
+                ;;
         esac
         JSON="${_menu_json}"
         QUIET="${_menu_quiet}"
@@ -6539,7 +6659,7 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        out_warn "Not a menu choice. Type 1-14, 99 to leave, or a live command. Next: ${APP_NAME} menu"
+        out_warn "Not a menu choice. Type 1-11, 99 to leave, or a listed command name. Next: ${APP_NAME} menu"
     done
 }
 
@@ -6574,7 +6694,8 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
-    out_plain "  menu                 Numbered list of live commands. Alias: main"
+    out_plain "  menu                 Numbered list of daily DNS work plus family sudoers."
+    out_plain "                       Alias: main. Family sudoers is not a typed command."
     out_plain "                       At a TTY, no arguments opens this list"
     out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"
     out_plain "  generate-sudoer-request [path]"
