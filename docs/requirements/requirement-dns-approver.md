@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-approver.md  
-**Status**: Active (Version 1.6.0) — interactive records original owner then dest-writes `submit_by`  
+**Status**: Active (Version 1.7.0) — login hook runs `/usr/local/bin/dns-cli-hook`  
 **Area**: architecture  
 **Key**: `requirement-dns-approver`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,7 +14,7 @@ Who-may-submit vs who-may-approve stays on `requirement-dns-actor-table`. This f
 
 ### 1.1 Human-facing
 
-**In one sentence:** When **`dns-adm`** logs in at a keyboard, `.bashrc` starts **one** review. That review **first** takes ownership of waiting files as `dns-adm`, then asks **yes** (approve) or **no** (reject) for each file.
+**In one sentence:** When **`dns-adm`** logs in at a keyboard, `.bashrc` starts **one** review through the **login-hook-symlink** **`dns-cli-hook`** (a short name that can point at dns-cli or another similar program). That review **first** takes ownership of waiting files as `dns-adm`, then asks **yes** (approve) or **no** (reject) for each file.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -24,13 +24,13 @@ Who-may-submit vs who-may-approve stays on `requirement-dns-actor-table`. This f
 
 | Includes | Excludes |
 |----------|----------|
-| Hook snippet + heal | Second approver account |
+| Hook snippet + heal; login-hook-symlink `dns-cli-hook` | Second approver account; a second login-hook REQ |
 | Skip scp / no TTY | Hijacking empty `dns-cli` as review |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
 | `/home/dns-adm/.bashrc` | File | Hook |
-| `sudo -n /usr/local/bin/dns-cli interactive` | Command | Review |
+| `sudo -n /usr/local/bin/dns-cli-hook interactive` | Command | Review |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
@@ -48,9 +48,11 @@ Who-may-submit vs who-may-approve stays on `requirement-dns-actor-table`. This f
 
 ### 2.2 Interactive hook after login
 
-**APR-M3.** After a **TTY login** as `dns-adm`, a hook **MUST** run **`sudo -n /usr/local/bin/dns-cli interactive`** once per session. Empty argv of `dns-cli` **MUST** remain help. `scp` / non-TTY **MUST** skip. `sudo -n` fail **MUST** warn and **MUST NOT** block login. **At the beginning** of `interactive`, dest **MUST** read original file-ownership, take ownership of inbound JSON as **`dns-adm`**, review JSON format, and if the JSON is correct add `submit_by` (human: submit by) set to that original owner, then review. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as unknown. If a fence matches: display it in human-facing words and **MUST NOT** ask yes/no for that file. If no fence matched: one **approval question** (term `approval-question`): **yes** = approve, **no** = reject. **MUST NOT** offer skip / quit. Queue move assumes that previous ownership change (`requirement-dns-actor-table` ACT-M4 / ACT-M6).
+**APR-M3.** After a **TTY login** as `dns-adm`, a hook **MUST** run **`sudo -n /usr/local/bin/dns-cli-hook interactive`** once per session. Empty argv of `dns-cli` **MUST** remain help. `scp` / non-TTY **MUST** skip. `sudo -n` fail **MUST** warn and **MUST NOT** block login. **At the beginning** of `interactive`, dest **MUST** read original file-ownership, take ownership of inbound JSON as **`dns-adm`**, review JSON format, and if the JSON is correct add `submit_by` (human: submit by) set to that original owner, then review. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as unknown. If a fence matches: display it in human-facing words and **MUST NOT** ask yes/no for that file. If no fence matched: one **approval question** (term `approval-question`): **yes** = approve, **no** = reject. **MUST NOT** offer skip / quit. Queue move assumes that previous ownership change (`requirement-dns-actor-table` ACT-M4 / ACT-M6).
 
-The hook’s `sudo -n` needs a live grant **`login-hook-elev`** (`dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli interactive`). That JSON is **not** the Type 0 current-user grant. Type 1 `setup` **MUST** queue it when sibling `sudoer-cli` + `sudoer-adm` exist (`requirement-sudoer-json-file`). Rc heal **MUST NOT** be treated as that grant.
+The hook’s `sudo -n` needs a live grant **`login-hook-elev`** (`dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli-hook interactive`). That JSON is **not** the Type 0 current-user grant. Type 1 `setup` **MUST** queue it when sibling `sudoer-cli` + `sudoer-adm` exist (`requirement-sudoer-json-file`). Rc heal **MUST NOT** be treated as that grant.
+
+**APR-M3a. Login-hook-symlink.** `/usr/local/bin/dns-cli-hook` is this product’s **login-hook-symlink**: the stable name `.bashrc` and `login-hook-elev` both call. Type 1 `setup`, when the global binary `/usr/local/bin/dns-cli` exists, **MUST** create that symlink → `/usr/local/bin/dns-cli` **if the name is absent**. **MUST NOT** overwrite an existing `dns-cli-hook` (the host admin **MAY** point it at another similar program). `CF_TEST_LPU=1` **MUST NOT** create the live symlink. Type 2 switch grants stay `/usr/local/bin/dns-cli`. This file is the **topic-owner** of rc heal + the login-hook-symlink. Do **not** add a second login-hook requirement.
 
 The hook snippet **MUST** match `requirement-dns-actor-table` (begin/end markers, `DNS_CLI_HOOK_RAN` set **before** `sudo -n`, identity `id -un` = `dns-adm`).
 
@@ -58,7 +60,7 @@ The hook snippet **MUST** match `requirement-dns-actor-table` (begin/end markers
 
 ```sh
 dns-cli interactive
-sudo -n /usr/local/bin/dns-cli interactive
+sudo -n /usr/local/bin/dns-cli-hook interactive
 ```
 
 `interactive` is Type 1 as `dns-adm`. Empty argv remains help. The review loop is **Implemented** on 1.9.0; rc heal is Implemented.
@@ -67,7 +69,7 @@ sudo -n /usr/local/bin/dns-cli interactive
 
 **APR-M4.** When the process is **interactive** (`TTY=1`) **and** `JSON` is not 1 **and** `id -un` equals `dns-adm` (or test override `CF_APPROVER_USER`):
 
-1. **Check** `${HOME}/.bashrc` for `# BEGIN dns-cli login hook` … `# END dns-cli login hook`. If missing, **append** the complete snippet. Create `.bashrc` if absent.  
+1. **Check** `${HOME}/.bashrc` for `# BEGIN dns-cli login hook` … `# END dns-cli login hook`. If missing, **append** the complete snippet (uses `/usr/local/bin/dns-cli-hook`). If the block is present and still runs `sudo -n /usr/local/bin/dns-cli interactive`, **rewrite** that line to `/usr/local/bin/dns-cli-hook`. Create `.bashrc` if absent. **MUST NOT** duplicate the block.  
 2. **Check** `${HOME}/.profile`.  
    - **Does not exist:** **create** it with the §2.5 profile body (bash login shells **source** `.bashrc`).  
    - **Exists:** **MUST NOT** overwrite.  
@@ -134,7 +136,9 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 3. Plant the hook in another user’s rc.  
 4. Hijack empty argv as `interactive`.  
 5. Put a token in `.bashrc` or `.profile`.  
-6. Leave `.bashrc` / `.profile` owned by root (or the writer) after heal.
+6. Leave `.bashrc` / `.profile` owned by root (or the writer) after heal.  
+7. Leave an old `sudo -n /usr/local/bin/dns-cli interactive` line in `.bashrc` after heal.  
+8. Overwrite an existing `/usr/local/bin/dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.
 
 ---
 
@@ -149,6 +153,8 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | AC-APR5 | `--json` / non-interactive does not heal |
 | AC-APR6 | Second heal does not duplicate the hook block |
 | AC-APR7 | After rc create/modify, owner is the corresponding user (shell-rc-file-ownership) |
+| AC-APR8 | Heal rewrites old `/usr/local/bin/dns-cli` hook line to `/usr/local/bin/dns-cli-hook` |
+| AC-APR9 | Setup creates `dns-cli-hook` only when missing; test-mode does not write live `/usr/local/bin` |
 
 ---
 
@@ -176,6 +182,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | **TP-CF-APR-05** | test_cf_approver | have | `--json` does not heal |
 | **TP-CF-APR-06** | test_cf_approver | have | second heal idempotent |
 | **TP-CF-APR-07** | test_cf_approver | have | heal calls `util_align_rc_owner` (corresponding user) |
+| **TP-CF-APR-08** | test_cf_approver | have | heal rewrites old `/usr/local/bin/dns-cli` hook path to `dns-cli-hook` |
 
 **Map:** `reviews/test-plan.md`
 
@@ -185,6 +192,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-03 | Active 1.7.0 | Login hook runs `/usr/local/bin/dns-cli-hook`; setup creates the alias when missing; heal rewrites the old binary path |
 | 2026-08-19 | Active 1.6.0 | APR-M3 interactive records original file-ownership, then dest-writes `submit_by` if format is clear |
 | 2026-08-19 | Active 1.5.0 | APR-M4 rc heal aligns ownership to corresponding user (shell-rc-file-ownership) |
 | 2026-08-19 | Active 1.4.0 | Fence first; human-facing match; then one-off yes/no (approval-system) |
@@ -194,6 +202,6 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

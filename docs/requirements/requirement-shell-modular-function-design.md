@@ -56,8 +56,8 @@ Ship unit remains a **single executable** at `src/dns-cli`.
 |--------|----------|---------|-------------------|
 | `out_` | Output system | All user-facing and machine-readable output | `out_text`, `out_info`, `out_json`, `out_die` |
 | `inst_` | Installation lifecycle | Local install/uninstall detect and place/remove | `inst_local_install`, `inst_local_uninstall`, `inst_is_installed` |
-| `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper | `util_resolve_storage`, `util_resolve_running_path`, `util_get_install_bin_path`, `util_get_current_shell`, `util_json_escape`, `util_backup` — **examples:** §2.2a |
-| `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me` |
+| `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper, identity nametag | `util_resolve_storage`, `util_resolve_running_path`, `util_get_install_bin_path`, `util_get_current_shell`, `util_json_escape`, `util_backup`, `util_app_ident` — **examples:** §2.2a |
+| `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me/menu | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me`, `app_default`, `app_default_print_menu`, `app_default_print_row` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |
 | `prompt_` | Interactive prompts | TTY-safe confirmations and secrets — **bodies:** `requirement-shell-prompt` | `prompt_yes_no`, `prompt_ask`, `prompt_secret` |
 | `cf_` | Cloudflare domain | Vault, DNS, IP lookup, API, JSON extract | `cf_vault_*`, `cf_dns_*`, `cf_ip_*`, `cf_api_*`, `cf_json_*` |
@@ -87,6 +87,7 @@ A name in §2.2 is **not** the example. Every **shipped** `util_*` **MUST** have
 | `util_resolve_persistent_storage` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_get_current_shell` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_backup` | **this file** §2.2b (no `requirement-*-backup-strategy` on this product) | yes |
+| `util_app_ident` | `requirement-shell-cli-default-interaction` §2.3b | yes |
 | `util_sha256_file` | **`LM-ONLINE-INSTALL`** only | **no** — local-only; do not specialize |
 | `util_fetch_remote_version` | **`LM-ONLINE-INSTALL`** only | **no** — local-only; do not specialize |
 

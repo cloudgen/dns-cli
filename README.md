@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.13.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.16.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -9,7 +9,7 @@ POSIX `/bin/sh` CLI specialized from **cli-template**: Type 0 lifecycle plus a l
 
 Each subdomain has a stored **A-record mode**. The default is **non-round-robin** (one IPv4). **Round-robin** means several distinct IPv4 A rows on the same FQDN. Mode may switch only when `ipv4_count` is 0 or 1. IPv6 / AAAA are out of scope.
 
-Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.13.0**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** + Type 1 **`setup` / `remove-lpu`** + Type 0 **`print-sudoers`** + Type 0 **JSON sudoer generate/submit** (`type-2-switch`) + **`setup` writes `login-hook-elev` into dest inbound without changing ownership** + sudoer grant path pin **`/usr/local/bin/dns-cli`** (tests do not copy `$GLOBAL_BIN`; `CF_TEST_LPU` does not write live dest inbound unless a stub queue is set) + persistency **`${HOME}/.local/dns-cli`** + default dest **`${dns-adm home}/.local/vaults/dns-cli/`** + Type 2 **`sudo -n -u dns-adm` switch** + inbound **DNS** **`submit` / `approve` / `reject` / `interactive`** (login-hook takes inbound ownership **at the beginning**, **fences** JSON format first with a human-facing match, then asks a **one-off yes/no** — **yes** = approve, **no** = reject; user SSOT is the JSON field, not the filename) + Type 0 **test-purpose** **`test-json-format`** / **`fence-test`** (local test folder; no queue) **are implemented**. Prompt helpers consume the `TTY` SSOT. `install` (including `sudo … install`) places the program only — it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
+Product **law** also defines a **file-based JSON approval** machine (inbound folder + closed JSON + approve by moving the file) and an LPU **`dns-adm`**. On ship unit **1.16.0**, Type 0 specify vault + DNS A CRUD + stored mode + token probe + approver **rc heal** + Type 1 **`setup` / `remove-lpu`** + Type 0 **`print-sudoers`** + Type 0 **JSON sudoer generate/submit** (`type-2-switch`) + **`setup` writes `login-hook-elev` into dest inbound without changing ownership** + sudoer grant path pin **`/usr/local/bin/dns-cli`** (tests do not copy `$GLOBAL_BIN`; `CF_TEST_LPU` does not write live dest inbound unless a stub queue is set) + persistency **`${HOME}/.local/dns-cli`** + default dest **`${dns-adm home}/.local/vaults/dns-cli/`** + Type 2 **`sudo -n -u dns-adm` switch** + inbound **DNS** **`submit` / `approve` / `reject` / `interactive`** (login-hook takes inbound ownership **at the beginning**, **fences** JSON format first with a human-facing match, then asks a **one-off yes/no** — **yes** = approve, **no** = reject; user SSOT is the JSON field, not the filename) + Type 0 **test-purpose** **`test-json-format`** / **`fence-test`** (local test folder; no queue) **are implemented**. Prompt helpers consume the `TTY` SSOT. `install` (including `sudo … install`) places the program only — it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
 
 Install **location** is still **both**:
 
@@ -24,6 +24,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 - **Self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
 - **Type N empty argv**: no arguments shows help (does not install, submit, or mutate DNS)
+- **Numbered main menu**: `dns-cli menu` (alias `main`) on a real terminal; header **dns-cli**(*version*) - short description; row explain text is light gray italics
 - **Managed binary mode 0755**: global install stays readable and runnable
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
@@ -66,6 +67,28 @@ This product is **local-only** for its install channel (no default `SCRIPT_URL` 
 sudo dns-cli setup
 ```
 
+**Main menu** (`dns-cli menu` at a real terminal; `99` leaves). Off-TTY this command prints help.
+
+```text
+[INFO] **dns-cli**(*1.16.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+1. remove-lpu: *Remove Linux user dns-adm*
+2. print-sudoers: *Print the sudoer file (does not install dest)*
+3. generate-sudoer-request: *Write a local JSON grant you can review*
+4. submit-sudoer-request: *Queue a type-2-switch grant as this login*
+5. vault: *Store or inspect Cloudflare vault*
+6. ip: *Show public IPv4 (no vault)*
+7. add: *Ensure one A record*
+8. update: *Update existing A record*
+9. remove: *Delete managed A record*
+10. status: *Show public IP and DNS A records*
+11. submit: *Queue a DNS request JSON file*
+12. approve: *Apply a waiting DNS request*
+13. reject: *Decline a waiting DNS request*
+14. interactive: *Review waiting DNS requests one by one*
+99. *Exit*
+Choice: 
+```
+
 **Source repository:** [cloudgen/dns-cli](https://github.com/cloudgen/dns-cli)  
 Config identity: `REPO_USER=cloudgen`, `REPO_NAME=dns-cli` (override with env if needed; does not enable online install while `SCRIPT_URL` is empty).
 
@@ -73,6 +96,7 @@ Config identity: `REPO_USER=cloudgen`, `REPO_NAME=dns-cli` (override with env if
 
 ```sh
 dns-cli help
+dns-cli menu
 dns-cli about
 dns-cli --json about
 
@@ -186,7 +210,7 @@ This table is **DNS inbound only**. Sudoer print / JSON submit uses the next tab
 
 1. **Anyone** runs `dns-cli submit` (self-scope JSON only).  
 2. **`dns-adm`** logs in on a **TTY**.  
-3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-cli interactive`.  
+3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-cli-hook interactive` (the **login-hook-symlink**). `setup` creates that short name as a symlink to `/usr/local/bin/dns-cli` when it is missing (it will not replace a hook you already pointed at another similar program).  
 4. **At the beginning**, `interactive` takes file-ownership of inbound JSON as **`dns-adm`**.  
 5. For each file, dest **fences first** (JSON format check). If the file is not a valid request, dest **explains** that in ordinary words and **does not** ask yes or no.  
 6. If the file is valid, dest shows purpose + body and asks **one** question: **yes** = approve, **no** = reject (Enter = no). There is no skip or quit.  
@@ -372,6 +396,9 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-03 — version **1.16.0** (login hook is `/usr/local/bin/dns-cli-hook`; `setup` creates the symlink when missing).
+2026-09-03 — version **1.15.0** (`dns-cli menu` header **dns-cli**(*1.15.0*) - short description; row explain light gray italics).
+2026-09-03 — version **1.14.0** (`dns-cli menu` numbered list; header **dns-cli**(*1.14.0*)).
 2026-08-30 — version **1.13.0** (about names **cache folder** and **persistency folder** `${HOME}/.local/dns-cli`).
 2026-08-21 — version **1.12.0** (Type 0 stamps `submit_app` / `submit_version`; dest shows `queued by {app} {version}` before yes/no).
 2026-08-21 — version **1.11.0** (Type 0 **test-purpose** `fence-test`; testers listed apart from operational inbound).

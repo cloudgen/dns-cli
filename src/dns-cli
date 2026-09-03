@@ -36,7 +36,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.13.0"
+# VERSION: hard-assign VERSION="1.16.0"
 #
 # =============================================================================
 
@@ -51,10 +51,11 @@ APP_NAME="dns-cli"
 : "${APP_NAME:=dns-cli}"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, version, about, help.}"
+: "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.13.0"
-: "${VERSION:=1.13.0}"
+VERSION="1.16.0"
+: "${VERSION:=1.16.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -424,6 +425,45 @@ out_empty_line() { out_text plain ""; }
 # Last reviewed: 29 April 2026
 # =============================================================================
 out_double_line() { out_text plain "=================================================="; }
+
+# =============================================================================
+# util_app_ident() - APP_NAME(VERSION) nametag (class B return-via-stdout)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return the operator identity token APP_NAME(VERSION) with no space before
+# the parenthesis. Callers pass the result into out_* banners (main menu).
+#
+# TTY (and not quiet/json): SGR 1 (bold) on APP_NAME, SGR 3 (italic) on VERSION.
+# Off-TTY / quiet / json: plain text. Never a product message by itself.
+#
+# PRINTF EXCEPTION (class B – return-via-stdout):
+# This helper prints the token for $(util_app_ident), not a user banner.
+# Banner text still goes through out_*.
+#
+# CIAO PRINCIPLES APPLIED:
+# - Intentional: one print form for who-is-talking banners
+# - Caution: no CSI when TTY is off (pipes, README captures strip to markdown)
+# - Over-protect: MUST NOT a bare APP_NAME on the main-menu header
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md (menu header)
+# - requirement-shell-output-requirements.md (class B printf)
+#
+# Last updated: 2026-09-03
+# =============================================================================
+util_app_ident() {
+    : "${APP_NAME:=dns-cli}"
+    : "${VERSION:=1.16.0}"
+    : "${TTY:=0}"
+    : "${QUIET:=0}"
+    : "${JSON:=0}"
+    if [ "${TTY}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ]; then
+        printf '\033[1m%s\033[0m(\033[3m%s\033[0m)' "${APP_NAME}" "${VERSION}"
+    else
+        printf '%s(%s)' "${APP_NAME}" "${VERSION}"
+    fi
+}
 
 # =============================================================================
 # out_json() - JSON output helper
@@ -2961,9 +3001,10 @@ cf_approver_user() {
 }
 
 cf_approver_hook_block() {
-    # Grant identity is production /usr/local/bin (INC-20260821-001). GLOBAL_BIN
-    # is install isolation and MUST NOT appear in the login-hook sudo -n line.
-    _hook_bin=$(lpu_sudoers_grant_path)
+    # Login-hook-symlink: /usr/local/bin/${APP_NAME}-hook
+    # (INC-20260821-001: MUST NOT copy GLOBAL_BIN). Type 2 switch stays
+    # /usr/local/bin/${APP_NAME}.
+    _hook_bin=$(lpu_login_hook_grant_path)
     printf '%s\n' \
         "# BEGIN dns-cli login hook" \
         "if [ -z \"\${DNS_CLI_HOOK_RAN:-}\" ] \\" \
@@ -2979,6 +3020,69 @@ cf_approver_hook_block() {
         "    fi" \
         "fi" \
         "# END dns-cli login hook"
+}
+
+# Rewrite or append the login-hook block on one .bashrc.
+# Missing markers → append the current snippet (dns-cli-hook).
+# Old sudo -n /usr/local/bin/${APP_NAME} interactive → replace with ${APP_NAME}-hook.
+# Already on the hook alias → no-op. MUST NOT duplicate the block.
+cf_approver_apply_hook_to_bashrc() {
+    _brc="${1:-}"
+    : "${APP_NAME:=dns-cli}"
+    if [ -z "${_brc}" ]; then
+        return 0
+    fi
+    _old="sudo -n /usr/local/bin/${APP_NAME} interactive"
+    _new="sudo -n /usr/local/bin/${APP_NAME}-hook interactive"
+    _dir=$(dirname -- "${_brc}")
+    _has_begin=0
+    _has_end=0
+    if [ -f "${_brc}" ]; then
+        grep -q '# BEGIN dns-cli login hook' "${_brc}" 2>/dev/null && _has_begin=1
+        grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
+    fi
+    if [ "${_has_begin}" -eq 1 ] && [ "${_has_end}" -eq 1 ]; then
+        if grep -qF "${_old}" "${_brc}" 2>/dev/null; then
+            _tmp=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || return 0
+            if ! cp -p "${_brc}" "${_tmp}"; then
+                rm -f "${_tmp}"
+                return 0
+            fi
+            _tmp2=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || { rm -f "${_tmp}"; return 0; }
+            if ! sed "s|${_old}|${_new}|g" "${_tmp}" >"${_tmp2}"; then
+                rm -f "${_tmp}" "${_tmp2}"
+                return 0
+            fi
+            cat "${_tmp2}" >"${_tmp}" || { rm -f "${_tmp}" "${_tmp2}"; return 0; }
+            rm -f "${_tmp2}"
+            if ! mv -f "${_tmp}" "${_brc}"; then
+                rm -f "${_tmp}"
+                return 0
+            fi
+        fi
+        return 0
+    fi
+    _tmp=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || return 0
+    if [ -f "${_brc}" ]; then
+        if ! cp -p "${_brc}" "${_tmp}"; then
+            rm -f "${_tmp}"
+            return 0
+        fi
+        if ! cf_approver_hook_block >>"${_tmp}"; then
+            rm -f "${_tmp}"
+            return 0
+        fi
+    else
+        if ! cf_approver_hook_block >"${_tmp}"; then
+            rm -f "${_tmp}"
+            return 0
+        fi
+        chmod 0600 "${_tmp}" 2>/dev/null || true
+    fi
+    if ! mv -f "${_tmp}" "${_brc}"; then
+        rm -f "${_tmp}"
+        return 0
+    fi
 }
 
 cf_approver_profile_block() {
@@ -3016,23 +3120,7 @@ cf_approver_heal_login_rc() {
     fi
     _brc="${_home}/.bashrc"
     _prf="${_home}/.profile"
-    _has_begin=0
-    _has_end=0
-    if [ -f "${_brc}" ]; then
-        grep -q '# BEGIN dns-cli login hook' "${_brc}" 2>/dev/null && _has_begin=1
-        grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
-    fi
-    if [ "${_has_begin}" -ne 1 ] || [ "${_has_end}" -ne 1 ]; then
-        _tmp=$(mktemp "${_home}/.bashrc.dns-cli.XXXXXX") || return 0
-        if [ -f "${_brc}" ]; then
-            cp -p "${_brc}" "${_tmp}" || { rm -f "${_tmp}"; return 0; }
-            cf_approver_hook_block >>"${_tmp}" || { rm -f "${_tmp}"; return 0; }
-        else
-            cf_approver_hook_block >"${_tmp}" || { rm -f "${_tmp}"; return 0; }
-            chmod 0600 "${_tmp}" 2>/dev/null || true
-        fi
-        mv -f "${_tmp}" "${_brc}" || { rm -f "${_tmp}"; return 0; }
-    fi
+    cf_approver_apply_hook_to_bashrc "${_brc}"
     if [ ! -f "${_prf}" ]; then
         _ptmp=$(mktemp "${_home}/.profile.dns-cli.XXXXXX") || return 0
         cf_approver_profile_block >"${_ptmp}" || { rm -f "${_ptmp}"; return 0; }
@@ -3520,35 +3608,7 @@ lpu_heal_home_rc() {
     fi
     _brc="${_home}/.bashrc"
     _prf="${_home}/.profile"
-    _has_begin=0
-    _has_end=0
-    if [ -f "${_brc}" ]; then
-        grep -q '# BEGIN dns-cli login hook' "${_brc}" 2>/dev/null && _has_begin=1
-        grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
-    fi
-    if [ "${_has_begin}" -ne 1 ] || [ "${_has_end}" -ne 1 ]; then
-        _tmp=$(mktemp "${_home}/.bashrc.dns-cli.XXXXXX") || return 0
-        if [ -f "${_brc}" ]; then
-            if ! cp -p "${_brc}" "${_tmp}"; then
-                rm -f "${_tmp}"
-                return 0
-            fi
-            if ! cf_approver_hook_block >>"${_tmp}"; then
-                rm -f "${_tmp}"
-                return 0
-            fi
-        else
-            if ! cf_approver_hook_block >"${_tmp}"; then
-                rm -f "${_tmp}"
-                return 0
-            fi
-            chmod 0600 "${_tmp}" 2>/dev/null || true
-        fi
-        if ! mv -f "${_tmp}" "${_brc}"; then
-            rm -f "${_tmp}"
-            return 0
-        fi
-    fi
+    cf_approver_apply_hook_to_bashrc "${_brc}"
     if [ ! -f "${_prf}" ]; then
         _ptmp=$(mktemp "${_home}/.profile.dns-cli.XXXXXX") || return 0
         if ! cf_approver_profile_block >"${_ptmp}"; then
@@ -3620,14 +3680,60 @@ lpu_sudoers_normalize_kind() {
 
 # Sibling sudoer grant identity. GLOBAL_BIN is install isolation (CI gbin) and
 # MUST NOT be copied into commands[].path (INC-20260821-001).
+# type-2-switch / F6: /usr/local/bin/${APP_NAME}
+# login-hook-elev / .bashrc: login-hook-symlink /usr/local/bin/${APP_NAME}-hook
 lpu_sudoers_grant_path() {
     : "${APP_NAME:=dns-cli}"
     printf '%s' "/usr/local/bin/${APP_NAME}"
 }
 
+lpu_login_hook_grant_path() {
+    : "${APP_NAME:=dns-cli}"
+    printf '%s' "/usr/local/bin/${APP_NAME}-hook"
+}
+
+lpu_sudoers_expected_path_for_kind() {
+    _k="${1:-type-2-switch}"
+    if [ "${_k}" = "login-hook-elev" ]; then
+        lpu_login_hook_grant_path
+        return 0
+    fi
+    lpu_sudoers_grant_path
+}
+
+# Create the login-hook-symlink /usr/local/bin/${APP_NAME}-hook ->
+# /usr/local/bin/${APP_NAME} when the global binary exists and the hook name
+# is absent. MUST NOT overwrite an existing hook name (operator may retarget
+# it). Test-mode MUST NOT write live /usr/local/bin (SJ-M6 peer).
+lpu_ensure_login_hook_symlink() {
+    : "${APP_NAME:=dns-cli}"
+    LOGIN_HOOK_SYMLINK_STATUS="skipped"
+    _bin=$(lpu_sudoers_grant_path)
+    _hook=$(lpu_login_hook_grant_path)
+    if lpu_test_mode; then
+        LOGIN_HOOK_SYMLINK_STATUS="skipped"
+        return 0
+    fi
+    if [ ! -e "${_bin}" ]; then
+        LOGIN_HOOK_SYMLINK_STATUS="skipped"
+        return 0
+    fi
+    if [ -L "${_hook}" ] || [ -e "${_hook}" ]; then
+        LOGIN_HOOK_SYMLINK_STATUS="present"
+        return 0
+    fi
+    if ln -s "${_bin}" "${_hook}"; then
+        LOGIN_HOOK_SYMLINK_STATUS="created"
+        return 0
+    fi
+    LOGIN_HOOK_SYMLINK_STATUS="failed"
+    out_warn "Could not create login-hook symlink ${_hook} -> ${_bin}"
+    return 0
+}
+
 lpu_sudoers_json_text_compact() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.13.0}"
+    : "${VERSION:=1.16.0}"
     : "${SUBMIT_ACTION:=add}"
     _kind=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
     _action="${SUBMIT_ACTION}"
@@ -3635,11 +3741,11 @@ lpu_sudoers_json_text_compact() {
         add|update) ;;
         *) _action="add" ;;
     esac
-    _path=$(lpu_sudoers_grant_path)
+    _path=$(lpu_sudoers_expected_path_for_kind "${_kind}")
     _lpu=$(lpu_user)
     if [ "${_kind}" = "login-hook-elev" ]; then
         _user="${_lpu}"
-        _purpose="Allow ${_lpu} login hook to run ${APP_NAME} interactive via sudo -n."
+        _purpose="Allow ${_lpu} login hook to run ${APP_NAME}-hook interactive via sudo -n."
         printf '%s\n' "{\"schema_version\":1,\"kind\":\"login-hook-elev\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"submit_app\":\"${APP_NAME}\",\"submit_version\":\"${VERSION}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[\"interactive\"]}]}"
         return 0
     fi
@@ -3699,12 +3805,12 @@ lpu_sudoers_detect_kind_from_body() {
 lpu_sudoers_refuse_forbidden_grant() {
     _gf="${1:-}"
     : "${APP_NAME:=dns-cli}"
-    _grant=$(lpu_sudoers_grant_path)
     if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
         out_die_code request_invalid "sudoer grant file missing"
     fi
     _gb=$(cat "${_gf}" 2>/dev/null || true)
     _kind=$(lpu_sudoers_detect_kind_from_body "${_gb}")
+    _grant=$(lpu_sudoers_expected_path_for_kind "${_kind}")
     case "${_gb}" in
         *"/usr/bin/mkdir"*|*"/bin/mkdir"*|*"/usr/bin/cp"*|*"/bin/cp"*|*"/usr/bin/tar"*|*"/bin/tar"*|*"/bin/rm "*|*"/usr/bin/rm "*|*"/usr/bin/install"*|*"/usr/bin/chmod"*|*"/bin/chmod"*)
             out_die_code request_invalid "refusing sudoer grant with OS-tool commands (need ${_grant} only)"
@@ -3750,13 +3856,13 @@ lpu_sudoers_refuse_forbidden_grant() {
 lpu_sudoers_verify_grant() {
     _gf="${1:-}"
     : "${APP_NAME:=dns-cli}"
-    _grant=$(lpu_sudoers_grant_path)
     _lpu=$(lpu_user)
     if [ -z "${_gf}" ] || [ ! -f "${_gf}" ]; then
         out_die_code request_invalid "sudoer file missing"
     fi
     _gb=$(cat "${_gf}" 2>/dev/null || true)
     _kind=$(lpu_sudoers_detect_kind_from_body "${_gb}")
+    _grant=$(lpu_sudoers_expected_path_for_kind "${_kind}")
     case "${_gb}" in
         *'"service":"dns-cli"'*|*'"service": "dns-cli"'*) ;;
         *) out_die_code request_invalid "Sudoer file is incomplete: service is not dns-cli. Path: ${_gf}" ;;
@@ -4057,7 +4163,7 @@ lpu_generate_sudoer_request() {
     fi
     out_success "Wrote verified sudoer file to ${_out_path}"
     if [ "${SUDOER_REQUEST_KIND}" = "login-hook-elev" ]; then
-        out_info "Grant kind=login-hook-elev: $(lpu_user) may sudo -n ${APP_NAME} interactive (action=${SUBMIT_ACTION})"
+        out_info "Grant kind=login-hook-elev: $(lpu_user) may sudo -n ${APP_NAME}-hook interactive (action=${SUBMIT_ACTION})"
         out_info "Type 0 submit-sudoer-request will refuse this file. Setup auto-queues it when sibling sudoer-cli exists."
     else
         out_info "Grant kind=type-2-switch: ${_user} may run ${APP_NAME} as $(lpu_user) (action=${SUBMIT_ACTION})"
@@ -4325,6 +4431,7 @@ lpu_setup() {
     chmod 0700 "${_vault}" || out_die_code vault_insecure "Cannot chmod 0700 ${_vault}"
     lpu_chown_tree "${_vault}"
     lpu_install_sudoers
+    lpu_ensure_login_hook_symlink
     lpu_heal_home_rc "${_home}"
     cf_req_install_trio
     lpu_submit_login_hook_sudoer_request
@@ -4348,7 +4455,8 @@ lpu_setup() {
             "created" "${_created}" \
             "status" "${_st}" \
             "login_hook_sudoer" "${LOGIN_HOOK_SUDOER_STATUS}" \
-            "login_hook_sudoer_request_id" "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}"
+            "login_hook_sudoer_request_id" "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}" \
+            "login_hook_symlink" "${LOGIN_HOOK_SYMLINK_STATUS:-skipped}"
         return 0
     fi
     if [ "${_existed}" -eq 1 ]; then
@@ -4359,9 +4467,20 @@ lpu_setup() {
     out_info "Home: ${_home} (${_reason})"
     out_info "Vault dir: ${_vault} (mode 0700)"
     out_info "Sudoers dest: ${_dest} (mode 0440)"
+    case "${LOGIN_HOOK_SYMLINK_STATUS:-skipped}" in
+        created)
+            out_info "Login-hook symlink: $(lpu_login_hook_grant_path) -> $(lpu_sudoers_grant_path)"
+            ;;
+        present)
+            out_info "Login-hook symlink already present: $(lpu_login_hook_grant_path)"
+            ;;
+        failed)
+            out_warn "Login-hook symlink missing: $(lpu_login_hook_grant_path)"
+            ;;
+    esac
     case "${LOGIN_HOOK_SUDOER_STATUS}" in
         submitted)
-            out_info "Queued login-hook-elev sudoer request (dns-adm sudo -n ${APP_NAME} interactive)"
+            out_info "Queued login-hook-elev sudoer request (dns-adm sudo -n ${APP_NAME}-hook interactive)"
             if [ -n "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}" ]; then
                 out_info "login_hook request_id=${LOGIN_HOOK_SUDOER_REQUEST_ID}"
             fi
@@ -6224,6 +6343,210 @@ cf_req_interactive() {
 }
 
 # =============================================================================
+# app_default_print_row() - One numbered menu line (verb + styled explain)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Print "N. verb: explain". On TTY the explain (or Exit label) is light-gray
+# italic. Off-TTY the same words with no CSI.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_print_row() {
+    : "${TTY:=0}"
+    : "${QUIET:=0}"
+    : "${JSON:=0}"
+    _num="${1:-}"
+    _verb="${2:-}"
+    _desc="${3-}"
+    if [ -n "${_desc}" ]; then
+        if [ "${TTY}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ]; then
+            out_plain "${_num}. ${_verb}: $(printf '\033[90;3m%s\033[0m' "${_desc}")"
+        else
+            out_plain "${_num}. ${_verb}: ${_desc}"
+        fi
+        return 0
+    fi
+    if [ "${TTY}" -eq 1 ] && [ "${QUIET}" -eq 0 ] && [ "${JSON}" -eq 0 ]; then
+        out_plain "${_num}. $(printf '\033[90;3m%s\033[0m' "${_verb}")"
+    else
+        out_plain "${_num}. ${_verb}"
+    fi
+}
+
+# =============================================================================
+# app_default_print_menu() - Numbered main-menu list (TTY)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Print the case-3 numbered list of live operational commands. Header is
+# APP_NAME(VERSION) - SHORT_DESCRIPTION via util_app_ident. On TTY, each
+# row's explain text is light-gray italic (SGR 90 + SGR 3).
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_print_menu() {
+    : "${APP_NAME:=dns-cli}"
+    : "${VERSION:=1.16.0}"
+    : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
+    : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
+    out_info "$(util_app_ident) - ${SHORT_DESC}"
+    app_default_print_row 1 "remove-lpu" "Remove Linux user dns-adm"
+    app_default_print_row 2 "print-sudoers" "Print the sudoer file (does not install dest)"
+    app_default_print_row 3 "generate-sudoer-request" "Write a local JSON grant you can review"
+    app_default_print_row 4 "submit-sudoer-request" "Queue a type-2-switch grant as this login"
+    app_default_print_row 5 "vault" "Store or inspect Cloudflare vault"
+    app_default_print_row 6 "ip" "Show public IPv4 (no vault)"
+    app_default_print_row 7 "add" "Ensure one A record"
+    app_default_print_row 8 "update" "Update existing A record"
+    app_default_print_row 9 "remove" "Delete managed A record"
+    app_default_print_row 10 "status" "Show public IP and DNS A records"
+    app_default_print_row 11 "submit" "Queue a DNS request JSON file"
+    app_default_print_row 12 "approve" "Apply a waiting DNS request"
+    app_default_print_row 13 "reject" "Decline a waiting DNS request"
+    app_default_print_row 14 "interactive" "Review waiting DNS requests one by one"
+    app_default_print_row 99 "Exit"
+}
+
+# =============================================================================
+# app_default_run_pick() - Run one main-menu choice
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Map a number or verb token to the live handler. Exit tokens are no-ops.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default_run_pick() {
+    _pick="${1:-}"
+    case "${_pick}" in
+        1|remove-lpu)
+            lpu_remove
+            ;;
+        2|print-sudoers)
+            lpu_print_sudoers
+            ;;
+        3|generate-sudoer-request)
+            lpu_generate_sudoer_request "${CF_POS2:-}"
+            ;;
+        4|submit-sudoer-request)
+            lpu_submit_sudoer_request "${CF_POS2:-}"
+            ;;
+        5|vault)
+            : "${CF_VAULT_ACTION:=input}"
+            cf_vault_dispatch
+            ;;
+        6|ip)
+            cf_ip_show
+            ;;
+        7|add)
+            cf_dns_add
+            ;;
+        8|update)
+            cf_dns_update
+            ;;
+        9|remove)
+            cf_dns_remove
+            ;;
+        10|status|show)
+            cf_dns_status
+            ;;
+        11|submit)
+            cf_req_submit "${CF_POS2:-}"
+            ;;
+        12|approve)
+            cf_req_approve "${CF_POS2:-}"
+            ;;
+        13|reject)
+            cf_req_reject "${CF_POS2:-}"
+            ;;
+        14|interactive)
+            cf_req_interactive
+            ;;
+        99|exit|quit|Exit|QUIT)
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+# =============================================================================
+# app_default() - Interactive numbered menu / off-TTY help
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Case 3 default interaction: TTY draws the numbered list (ignore --json);
+# off-TTY reuses app_help and follows --json. Choice is read in this shell.
+#
+# ALIGNMENT:
+# - requirement-shell-cli-default-interaction.md
+# - requirement-shell-cli-zero-arguments.md
+# - requirement-shell-interactive-vs-noninteractive.md
+#
+# Last updated: 2026-09-03
+# =============================================================================
+app_default() {
+    : "${TTY:=0}"
+    : "${JSON:=0}"
+    : "${QUIET:=0}"
+    : "${APP_NAME:=dns-cli}"
+    if [ "${TTY}" -ne 1 ]; then
+        _menu_quiet="${QUIET}"
+        if [ "${JSON}" -ne 1 ]; then
+            QUIET=0
+        fi
+        app_help
+        QUIET="${_menu_quiet}"
+        return 0
+    fi
+    _menu_json="${JSON}"
+    _menu_quiet="${QUIET}"
+    JSON=0
+    QUIET=0
+    export JSON QUIET
+    while true; do
+        app_default_print_menu
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            JSON="${_menu_json}"
+            QUIET="${_menu_quiet}"
+            export JSON QUIET
+            return 0
+        fi
+        case "${_pick}" in
+            99|exit|quit|Exit|QUIT)
+                JSON="${_menu_json}"
+                QUIET="${_menu_quiet}"
+                export JSON QUIET
+                return 0
+                ;;
+        esac
+        JSON="${_menu_json}"
+        QUIET="${_menu_quiet}"
+        export JSON QUIET
+        if app_default_run_pick "${_pick}"; then
+            return 0
+        fi
+        JSON=0
+        QUIET=0
+        export JSON QUIET
+        out_warn "Not a menu choice. Type 1-14, 99 to leave, or a live command. Next: ${APP_NAME} menu"
+    done
+}
+
+# =============================================================================
 # app_help() - Usage (local Type 0 only)
 # =============================================================================
 app_help() {
@@ -6254,6 +6577,7 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
+    out_plain "  menu                 Numbered list of live commands. Alias: main"
     out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"
     out_plain "  generate-sudoer-request [path]"
     out_plain "                       Write a local JSON grant you can review (not inbound)"
@@ -6263,6 +6587,7 @@ app_help() {
     out_empty_line
     out_info "Host account (Type 1 — password sudo or already root):"
     out_plain "  setup                Create Linux user dns-adm, vault dir, sudoers dest;"
+    out_plain "                       ensure /usr/local/bin/${APP_NAME}-hook when global binary exists;"
     out_plain "                       write login-hook-elev into dest inbound (not dest Type 0 submit)"
     out_plain "  remove-lpu           Remove dns-adm (confirm or --force)"
     out_empty_line
@@ -6328,6 +6653,7 @@ app_help() {
     out_plain "  ALLOW_TEST_LOCAL_SUDOERS  1 = allow test-mode generate / submit"
     out_empty_line
     out_info "Examples:"
+    out_plain "  ${APP_NAME} menu"
     out_plain "  ${APP_NAME} install"
     out_plain "  sudo ${APP_NAME} setup"
     out_plain "  ${APP_NAME} generate-sudoer-request"
@@ -6364,9 +6690,10 @@ app_help() {
 # ALIGNMENT:
 # - requirement-shell-cli-interface.md
 # - requirement-shell-cli-zero-arguments.md
+# - requirement-shell-cli-default-interaction.md
 # - requirement-domain-cloudflare-dns.md
 #
-# Last reviewed: 2026-08-16
+# Last updated: 2026-09-03
 # =============================================================================
 app_main() {
     : "${COMMAND:=help}"
@@ -6505,12 +6832,15 @@ app_main() {
 
     COMMAND="${CF_POS1:-help}"
 
-    # Interactive capability SSOT — measure in main after flags; prompt_* consume TTY
-    TTY=0
-    [ -t 0 ] && [ -t 1 ] && TTY=1
+    # Interactive capability SSOT — measure in main after flags; prompt_* consume TTY.
+    # Honor TTY=1 already set (tests); otherwise re-measure [ -t outside helpers.
+    if [ "${TTY:-0}" != "1" ]; then
+        TTY=0
+        [ -t 0 ] && [ -t 1 ] && TTY=1
+    fi
 
     case "${COMMAND}" in
-        install|uninstall|where-is-me|version|about|help|setup|remove-lpu)
+        install|uninstall|where-is-me|version|about|help|menu|main|setup|remove-lpu)
             if [ "${CF_POSN}" -gt 1 ]; then
                 out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
             fi
@@ -6593,6 +6923,7 @@ app_main() {
         approve)      cf_req_approve "${CF_POS2:-}" ;;
         reject)       cf_req_reject "${CF_POS2:-}" ;;
         interactive)  cf_req_interactive ;;
+        menu|main)    app_default ;;
         help)         app_help ;;
         *)            app_help ;;
     esac

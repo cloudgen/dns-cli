@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.12.0) — L-M14 test-mode MUST NOT write live dest inbound  
+**Status**: Active (Version 1.13.0) — setup creates `/usr/local/bin/dns-cli-hook` when missing  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -126,7 +126,9 @@ Absent account → success no-op.
 | F5 vault dir | `mkdir` `0700` | goes with home via `userdel -r` |
 | F6 dest | `visudo -c` + install `0440` | backup + unlink dest |
 
-**L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, and login-hook rc. After any create or modify of that home’s `.bashrc` / `.profile` (and the same rc class), dest **MUST** align **shell-rc file ownership** to **`dns-adm`**. Writer euid **MUST NOT** remain the owner. This is **not** queue file-ownership (L-M13).
+**L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, login-hook rc, and the login-hook-symlink. After any create or modify of that home’s `.bashrc` / `.profile` (and the same rc class), dest **MUST** align **shell-rc file ownership** to **`dns-adm`**. Writer euid **MUST NOT** remain the owner. This is **not** queue file-ownership (L-M13).
+
+**L-M15. Login-hook-symlink.** When `/usr/local/bin/dns-cli` exists, Type 1 `setup` **MUST** create the **login-hook-symlink** `/usr/local/bin/dns-cli-hook` → `/usr/local/bin/dns-cli` if that name is absent. **MUST NOT** overwrite an existing `dns-cli-hook` (the host admin **MAY** point it at another similar program). `CF_TEST_LPU=1` **MUST NOT** create the live symlink. Rc heal **MUST** write `/usr/local/bin/dns-cli-hook` when the hook block is missing, and **MUST** rewrite an old `sudo -n /usr/local/bin/dns-cli interactive` line to the hook name. `remove-lpu` **MUST NOT** unlink the global hook name. Topic-owner: `requirement-dns-approver` APR-M3a.
 
 **L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`. **L-M14** applies.
 
@@ -163,7 +165,7 @@ Absent account → success no-op.
 | **F5** | vaults child + `/var/dns-cli/` trio |
 | **F6** | `/etc/dns-adm/sudoers` |
 | **F7** | `remove-lpu` |
-| **Handlers (target)** | `lpu_setup`, `lpu_remove`, `lpu_submit_login_hook_sudoer_request`, `lpu_type2_maybe_reexec` |
+| **Handlers (target)** | `lpu_setup`, `lpu_remove`, `lpu_ensure_login_hook_symlink`, `lpu_submit_login_hook_sudoer_request`, `lpu_type2_maybe_reexec` |
 | **Ship unit** | **Implemented** on `src/dns-cli` **1.5.0** (`lpu_setup` / `lpu_remove`; host `useradd` as root; `CF_TEST_LPU=1` stub for CI). F5 dest family **1.8.0**. Type 2 switch **1.8.2** |
 | **Approval-subject** | Cloudflare DNS request JSON (`requirement-cloudflare-dns-request`) |
 | **Proof family** | **TP-LPU-01..06** have (stub). **TP-LPU-03** default vault as other user → `lpu_required` |
@@ -201,7 +203,8 @@ Absent account → success no-op.
 8. Fix a UID/GID in core rules as if every host shared it.  
 9. Invent a second approver leaf after this redesign — `dns-adm` **is** the approver.  
 10. Dump glossary/skill paths into this file.  
-11. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON username ≠ dest LPU).
+11. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON username ≠ dest LPU).  
+12. Overwrite an existing `/usr/local/bin/dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.
 
 **Violating this rule is a critical least-privilege identity regression.**
 
@@ -217,6 +220,7 @@ Absent account → success no-op.
 | AC-L2b | Dest Type 0 self-scope does not apply to `setup` (SJ-M3 / L-M11) |
 | AC-L2c | `setup` does not `chown` dest inbound (SJ-M5 / L-M13) |
 | AC-L2d | After setup rc heal, `.bashrc` / `.profile` owner is `dns-adm` (shell-rc-file-ownership; L-M9) |
+| AC-L2e | Setup creates `/usr/local/bin/dns-cli-hook` only when missing; test-mode skips the live symlink (L-M15) |
 | AC-L2d | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (L-M13) |
 | AC-L3 | Default vault I/O as non-`dns-adm` context-switches or fails `lpu_required` |
 | AC-L4 | `--vault-dir` works without the LPU (QA) |
@@ -250,6 +254,7 @@ Absent account → success no-op.
 | **TP-LPU-05** | `tests/test_cf_lpu.sh` | have | `uninstall` does not `userdel` |
 | **TP-LPU-06** | `tests/test_cf_lpu.sh` | have | `remove-lpu` without `--force` in JSON → `confirm_required` |
 | **TP-LPU-07** | `tests/test_cf_lpu.sh` | have | L-M13 dest inbound fence is incorrect JSON format only |
+| **TP-LPU-08** | `tests/test_cf_lpu.sh` | have | L-M15 login-hook-symlink helper; test-mode skips live `/usr/local/bin` |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -260,6 +265,7 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-03 | Active 1.13.0 | L-M15 setup creates `/usr/local/bin/dns-cli-hook` when missing; heal rewrites old rc path |
 | 2026-09-01 | Active 1.12.0 | L-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |
 | 2026-08-19 | Active 1.11.0 | Dest Fence row points at `requirement-incorrect-json-format` |
 | 2026-08-19 | Active 1.10.0 | L-M13 user SSOT is the JSON username field, not the filename token |
@@ -277,6 +283,6 @@ Absent account → success no-op.
 
 ---
 
-**Last Updated**: 2026-09-01  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

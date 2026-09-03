@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-actor-table.md  
-**Status**: Active (Version 1.9.0) — interactive records original owner then dest-writes `submit_by`  
+**Status**: Active (Version 1.10.0) — login hook runs `/usr/local/bin/dns-cli-hook`  
 **Area**: architecture  
 **Key**: `requirement-dns-actor-table`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -123,7 +123,7 @@ Procedure:
 
 1. `dns-adm` logs in on a keyboard TTY (SSH/console).  
 2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet in §2.6.  
-3. Guards pass → `sudo -n /usr/local/bin/dns-cli interactive` (global binary only). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`.  
+3. Guards pass → `sudo -n /usr/local/bin/dns-cli-hook interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink: `requirement-dns-approver`.  
 4. **At the beginning** of `interactive` (this login hook), dest **MUST** take file-ownership of inbound JSON as **`dns-adm`**. **Before** that `chown`, dest **MUST** read the original Unix file-ownership. Then dest **MUST** take ownership as `dns-adm`. Then dest **MUST** review JSON format. If the JSON is correct, dest **MUST** add `submit_by` (human: submit by) whose value is that original file-ownership. Dest **MUST NOT** add `submit_by` when format fails. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Type 0 `submit` **MUST NOT** include `submit_by`.  
 5. Then `interactive` lists inbound JSON, one file at a time. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as an unknown key.  
 6. If a fence **matches**: display the match in human-facing words (what happened / what it means / next). **MUST NOT** ask the approval question for that file. Continue to the next file.  
@@ -146,7 +146,7 @@ dns-cli submit /home/alice/.config/dns-cli/dns-request.json
 dns-cli approve
 dns-cli reject
 dns-cli interactive
-sudo -n /usr/local/bin/dns-cli interactive
+sudo -n /usr/local/bin/dns-cli-hook interactive
 ```
 
 `submit` is Type 0 self-scope. `approve` / `reject` / `interactive` are Type 1 as `dns-adm` (or euid 0). Empty argv remains help.
@@ -165,7 +165,7 @@ if [ -z "${DNS_CLI_HOOK_RAN:-}" ] \
     && [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
     DNS_CLI_HOOK_RAN=1
     export DNS_CLI_HOOK_RAN
-    if ! sudo -n /usr/local/bin/dns-cli interactive; then
+    if ! sudo -n /usr/local/bin/dns-cli-hook interactive; then
         printf '%s\n' "dns-cli: login review hook skipped (sudo -n failed)" >&2
     fi
 fi
@@ -227,7 +227,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 12. Start login-hook `interactive` review **without** first taking inbound file-ownership as `dns-adm`.  
 13. Replace the approval question with accept/decline/skip/quit (or add skip / quit / maybe). **Yes** = approve; **no** = reject.  
 14. Ask yes/no **before** dest fencing, or hide a fence match behind jargon-only text.  
-15. Drop incorrect JSON format from this file-based JSON dest fence table.
+15. Drop incorrect JSON format from this file-based JSON dest fence table.  
+16. Run the login hook as `/usr/local/bin/dns-cli interactive` instead of `/usr/local/bin/dns-cli-hook interactive`.
 
 **Violating this rule is a critical privilege / stay-honest regression.**
 
@@ -298,6 +299,7 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-03 | Active 1.10.0 | Login hook / snippet uses the login-hook-symlink `/usr/local/bin/dns-cli-hook` |
 | 2026-08-19 | Active 1.9.0 | ACT-M4 interactive records original file-ownership, then dest-writes `submit_by` if format is clear |
 | 2026-08-19 | Active 1.8.0 | User SSOT is JSON `subject`, not the filename token (ACT-M8 MUST NOT row) |
 | 2026-08-19 | Active 1.7.0 | Approval system: fence first, human-facing match, then yes/no; JSON format fence required |
@@ -314,6 +316,6 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

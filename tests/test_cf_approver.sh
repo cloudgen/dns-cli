@@ -24,7 +24,8 @@ run_test_cf_approver() {
     assert_contains "TP-CF-APR-01 hook begin" "${_brc}" "# BEGIN dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook end" "${_brc}" "# END dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook sudo -n" "${_brc}" "sudo -n"
-    assert_contains "TP-CF-APR-01 hook production bin" "${_brc}" "sudo -n /usr/local/bin/dns-cli interactive"
+    assert_contains "TP-CF-APR-01 hook production bin" "${_brc}" "sudo -n /usr/local/bin/dns-cli-hook interactive"
+    assert_not_contains "TP-CF-APR-01 no old binary hook" "${_brc}" "sudo -n /usr/local/bin/dns-cli interactive"
     assert_contains "TP-CF-APR-01 hook interactive" "${_brc}" "interactive"
     assert_file_exists "TP-CF-APR-02 .profile created" "${_home}/.profile"
     _prf=$(cat "${_home}/.profile")
@@ -40,6 +41,29 @@ run_test_cf_approver() {
     sh "${SCRIPT}" version >/dev/null 2>&1
     _n2=$(grep -c '# BEGIN dns-cli login hook' "${_home}/.bashrc")
     assert_eq "TP-CF-APR-06 heal idempotent" "${_n1}" "${_n2}"
+
+    # TP-CF-APR-08 — existing old-path hook is rewritten to dns-cli-hook
+    _old_block=$(cat <<'EOF'
+# keep-operator-text
+# BEGIN dns-cli login hook
+if [ -z "${DNS_CLI_HOOK_RAN:-}" ]; then
+    DNS_CLI_HOOK_RAN=1
+    export DNS_CLI_HOOK_RAN
+    if ! sudo -n /usr/local/bin/dns-cli interactive; then
+        printf '%s\n' "dns-cli: login review hook skipped (sudo -n failed)" >&2
+    fi
+fi
+# END dns-cli login hook
+EOF
+)
+    printf '%s\n' "${_old_block}" >"${_home}/.bashrc"
+    sh "${SCRIPT}" version >/dev/null 2>&1
+    _rew=$(cat "${_home}/.bashrc")
+    assert_contains "TP-CF-APR-08 rewrote hook path" "${_rew}" "sudo -n /usr/local/bin/dns-cli-hook interactive"
+    assert_not_contains "TP-CF-APR-08 old path gone" "${_rew}" "sudo -n /usr/local/bin/dns-cli interactive"
+    assert_contains "TP-CF-APR-08 kept operator text" "${_rew}" "keep-operator-text"
+    _n3=$(grep -c '# BEGIN dns-cli login hook' "${_home}/.bashrc")
+    assert_eq "TP-CF-APR-08 no duplicate block" "1" "${_n3}"
 
     rm -f "${_home}/.bashrc" "${_home}/.profile"
     unset CF_APPROVER_USER

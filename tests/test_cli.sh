@@ -55,6 +55,7 @@ run_test_cli() {
     assert_contains "TP-CLI-04 help uninstall" "$_out" "uninstall"
     assert_contains "TP-CLI-04 help where-is-me" "$_out" "where-is-me"
     assert_contains "TP-CLI-04 help --json" "$_out" "--json"
+    assert_contains "TP-CLI-04 help menu" "$_out" "menu"
     assert_contains "TP-CLI-04 help ip verb" "$_out" "ip [--ip"
     assert_not_contains "TP-CLI-04 no backup verb" "$_out" "backup <"
     assert_not_contains "TP-CLI-04 no restore verb" "$_out" "restore <"
@@ -173,6 +174,34 @@ run_test_cli() {
         assert_eq "TP-CLI-13 ${_verb} exit 1" 1 "$_ec"
         assert_contains "TP-CLI-13 ${_verb} unknown" "$_err" "Unknown command"
     done
+
+    # TP-CLI-18 main-menu header is APP_NAME(VERSION) - SHORT_DESC;
+    # TTY bold name / italic version / light-gray italic explain
+    : "${APP_VERSION:=${PRODUCT_VERSION}}"
+    _short_desc=$(sed -n 's/.*APP_DESC:=\([^}]*\).*/\1/p' "${SCRIPT}" | head -n1)
+    : "${_short_desc:=Cloudflare DNS CLI (vault + IPv4 A records)}"
+    _esc=$(printf '\033')
+    _out=$(printf '99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-18 TTY menu exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-18 header APP_NAME(APP_VERSION) - SHORT_DESC" "$_plain" "${APP_NAME}(${APP_VERSION}) - ${_short_desc}"
+    assert_not_contains "TP-CLI-18 no frozen board title" "$_plain" "numbered list of live commands"
+    assert_contains "TP-CLI-18 bold SGR 1" "$_out" "${_esc}[1m"
+    assert_contains "TP-CLI-18 italic SGR 3" "$_out" "${_esc}[3m"
+    assert_contains "TP-CLI-18 light-gray italic SGR 90;3" "$_out" "${_esc}[90;3m"
+    assert_contains "TP-CLI-18 ip row" "$_plain" "6. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-18 Exit 99" "$_plain" "99. Exit"
+    assert_not_contains "TP-CLI-18 no install row" "$_plain" "install:"
+    assert_not_contains "TP-CLI-18 no version row" "$_plain" "version:"
+    assert_not_contains "TP-CLI-18 no help row" "$_plain" "help:"
+    assert_not_contains "TP-CLI-18 no test-json-format row" "$_plain" "test-json-format:"
+    _out=$(sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-18 off-TTY menu exit 0" 0 "$_ec"
+    assert_contains "TP-CLI-18 off-TTY menu is help" "$_out" "Usage:"
+    _out=$(sh "${SCRIPT}" --json menu 2>/dev/null)
+    assert_contains "TP-CLI-18 off-TTY menu --json" "$_out" '"type":"success"'
 
     # TP-CF-ACTOR-* — routed; help lists them; missing inbound/file fails closed (not unknown)
     _help=$(sh "${SCRIPT}" help 2>/dev/null)
@@ -332,7 +361,7 @@ run_test_cli() {
     else
         t_pass "TP-CLI-14 language CLI-interface present ($(basename "${_cli_iface}"))"
         # Routed top-level COMMAND values from app_main, plus CI-M1 Gap verbs law still names.
-        for _verb in install uninstall where-is-me version about help setup remove-lpu \
+        for _verb in install uninstall where-is-me version about help menu main setup remove-lpu \
             print-sudoers generate-sudoer-request submit-sudoer-request \
             vault ip add update remove status show \
             submit approve reject interactive test-json-format fence-test; do
@@ -366,7 +395,7 @@ run_test_cli() {
         _other=$(printf '%s\n' "${_hits}" | grep -v 'requirement-shell-cli-interface.md' | sed '/^$/d' | wc -l | tr -d ' ')
         [ "${_other}" -ge 1 ]
     }
-    for _verb in install uninstall where-is-me version about help setup remove-lpu \
+    for _verb in install uninstall where-is-me version about help menu main setup remove-lpu \
         print-sudoers generate-sudoer-request submit-sudoer-request \
         vault ip add update remove status show \
         submit approve reject interactive test-json-format fence-test; do

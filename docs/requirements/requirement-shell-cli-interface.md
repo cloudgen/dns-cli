@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.7.0) — Type 0 **test-purpose** `fence-test` dual mention; testers listed apart from operational  
+**Status**: Active (Version 3.8.0) — Type 0 **`menu`/`main`** (default interaction case 3)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -44,7 +44,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | **Operational:** `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request`. **Test-purpose:** `test-json-format`, `fence-test` (unit test; local test folder) |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | **Operational:** `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`/`main`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request`. **Test-purpose:** `test-json-format`, `fence-test` (unit test; local test folder) |
 | **Type 0 – Specify-vault domain** | Invoking user | `vault` / `add` / `update` / `remove` / `status`/`show` **when** `--vault-dir` / `CF_VAULT_DIR` is set — **catalog SSOT:** `requirement-domain-cloudflare-dns` |
 | **Type 1 – LPU bootstrap** | Password `sudo` / already-root | `setup`, `remove-lpu` — **SSOT:** `requirement-three-layer-privilege-model` |
 | **Type 2 – Default-vault domain** | `dns-adm` | `vault` / `add` / `update` / `remove` / `status`/`show` on the default LPU vault |
@@ -77,6 +77,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 | Verb / family | Topic-owner (second mention) |
 |---------------|------------------------------|
 | `install` / `uninstall` / `where-is-me` / `version` / `about` / `help` | `requirement-shell-local-self-management` (`help` also `requirement-shell-cli-zero-arguments`) |
+| `menu` / `main` | `requirement-shell-cli-default-interaction` |
 | `setup` / `remove-lpu` / `print-sudoers` | `requirement-three-layer-privilege-model` (`print-sudoers` also `requirement-sudoer-json-file` §2.0) |
 | `generate-sudoer-request` / `submit-sudoer-request` | `requirement-sudoer-json-file` **and** `requirement-three-layer-privilege-model` |
 | `vault` + store subcommands (`input` / `set` / `init` / `show` / `clear` / `account`/`zone` / `subdomain`) | `requirement-cloudflare-vault` **and** `requirement-domain-cloudflare-dns` |
@@ -93,7 +94,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 `help` **MUST** list:
 
 - Usage line  
-- Every **routed** Type 0 command with one-line purpose  
+- Every **routed** Type 0 command with one-line purpose (including `menu` / `main` when routed)  
 - Every **routed** domain verb (domain SSOT owns the rows; do not list unrouted verbs)  
 - Global flags  
 - Honest note that this product is local-only (no curl\|sh)
@@ -134,7 +135,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
-| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
+| `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY; off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented** |
+| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-cli-hook` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Implemented** (1.5.0) |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
 | `generate-sudoer-request` | Type 0 | `lpu_generate_sudoer_request` | Independent JSON dest; `--kind type-2-switch` (default) or `login-hook-elev` — **Implemented** |
@@ -149,7 +151,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 1. Global flags **MAY** appear before or after the verb.  
 2. Value flags **MUST** consume the next argv token; missing value → fail closed.  
-3. Type 0 lifecycle verbs (`install`, `uninstall`, `where-is-me`, `version`, `about`, `help`) **MUST** reject unexpected operands.  
+3. Type 0 lifecycle verbs (`install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`, `main`) **MUST** reject unexpected operands.  
 4. `vault` subcommand grammar: `vault set|init|show|clear` or `vault account|zone add|list|modify|remove|default|show [<domain-id>]` or `vault subdomain add|list|modify|remove|mode [<label>]`. `zone` is an alias of `account`.  
 5. Domain operands (`--domain` / `--domain-id`, `--subdomain`, `--mode`, `--from`, optional positional host-label) are defined in the domain SSOT / `requirement-cloudflare-dns-mode`.
 
@@ -245,6 +247,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `requirement-least-privilege-user` | `dns-adm` |
 | `requirement-three-layer-privilege-model` | Type map + `setup` / `print-sudoers` / generate+submit |
 | `requirement-sudoer-json-file` | JSON grant body |
+| `requirement-shell-cli-default-interaction` | `menu` / `main` topic-owner |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -256,6 +259,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have | includes stripped-verb fail-closed |
 | **TP-CLI-14** | `tests/test_cli.sh` | have | CI-M1 dual mention — each routed verb in ≥2 REQs |
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
+| **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; off-TTY help |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
@@ -268,6 +272,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
+| 2026-09-03 | Active 3.8.0 | `menu` / `main` case 3 default interaction |
 | 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
 | 2026-08-20 | Active 3.6.0 | Type 0 `test-json-format`; dual mention on dest Fence REQ |
 | 2026-08-18 | Active 3.5.0 | CI-M1a — topic-owner MUST include a complete `dns-cli …` sample per verb |

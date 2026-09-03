@@ -1,6 +1,6 @@
 # Review reports index — dns-cli
 
-**Current ship (living):** `src/dns-cli` **1.11.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; Type 0 **test-purpose** `fence-test`. Historical rows below keep the verdict they had on that date.
+**Current ship (living):** `src/dns-cli` **1.16.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; Type 0 **test-purpose** `fence-test`; TTY `menu` header **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}`; login hook **`/usr/local/bin/dns-cli-hook`**. Historical rows below keep the verdict they had on that date.
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|

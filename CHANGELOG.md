@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.16.0] - 2026-09-03
+
+### Changed
+
+- Login-hook identity is the **login-hook-symlink** **`/usr/local/bin/dns-cli-hook`**. Type 1 `setup` creates that symlink to `/usr/local/bin/dns-cli` when the global binary exists and the hook name is missing (does not overwrite a retargeted name). `.bashrc` heal writes the new path, and rewrites an old `sudo -n /usr/local/bin/dns-cli interactive` line. `login-hook-elev` JSON `commands[].path` is the hook name; Type 2 switch stays `/usr/local/bin/dns-cli`. Test-mode **MUST NOT** write live `/usr/local/bin`. Topic-owner: `requirement-dns-approver` (no second login-hook REQ). **TP-CF-APR-08** · **TP-LPU-08**. Ship unit **`VERSION="1.16.0"`**.
+
+## [1.15.0] - 2026-09-03
+
+### Changed
+
+- Main-menu header is **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (bold name, italic version on TTY; plain off-TTY). Numbered-list describe text is light-gray italic (SGR 90 + SGR 3). `SHORT_DESC` aliases `SHORT_DESCRIPTION` / `APP_DESC`. **TP-CLI-18**. Ship unit **`VERSION="1.15.0"`**.
+
+## [1.14.0] - 2026-09-03
+
+### Added
+
+- Numbered main menu on **`menu`** (alias **`main`**). Empty argv stays Type N help. Header prints **`${APP_NAME}`**(*`${VERSION}`*) (bold name, italic version on TTY; plain off-TTY). Helper: `util_app_ident`. **TP-CLI-18**. Ship unit **`VERSION="1.14.0"`**.
+
 ## [1.13.0] - 2026-09-01
 
 ### Added

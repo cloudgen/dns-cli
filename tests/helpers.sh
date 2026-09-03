@@ -16,6 +16,7 @@
 # Product VERSION SSOT from ship unit (keep tests free of frozen semver literals)
 PRODUCT_VERSION=$(grep '^VERSION="' "${SCRIPT}" 2>/dev/null | head -n1 | cut -d'"' -f2)
 : "${PRODUCT_VERSION:=unknown}"
+: "${APP_VERSION:=${PRODUCT_VERSION}}"
 PRODUCT_APP=$(grep '^APP_NAME="' "${SCRIPT}" 2>/dev/null | head -n1 | cut -d'"' -f2)
 : "${PRODUCT_APP:=${APP_NAME}}"
 APP_NAME="${PRODUCT_APP}"

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 1.14.0) — P-M14 test-mode MUST NOT write live dest inbound  
+**Status**: Active (Version 1.15.0) — ELEV-CF-02 login hook is `/usr/local/bin/dns-cli-hook`  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -83,7 +83,7 @@ Not a live-command whitelist. `print-sudoers` and dest `/etc/dns-adm/sudoers` **
 | ID | Job | Binary (absolute) | Fixed args | Source | Dest | Invoker CLI | Run-as | NOPASSWD? | Sudoers line shape |
 |----|-----|-------------------|------------|--------|------|-------------|--------|-----------|--------------------|
 | **ELEV-CF-01** | Run managed dns-cli as `dns-adm` | `${GLOBAL_BIN}/dns-cli` (`/usr/local/bin/dns-cli`) | (none — argv follows) | — | F6 dest `/etc/dns-adm/sudoers` **and** sibling dest `/etc/sudoers.d/dns-cli-<user>` | Type 2 context-switch; operator `sudo -u dns-adm dns-cli …` | `dns-adm` | yes | `%sudo ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` (F6 group) · `<user> ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` (`type-2-switch` JSON) |
-| **ELEV-CF-02** | Login hook `sudo -n` review verb | `${GLOBAL_BIN}/dns-cli` | `interactive` | — | Sibling dest `/etc/sudoers.d/dns-cli-dns-adm` (not F6) | Type 1 `interactive` after TTY login as `dns-adm` | `root` | yes | `dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli interactive` (`login-hook-elev` JSON) |
+| **ELEV-CF-02** | Login hook `sudo -n` review verb | **login-hook-symlink** `/usr/local/bin/dns-cli-hook` (created → `/usr/local/bin/dns-cli` when missing) | `interactive` | — | Sibling dest `/etc/sudoers.d/dns-cli-dns-adm` (not F6) | Type 1 `interactive` after TTY login as `dns-adm` | `root` | yes | `dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli-hook interactive` (`login-hook-elev` JSON) |
 
 **P-M5.** Production fragment **MUST NOT** elevate `${USER_BIN}/dns-cli`. Local-only install is **test_local** — `setup` **SHOULD** refuse to install F6 dest unless a global managed binary exists, or warn TEST MODE and require `--force`.
 
@@ -305,6 +305,7 @@ sudo -n -u dns-adm dns-cli status home
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-03 | Active 1.15.0 | ELEV-CF-02 binary is the login-hook-symlink `/usr/local/bin/dns-cli-hook` |
 | 2026-09-01 | Active 1.14.0 | P-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |
 | 2026-08-19 | Active 1.12.0 | Dest Fence row points at `requirement-incorrect-json-format` |
 | 2026-08-19 | Active 1.11.0 | P-M13 user SSOT is the JSON username field, not the filename token |
@@ -323,6 +324,6 @@ sudo -n -u dns-adm dns-cli status home
 
 ---
 
-**Last Updated**: 2026-09-01  
+**Last Updated**: 2026-09-03  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

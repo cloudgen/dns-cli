@@ -61,6 +61,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 | TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
 | TP-CLI-17 | about cache folder + persistency folder `${HOME}/.local/dns-cli` | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + gray-italic explain; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
 | TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |
@@ -100,6 +101,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-dns-approver | **have** |
 | TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-dns-approver | **have** |
 | TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-dns-approver | **have** |
+| TP-CF-APR-08 | heal rewrites old `/usr/local/bin/dns-cli` hook line to `dns-cli-hook` | test_cf_approver | requirement-dns-approver APR-M3a | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -179,6 +181,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **have** |
 | TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-07 | dest inbound fence is incorrect JSON format (L-M13 table) | test_cf_lpu | requirement-least-privilege-user L-M13 | **have** |
+| TP-LPU-08 | setup hook alias helper; test-mode skips live `/usr/local/bin/dns-cli-hook` | test_cf_lpu | requirement-least-privilege-user L-M15 | **have** |
 
 ### TP-PRIV (Type map / fragment)
 
@@ -205,7 +208,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-SUDOER-JSON-08 | generate dest readable without sudo | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-09 | §2.0 role table (printer / generator / submitter / sudoer-adm) | test_cf_lpu | requirement-sudoer-json-file AC-11 | **have** |
 | TP-SUDOER-JSON-10 | generate writes `kind` | test_cf_lpu | requirement-sudoer-json-file | **have** |
-| TP-SUDOER-JSON-11 | `--kind login-hook-elev` → username `dns-adm`, runas `root`, args `interactive` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-11 | `--kind login-hook-elev` → username `dns-adm`, runas `root`, args `interactive`, path `dns-cli-hook` | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-12 | Type 0 submit of hook kind fails closed | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-13 | setup auto-submits hook kind when sibling stub present | test_cf_lpu | requirement-sudoer-json-file · LPU | **have** |
 | TP-SUDOER-JSON-16 | dest Type 0 `self_scope` does not block setup inbound write | test_cf_lpu | requirement-sudoer-json-file SJ-M3 | **have** |

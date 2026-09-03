@@ -76,6 +76,8 @@ run_test_cf_lpu() {
     assert_contains "TP-LPU-01 passwd row" "$(cat "${_pw}")" "dns-adm:"
     assert_file_exists "TP-LPU-01 heal bashrc" "${_home}/.bashrc"
     assert_contains "TP-LPU-01 heal hook" "$(cat "${_home}/.bashrc")" "# BEGIN dns-cli login hook"
+    assert_contains "TP-LPU-01 heal hook path" "$(cat "${_home}/.bashrc")" "sudo -n /usr/local/bin/dns-cli-hook interactive"
+    assert_not_contains "TP-LPU-01 no old hook path" "$(cat "${_home}/.bashrc")" "sudo -n /usr/local/bin/dns-cli interactive"
     assert_file_exists "TP-LPU-01 heal profile" "${_home}/.profile"
     _mode=$(stat -c '%a' "${_vault}" 2>/dev/null || stat -f '%OLp' "${_vault}")
     case "${_mode}" in
@@ -99,6 +101,18 @@ run_test_cf_lpu() {
     assert_contains "TP-LPU-02 healed" "$_out" '"created":"false"'
     _n1=$(grep -c '# BEGIN dns-cli login hook' "${_home}/.bashrc")
     assert_eq "TP-LPU-02 hook once" "1" "${_n1}"
+    assert_contains "TP-LPU-08 test-mode skips live hook symlink" "$_out" '"login_hook_symlink":"skipped"'
+
+    _sym=$(sed -n '/^lpu_ensure_login_hook_symlink()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-LPU-08 symlink helper ln -s" "${_sym}" "ln -s"
+    assert_contains "TP-LPU-08 symlink helper test-mode skip" "${_sym}" "lpu_test_mode"
+    assert_contains "TP-LPU-08 symlink helper uses hook grant path" "${_sym}" "lpu_login_hook_grant_path"
+    _hookfn=$(sed -n '/^lpu_login_hook_grant_path()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-LPU-08 hook grant path" "${_hookfn}" '${APP_NAME}-hook'
+    assert_contains "TP-LPU-08 symlink helper leave existing" "${_sym}" '-L "${_hook}"'
+    _setupfn=$(sed -n '/^lpu_setup()/,/^lpu_remove()/{/^lpu_remove()/d;p;}' "${SCRIPT}")
+    assert_contains "TP-LPU-08 setup calls ensure symlink" "${_setupfn}" "lpu_ensure_login_hook_symlink"
+    assert_contains "TP-LPU-08 setup heals rc after symlink" "${_setupfn}" "lpu_heal_home_rc"
 
     # TP-LPU-03 — stub LPU exists; invoker is not dns-adm; no specify → lpu_required
     _err=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
@@ -276,7 +290,8 @@ STUB
     assert_contains "TP-SUDOER-JSON-11 username dns-adm" "${_hbody}" '"username":"dns-adm"'
     assert_contains "TP-SUDOER-JSON-11 runas root" "${_hbody}" '"runas":"root"'
     assert_contains "TP-SUDOER-JSON-11 args interactive" "${_hbody}" '"args":["interactive"]'
-    assert_contains "TP-SUDOER-JSON-11 path" "${_hbody}" '"path":"/usr/local/bin/dns-cli"'
+    assert_contains "TP-SUDOER-JSON-11 path" "${_hbody}" '"path":"/usr/local/bin/dns-cli-hook"'
+    assert_not_contains "TP-SUDOER-JSON-11 path is not type-2 binary" "${_hbody}" '"path":"/usr/local/bin/dns-cli"'
     assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 generate login-hook-elev dest-owned keys" "${_hook_dest}"
 
     # TP-SUDOER-JSON-22 — GLOBAL_BIN isolation (CI gbin) MUST NOT become grant path
@@ -289,7 +304,7 @@ STUB
     _ec=$?
     assert_eq "TP-SUDOER-JSON-22 generate with CI GLOBAL_BIN exit 0" 0 "${_ec}"
     _gbbody=$(cat "${_gbin_hook}" 2>/dev/null || true)
-    assert_contains "TP-SUDOER-JSON-22 path stays production" "${_gbbody}" '"path":"/usr/local/bin/dns-cli"'
+    assert_contains "TP-SUDOER-JSON-22 path stays production" "${_gbbody}" '"path":"/usr/local/bin/dns-cli-hook"'
     assert_not_contains "TP-SUDOER-JSON-22 no CI gbin path" "${_gbbody}" "${CI_HOME}/gbin"
     assert_not_contains "TP-SUDOER-JSON-22 no .ci-homes path" "${_gbbody}" ".ci-homes"
 
@@ -327,7 +342,7 @@ STUB
         t_pass "TP-SUDOER-JSON-13 inbound has login-hook-elev"
         assert_contains "TP-SUDOER-JSON-13 inbound runas root" "$(cat "${_hook_in}")" '"runas":"root"'
         assert_contains "TP-SUDOER-JSON-13 inbound interactive" "$(cat "${_hook_in}")" '"interactive"'
-        assert_contains "TP-SUDOER-JSON-13 inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli"'
+        assert_contains "TP-SUDOER-JSON-13 inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli-hook"'
         assert_not_contains "TP-SUDOER-JSON-13 inbound not CI gbin" "$(cat "${_hook_in}")" "/gbin/"
         assert_sudoer_dest_allowlist "TP-FENCE-05 / TP-SUDOER-JSON-21 setup queued hook dest-owned keys" "${_hook_in}"
     else
@@ -377,7 +392,7 @@ STUB
         t_pass "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
         _hook_owner=$(stat -c '%U' "${_hook_in}" 2>/dev/null || stat -f '%Su' "${_hook_in}")
         assert_eq "TP-SUDOER-JSON-18 hook JSON owner is writer" "${_user}" "${_hook_owner}"
-        assert_contains "TP-SUDOER-JSON-22 setup inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli"'
+        assert_contains "TP-SUDOER-JSON-22 setup inbound path production" "$(cat "${_hook_in}")" '"path":"/usr/local/bin/dns-cli-hook"'
     else
         t_fail "TP-SUDOER-JSON-16 inbound written despite dest Type 0 self_scope"
     fi
