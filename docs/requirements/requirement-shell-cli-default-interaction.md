@@ -59,7 +59,7 @@ Claimed **yes**. Specialized zero-argument requirement **exists**. Product is **
 
 Labels **MUST** be `command: what it does`. Look **MUST** be default CLI main menu style: header **`${APP_NAME}`**(*`${VERSION}`*) then ` - ${SHORT_DESC}`; numbered `{{explain}}` *italic* **and** light gray on a TTY via SGR **3** + **37** (`ESC[3;37m`) in `app_default_print_row`. Number and command name stay unstyled. Exit (no explain) stays unstyled. Off-TTY: the same words, no CSI.
 
-Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.18.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
+Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.19.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
 
 The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). **MUST NOT** capture a `read` helper with `$()` / backticks.
 
@@ -132,7 +132,7 @@ Class B return-via-stdout. Callers pass the result into `out_info`. Live code re
 ```sh
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.18.0}"
+    : "${VERSION:=1.19.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -219,7 +219,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-CLI-07** | `tests/test_cli.sh` | have (off-TTY empty argv stays help) |
-| **TP-CLI-18** | `tests/test_cli.sh` | have (header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold name / italic version / SGR 3;37 explain; off-TTY menu = help; family row; sudoer verbs not on main) |
+| **TP-CLI-18** | `tests/test_cli.sh` | have (header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold name / italic version / SGR 3;37 explain; off-TTY menu = help; TTY `--json menu` ignores json; TTY `main`; family row; sudoer verbs not on main) |
 | **TP-CLI-19** | `tests/test_cli.sh` | have (TTY empty argv draws the same numbered list) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (sudoers submenu Back/Exit; `sudoers` not a live command) |
 | **TP-CLI-14** | `tests/test_cli.sh` | have (`menu` / `main` dual mention) |

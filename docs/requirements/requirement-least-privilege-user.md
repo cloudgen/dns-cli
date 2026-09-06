@@ -136,7 +136,7 @@ Absent account → success no-op.
 
 **L-M11. Submit vs setup door.** Who may **submit**: current login, Type 0, no sudo, `type-2-switch` only. Who may **setup**: host admin, Type 1, password `sudo` / already root. **MUST NOT** confuse them. Dest approval does **not** test who submitted.
 
-**L-M12. Three dests.** Setup/account create queues hook JSON; after approve the dest is `/etc/sudoers.d/dns-cli-dns-adm`. Type 0 submit after approve is `/etc/sudoers.d/dns-cli-<invoker>`. F6 is `/etc/dns-adm/sudoers`. Type 2 default-ops grant is F6 or the **invoker** file — **not** `dns-cli-dns-adm`. **MUST NOT** describe setup as writing `dns-cli-leolio`.
+**L-M12. Three dests.** Setup/account create queues hook JSON; after approve the dest is `/etc/sudoers.d/dns-cli-dns-adm`. Type 0 submit after approve is `/etc/sudoers.d/dns-cli-<invoker>`. F6 is `/etc/dns-adm/sudoers`. Type 2 default-ops grant is F6 or the **invoker** file — **not** `dns-cli-dns-adm`. **MUST NOT** describe setup as writing `dns-cli-<invoker>`.
 
 **L-M13. Queue ownership.** `setup` **MUST NOT** `chown` dest inbound JSON to `dns-adm` (or any subject). Dest **`sudoer-adm`** takes file-ownership. The JSON username field is **not** the Unix owner. DNS `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any queue move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST** take file-ownership of inbound as `dns-adm` **at the beginning**, then review (`requirement-dns-actor-table` ACT-M4 / ACT-M6). Incident **INC-20260818-003**.
 

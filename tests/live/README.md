@@ -24,10 +24,10 @@ chmod 0600 tests/live/token
 ```sh
 cp tests/live/env.example tests/live/.env
 # edit tests/live/.env — set CF_LIVE_TOKEN_FILE to an *absolute* path
-# e.g. /home/leolio/prjs/cf-cli/tests/live/token
+# e.g. an absolute path to tests/live/token in this checkout
 ```
 
-## 3. Seed, verify, teardown (as `leolio`)
+## 3. Seed, verify, teardown (as the invoking user)
 
 ```sh
 # optional: print zone_id / account_id / user_id (never prints the token)

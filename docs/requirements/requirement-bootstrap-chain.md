@@ -106,7 +106,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Concern | Value |
 |---------|---------|
 | `APP_NAME` | `dns-cli` (live Config `APP_NAME="dns-cli"` — Implemented) |
-| `VERSION` | `1.4.1` (live Config `VERSION="1.4.1"`) |
+| `VERSION` | live Config `VERSION` (README Version badge) |
 | Primary install story | Local copy from running ship unit → `${USER_BIN}` (default `~/.local/bin`) |
 | README one-liner | **No** `curl \| sh` channel claim |
 
@@ -115,7 +115,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Workspace** | `/home/leolio/prjs/dns-cli` |
+| **Workspace** | this product root (`{{PROJECTS_ROOT}}/dns-cli` when a projects root is used) |
 | **Role** | Specialized hop 1 from `cli-template`. Not a child of selfmanaged or folder-backup. |
 | **Related (not origin)** | `selfmanaged`, `folder-backup` — do not overwrite; do not maintain this product from them |
 

@@ -209,6 +209,18 @@ run_test_cli() {
     assert_contains "TP-CLI-18 off-TTY menu is help" "$_out" "Usage:"
     _out=$(sh "${SCRIPT}" --json menu 2>/dev/null)
     assert_contains "TP-CLI-18 off-TTY menu --json" "$_out" '"type":"success"'
+    _out=$(printf '99\n' | TTY=1 sh "${SCRIPT}" --json menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-18 TTY --json menu exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-18 TTY --json menu ignores json" "$_plain" "1. vault: Store or inspect Cloudflare vault"
+    assert_not_contains "TP-CLI-18 TTY --json menu is not JSON help" "$_plain" '"type":"success"'
+    _out=$(printf '99\n' | TTY=1 sh "${SCRIPT}" main 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-18 TTY main exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-18 TTY main same board" "$_plain" "1. vault: Store or inspect Cloudflare vault"
+    assert_contains "TP-CLI-18 TTY main Exit 99" "$_plain" "99. Exit"
 
     # TP-CLI-19 TTY empty argv draws the same numbered main menu as `menu`
     _out=$(printf '99\n' | TTY=1 sh "${SCRIPT}" 2>/dev/null)

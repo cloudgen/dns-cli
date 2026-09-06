@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-dns-mode.md  
-**Status**: Active (Version 1.0.1) — stored mode Implemented on 1.4.0; inbound `mode` JSON Gap; CI-M1a samples  
+**Status**: Active (Version 1.0.2) — stored mode Implemented; inbound `mode` JSON Implemented; CI-M1a samples  
 **Area**: domain  
 **Key**: `requirement-cloudflare-dns-mode`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -140,7 +140,7 @@ Switch **MUST** fail `dns_mode_locked` when `ipv4_count` ≥ 2. `--force` collap
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.4.0** — stored mode **Implemented**; inbound `mode` JSON request **Gap** |
+| **Ship unit** | `src/dns-cli` — stored mode **Implemented**; inbound `mode` JSON request **Implemented** |
 | **Default mode** | `non-round-robin` |
 | **Store** | `accounts/<domain-id>/vault.json` subdomain objects (`label` + `mode`) |
 | **Switch verb** | `vault subdomain mode <label> <mode>` |

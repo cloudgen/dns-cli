@@ -11,7 +11,7 @@ This requirement is the **product Single Source of Truth** for the **JSON-type s
 
 | Kind | Subject (`username`) | `runas` | `args` | Who queues it |
 |------|----------------------|---------|--------|----------------|
-| **`type-2-switch`** | Invoking login (example `leolio`) | `dns-adm` | `[]` | Type 0 `generate-sudoer-request` / `submit-sudoer-request` (self-scope) |
+| **`type-2-switch`** | Invoking login (example `alice`) | `dns-adm` | `[]` | Type 0 `generate-sudoer-request` / `submit-sudoer-request` (self-scope) |
 | **`login-hook-elev`** | LPU `dns-adm` | `root` | `["interactive"]` | Type 1 `setup` **automatically** when sibling `sudoer-cli` + `sudoer-adm` + inbound exist. Type 0 submit **MUST** refuse this kind |
 
 They are **not** the same dest, **not** the same subject, and **MUST NOT** be collapsed. The Type 2 switch lets the current user run `sudo -u dns-adm dns-cli …`. The login-hook grant lets the rc hook run `sudo -n /usr/local/bin/dns-cli-hook interactive`.
@@ -107,11 +107,11 @@ This product runs **two** Type 0 sudoer surfaces **and** one Type 1 auto-queue. 
 
 | Kind / dual | JSON `username` | Installed dest after sibling approve | What it allows |
 |-------------|-----------------|--------------------------------------|----------------|
-| **`type-2-switch`** | Invoker (`id -un`, example `leolio`) | `/etc/sudoers.d/dns-cli-<user>` (example `dns-cli-leolio`) | `sudo -n -u dns-adm /usr/local/bin/dns-cli …` |
+| **`type-2-switch`** | Invoker (`id -un`, example `alice`) | `/etc/sudoers.d/dns-cli-<user>` (example `dns-cli-alice`) | `sudo -n -u dns-adm /usr/local/bin/dns-cli …` |
 | **`login-hook-elev`** | LPU `dns-adm` | `/etc/sudoers.d/dns-cli-dns-adm` | `sudo -n /usr/local/bin/dns-cli-hook interactive` |
 | **F6 group dual** (not JSON) | n/a — `%sudo` | `/etc/dns-adm/sudoers` (Type 1 `setup` / `print-sudoers`) | `%sudo ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` |
 
-Type 1 `setup` / account create queues **`login-hook-elev`**. After approve the dest is **`dns-cli-dns-adm`**. **MUST NOT** describe setup as writing `dns-cli-leolio`.
+Type 1 `setup` / account create queues **`login-hook-elev`**. After approve the dest is **`dns-cli-dns-adm`**. **MUST NOT** describe setup as writing `dns-cli-<invoker>`.
 
 Type 0 `submit-sudoer-request` queues **`type-2-switch`**. After approve the dest is **`dns-cli-<invoker>`**. **MUST NOT** describe that verb as writing `dns-cli-dns-adm`.
 

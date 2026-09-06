@@ -340,6 +340,34 @@ run_test_cf_request() {
     assert_file_exists "TP-CF-REQ-14 accepted mismatched basename" \
         "${_acc}/20260819-otherperson-add-1.json"
 
+    # TP-CF-REQ-18 — hyphenated subject in basename (date left, action+n right)
+    _hy="${CI_HOME}/20260906-ci-runner-add-1.json"
+    _cf_req_write "${_hy}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"Hyphenated login in the request name\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.10\"
+}"
+    _out=$(HOME="${CI_HOME}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        sh "${SCRIPT}" --json submit "${_hy}" 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REQ-18 hyphenated basename submit exit 0" 0 "${_ec}"
+    assert_contains "TP-CF-REQ-18 keeps hyphenated basename" "${_out}" "20260906-ci-runner-add-1.json"
+    _parse=$(sed -n '/^cf_req_parse_basename()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-REQ-18 parse from the right" "${_parse}" "action and n from the right"
+    _out=$(HOME="${CI_HOME}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        CF_VAULT_DIR="${CF_VAULT_DIR}" CF_CURL="${CF_CURL}" \
+        sh "${SCRIPT}" --json --vault-dir "${CF_VAULT_DIR}" approve \
+        "20260906-ci-runner-add-1.json" 2>/dev/null)
+    assert_eq "TP-CF-REQ-18 dest approve hyphenated basename exit 0" 0 "$?"
+    assert_file_exists "TP-CF-REQ-18 accepted hyphenated basename" \
+        "${_acc}/20260906-ci-runner-add-1.json"
+
     _move=$(sed -n '/^cf_req_move()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-09 take ownership before mv" "${_move}" "cf_req_take_ownership"
     assert_contains "TP-CF-REQ-09 prior ownership" "${_move}" "prior ownership"

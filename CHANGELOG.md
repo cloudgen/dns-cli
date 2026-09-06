@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.19.0] - 2026-09-06
+
+### Fixed
+
+- DNS request basename parser now takes the date from the left and `action` plus `n` from the right, so a hyphenated POSIX login in `subject` (example `ci-runner`) is dest-legal. Naive `cut -f2/-f3` treated the second hyphen as the action and failed dest format. Law: `requirement-cloudflare-dns-request` REQ-M6. Suite **TP-CF-REQ-18**. Ship unit **`VERSION="1.19.0"`**.
+
+### Changed
+
+- Product README Features / actor table lead with who types what (no changelog dump; no session login). Invalid-choice menu warn says **Enter 1-11** (not “Type 1-11”). **TP-CLI-18** also proves TTY `--json menu` ignores json and TTY `main`.
+
 ## [1.18.0] - 2026-09-03
 
 ### Changed

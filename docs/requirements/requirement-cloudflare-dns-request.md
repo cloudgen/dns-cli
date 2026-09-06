@@ -91,7 +91,7 @@ A `mode` request **MUST NOT** be used to add a second IPv4. Operator submits `mo
 
 ### 2.4 Basename
 
-**REQ-M6.** Allocated name **MUST** be `{{YYYYMMDD}}-{{subject}}-{{action}}-{{n}}.json` (host local date; `n` over inbound+accepted+declined). Submitter **MUST NOT** supply `--name`.
+**REQ-M6.** Allocated name **MUST** be `{{YYYYMMDD}}-{{subject}}-{{action}}-{{n}}.json` (host local date; `n` over inbound+accepted+declined). `{{subject}}` **MAY** contain hyphens (POSIX login). Parse **MUST** take the date from the left and `{{action}}` plus `{{n}}` from the right. Submitter **MUST NOT** supply `--name`. Worked hyphenated sample: `20260817-ci-runner-add-1.json`.
 
 ### 2.5 Complete examples (normative shape)
 
@@ -257,7 +257,7 @@ Basename: `20260817-alice-mode-2.json`
 | **Ship unit** | `src/dns-cli` **1.9.7** — dest interactive dest-writes `submit_by` after format check |
 | **Types** | 4: `add` `update` `remove` `mode` |
 | **Inbound** | `/var/dns-cli/dns-request` (public 3773); JSON only |
-| **Proof** | **TP-CF-REQ-01..09** have |
+| **Proof** | **TP-CF-REQ-01..18** have |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -331,13 +331,13 @@ Basename: `20260817-alice-mode-2.json`
 
 | TP family / ID | Suite | Status | Note |
 |----------------|-------|--------|------|
-| **TP-CF-REQ-01** | `tests/test_cf_dns.sh` | todo | parse/accept `add` non-RR example |
-| **TP-CF-REQ-02** | `tests/test_cf_dns.sh` | todo | parse/accept `add` RR example |
-| **TP-CF-REQ-03** | `tests/test_cf_dns.sh` | todo | parse/accept `update` + RR `from_ipv4` |
-| **TP-CF-REQ-04** | `tests/test_cf_dns.sh` | todo | parse/accept `remove` variants |
-| **TP-CF-REQ-05** | `tests/test_cf_dns.sh` | todo | parse/accept both `mode` examples |
-| **TP-CF-REQ-06** | `tests/test_cf_dns.sh` | todo | unknown action / extra key fail |
-| **TP-CF-REQ-07** | `tests/test_cf_dns.sh` | todo | IPv6 / token in body fail |
+| **TP-CF-REQ-01** | `tests/test_cf_request.sh` | have | parse/accept `add` non-RR example |
+| **TP-CF-REQ-02** | `tests/test_cf_request.sh` | have | parse/accept `add` RR example |
+| **TP-CF-REQ-03** | `tests/test_cf_request.sh` | have | parse/accept `update` + RR `from_ipv4` |
+| **TP-CF-REQ-04** | `tests/test_cf_request.sh` | have | parse/accept `remove` variants |
+| **TP-CF-REQ-05** | `tests/test_cf_request.sh` | have | parse/accept both `mode` examples |
+| **TP-CF-REQ-06** | `tests/test_cf_request.sh` | have | unknown action / extra key fail |
+| **TP-CF-REQ-07** | `tests/test_cf_request.sh` | have | IPv6 / token in body fail |
 | **TP-CF-REQ-08** | `tests/test_cf_request.sh` | have | `mode` + ipv4 extra fail |
 | **TP-CF-REQ-09** | `tests/test_cf_request.sh` | have | `cf_req_move` `chown`s to LPU before `mv`; skip in test mode |
 | **TP-CF-REQ-10** | `tests/test_cf_request.sh` | have | REQ-M9 dest inbound fence is incorrect JSON format only |
@@ -346,6 +346,7 @@ Basename: `20260817-alice-mode-2.json`
 | **TP-CF-REQ-15** | `tests/test_cf_request.sh` | have | interactive records original owner; dest-writes `submit_by` if format is clear |
 | **TP-CF-REQ-16** | `tests/test_cf_request.sh` | have | dest-legal sudoer `kind` is not a DNS dest key (same assert as **TP-FENCE-06**) |
 | **TP-CF-REQ-17** | `tests/test_cf_request.sh` | have | Type 0 submit stamps `submit_app` / `submit_version`; dest allowlists them; interactive `queued by` |
+| **TP-CF-REQ-18** | `tests/test_cf_request.sh` | have | hyphenated subject in basename (`YYYYMMDD-ci-runner-add-1.json`); parse date left, action+n right |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -356,6 +357,7 @@ Basename: `20260817-alice-mode-2.json`
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-06 | Active 1.6.0 | REQ-M6 subject MAY contain hyphens; parse date left, action+n right (**TP-CF-REQ-18**) |
 | 2026-08-19 | Active 1.6.0 | REQ-M3a dest-written `submit_by` after interactive format check |
 | 2026-08-19 | Active 1.5.0 | REQ-M9 user SSOT is JSON `subject`, not the filename token |
 | 2026-08-19 | Active 1.4.0 | REQ-M9 login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** |
@@ -366,6 +368,6 @@ Basename: `20260817-alice-mode-2.json`
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-09-06  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

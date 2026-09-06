@@ -23,7 +23,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `test_cf_dns.sh` | Single A, add-implies-update, `--force`, stubbed curl | **TP-CF-DNS-*** · **TP-CF-MODE-*** |
 | `test_cf_ip.sh` | Vault-free public IPv4 display | **TP-CF-IP-*** |
 | `test_cf_lpu.sh` | `setup` / `remove-lpu` / `print-sudoers` / generate+submit JSON sudoer + dest-owned queued allowlist (stub `CF_TEST_LPU=1`) | **TP-LPU-*** · **TP-PRIV-*** · **TP-SUDOER-JSON-*** · **TP-FENCE-05** · **TP-FENCE-07** |
-| `test_cf_request.sh` | DNS inbound `submit` / `approve` / `reject` + closed schema; DNS dest rejects sudoer `kind`; Type 0 stamps `submit_app` / `submit_version` | **TP-CF-REQ-*** · **TP-FENCE-06** |
+| `test_cf_request.sh` | DNS inbound `submit` / `approve` / `reject` + closed schema; DNS dest rejects sudoer `kind`; Type 0 stamps `submit_app` / `submit_version`; hyphenated basename | **TP-CF-REQ-*** (incl. **TP-CF-REQ-18**) · **TP-FENCE-06** |
 | `test_cf_live.sh` | Optional live `crms.hk` as invoking user (not `dns-adm`) | **TP-CF-LIVE-*** |
 | `live/` | Seed / discover / teardown for Type 0 specify vault | — |
 | `fixtures/cf_curl_stub.sh` | Offline Cloudflare/ipinfo stand-in | — |
@@ -33,7 +33,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 - Temp `HOME` + `USER_BIN` + redirected `GLOBAL_BIN` for install tests  
 - **No** public network on `./tests/run.sh`  
 - **No** write to `/etc` or `/var/backup`  
-- Live `crms.hk` verify is **opt-in**: `CF_LIVE=1 sh tests/test_cf_live.sh` as `leolio` with `--vault-dir` (see `tests/live/README.md`). Never `dns-adm`.
+- Live `crms.hk` verify is **opt-in**: `CF_LIVE=1 sh tests/test_cf_live.sh` as the invoking user with `--vault-dir` (see `tests/live/README.md`). Never `dns-adm`.
 
 ## Ship unit under test
 

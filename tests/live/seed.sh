@@ -1,5 +1,5 @@
 #!/bin/sh
-# Seed a Type 0 specify vault for CF_LIVE_DOMAIN as the invoking user (leolio).
+# Seed a Type 0 specify vault for CF_LIVE_DOMAIN as the invoking user.
 # Does not create or require cf-adm.
 set -u
 . "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/common.sh"

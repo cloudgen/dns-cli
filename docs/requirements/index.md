@@ -2,7 +2,7 @@
 
 **Product:** dns-cli (POSIX `/bin/sh` local self-managed Cloudflare DNS CLI — Type 0/1/2 + LPU `dns-adm` as Type 2 operator **and** Type 1 approver; anyone may submit)  
 **Workspace state:** Specialized product law (left genesis); **software-development** class; **B = `dns-cli` hop 1** specialized from **A = `cli-template` hop 0**. Online / Type O / backup / restore **intentionally absent**. LPU **`dns-adm`** Type 1 `setup` **Implemented**; Type 0 JSON sudoer generate/submit is **`type-2-switch`**; `setup` writes **`login-hook-elev`** inbound (1.8.1); submit-vs-setup door (1.8.2); Type 2 default dest is `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` (1.8.0); Type 2 switch **Implemented** (1.8.2). Inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented** (1.9.0). Queue-move ownership split **Implemented** (1.9.1 / INC-20260818-003). Login-hook `interactive` takes inbound ownership **at the beginning** **Implemented** (1.9.2). Approval question is one-off **yes/no** **Implemented** (1.9.3). Approval system fence-then-question **Implemented** (1.9.4). User SSOT is the JSON field, not the filename token **Implemented** (1.9.6). Dest interactive dest-writes `submit_by` after format check **Implemented** (1.9.7). Dest fence catalog **Implemented** (`requirement-approval-fencing-condition`). Dest-owned sudoer allowlist includes `kind` (law; dest sibling must match — INC-20260819-001).  
-**Updated:** 2026-09-03 (main menu daily DNS work + family **sudoers** submenu)
+**Updated:** 2026-09-06 (hyphenated DNS request basename; README people-first Features)
 
 | ID / key | Title | Area | Status | Path | Updated |
 |----------|-------|------|--------|------|---------|
@@ -32,8 +32,8 @@
 | requirement-domain-cloudflare-dns | **Domain SSOT** — A-record verbs; Type 0 **test-purpose** `fence-test` / `test-json-format`; dest MUST NOT fence on filename subject token | domain | Active (2.9.0) | `requirement-domain-cloudflare-dns.md` | 2026-08-21 |
 | requirement-dns-actor-table | Actor table; dest interactive dest-writes `submit_by` after format check; login hook `dns-cli-hook` | architecture | Active (1.10.0) Implemented | `requirement-dns-actor-table.md` | 2026-09-03 |
 | requirement-dns-approver | Approver `dns-adm`; dest interactive dest-writes `submit_by`; login-hook-symlink topic-owner | architecture | Active (1.7.0) Implemented | `requirement-dns-approver.md` | 2026-09-03 |
-| requirement-cloudflare-dns-mode | Per-subdomain A-record mode (default non-RR; RR multi-A; switch only when ipv4_count ∈ {0,1}; IPv4 only) | domain | Active (1.0.1) | `requirement-cloudflare-dns-mode.md` | 2026-08-18 |
-| requirement-cloudflare-dns-request | Four inbound JSON types; dest-written `submit_by` after format check | domain | Active (1.6.0) Implemented | `requirement-cloudflare-dns-request.md` | 2026-08-19 |
+| requirement-cloudflare-dns-mode | Per-subdomain A-record mode (default non-RR; RR multi-A; switch only when ipv4_count ∈ {0,1}; IPv4 only) | domain | Active (1.0.2) Implemented | `requirement-cloudflare-dns-mode.md` | 2026-09-06 |
+| requirement-cloudflare-dns-request | Four inbound JSON types; dest-written `submit_by` after format check; hyphenated subject in basename | domain | Active (1.6.0) Implemented | `requirement-cloudflare-dns-request.md` | 2026-09-06 |
 | requirement-external-ipv4 | External/public IPv4 lookup, `--ip`, vault-free `ip` display; IPv6 MUST NOT | shell | Active (1.2.0) | `requirement-external-ipv4.md` | 2026-08-18 |
 | requirement-application-local-vault | Local vault path; Type-2 dest is `dns-adm` local vaults = global vault from ordinary login; `--vault-dir` specify | shell | Active (2.4.0) | `requirement-application-local-vault.md` | 2026-08-19 |
 | requirement-cloudflare-vault | One LPU vault; 1:1 domain↔token; Type-2 dest LPU-home vaults child; zone-slot CRUD; Type 2 switch | domain | Active (2.8.0) Implemented | `requirement-cloudflare-vault.md` | 2026-08-18 |

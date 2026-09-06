@@ -1,9 +1,10 @@
 # Review reports index — dns-cli
 
-**Current ship (living):** `src/dns-cli` **1.18.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; Type 0 **test-purpose** `fence-test`; TTY main menu daily DNS work + family **sudoers** submenu; login hook **`/usr/local/bin/dns-cli-hook`**. Historical rows below keep the verdict they had on that date.
+**Current ship (living):** `src/dns-cli` **1.19.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; hyphenated login in DNS request names; Type 0 **test-purpose** `fence-test`; TTY main menu daily DNS work + family **sudoers** submenu; login hook **`/usr/local/bin/dns-cli-hook`**. Historical rows below keep the verdict they had on that date.
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
+| 2026-09-06 | `reports/2026-09-06-review-human-readability-coverage.md` | README human readability / requirements coverage / checklists / tests | **Pass** after follow-ups | **TP-CF-REQ-18** · **TP-CLI-18** TTY `--json` / `main` |
 | 2026-09-03 | `reports/2026-09-03-review-sudoers-submenu-coverage.md` | Family **sudoers** submenu coverage / README voice / TP alignment | **Pass** after follow-ups | **TP-CLI-18** · **TP-CLI-20** have; **TP-CF-REQ** hyphenated-login FAILs pre-existing |
 | 2026-08-19 | `reports/2026-08-19-review-dest-kind-schema.md` | Dest-owned JSON / `kind` fence (INC-20260819-001) | **Revise** — this-product allowlist proven; live dest 1.8.1 still refuses `kind` | PASS=619 FAIL=0 SKIP=1 |
 | 2026-08-18 | `reports/2026-08-18-review-sudoer-json-submitter.md` | Missing JSON sudoer submitter (file-based JSON type) | **Pass** — generate/submit Implemented 1.6.0; DNS inbound still Gap | PASS=344 FAIL=0 |
