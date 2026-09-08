@@ -414,6 +414,7 @@ sudo dns-cli setup
 | `requirement-domain-cloudflare-dns` | Type 2 verbs after elev — not this JSON |
 | `requirement-cloudflare-dns-request` | Different inbound JSON family |
 | `requirement-class-software-dev` | Residual points here |
+| `requirement-login-interactive-hook` | `/usr/local/bin/${APP_NAME}-hook` plant; `login-hook-elev` path matches |
 | `docs/requirements/index.md` | Registry |
 | `./src/dns-cli` | Implementation under test |
 

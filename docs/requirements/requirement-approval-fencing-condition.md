@@ -11,7 +11,7 @@ This requirement is the **dest approval fencing condition catalog** for `dns-cli
 
 This product has **one** dest **Fence**: **incorrect JSON format**. Meaning of that Fence lives on `requirement-incorrect-json-format`. Dest tables still **print** this catalog and **point** the Fence row at that file.
 
-This file is **not** a dest Fence. Dest **MUST NOT** fence rows stay here **and** on dest tables — they are **not** independent fence REQs. Who dest-approves stays on `requirement-actor-role-subject-approver` and dest actor tables. Dest login-hook procedure stays on dest who files.
+This file is **not** a dest Fence. Dest **MUST NOT** fence rows stay here **and** on dest tables — they are **not** independent fence REQs. Who dest-approves stays on `requirement-actor-role-subject-approver` and dest actor tables. Dest login-hook plant stays on `requirement-login-interactive-hook`.
 
 Every software-development project **MUST review** dest fence conditions. This product **publishes** the catalog here (not residual **none**).
 

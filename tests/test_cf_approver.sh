@@ -1,7 +1,7 @@
 # =============================================================================
 # tests/test_cf_approver.sh — approver login-hook heal (offline)
 # =============================================================================
-# Primary REQ: requirement-dns-approver.md
+# Primary REQ: requirement-login-interactive-hook.md
 # TP family: TP-CF-APR-*
 # =============================================================================
 

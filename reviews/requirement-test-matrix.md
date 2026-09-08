@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
-**Updated:** 2026-09-06  
-**Product VERSION:** 1.19.0  
+**Updated:** 2026-09-08  
+**Product VERSION:** 1.22.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -25,10 +25,11 @@
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 | Uninstall confirm |
 | requirement-shell-cli-storage | shell | TP-CLI-06, TP-CLI-12, **TP-CLI-17** | Cache folder + persistency folder |
 | requirement-domain-cloudflare-dns | domain | TP-CF-DNS-* · TP-CF-ACTOR-* | **have** — stubbed curl; actor verbs fail closed |
-| requirement-dns-actor-table | architecture | TP-CF-ACTOR-01..09 | **have** — routed submit/approve/interactive; dest fence table ACT-M8 |
-| requirement-dns-approver | architecture | TP-CF-APR-01..08 | **have** — `.bashrc` / missing `.profile` heal; login-hook-symlink rewrite |
+| requirement-dns-actor-table | architecture | TP-CF-ACTOR-01..09 · **TP-CF-REQ-19** | **have** — routed submit/approve/interactive; dest fence table ACT-M8; keep-latest duplicate inbound |
+| requirement-dns-approver | architecture | TP-CF-APR-01..08 (peer) · **TP-CF-REQ-19** | **have** — identity `dns-adm`; hook plant moved to independent REQ |
+| requirement-login-interactive-hook | architecture | TP-CF-APR-01..08 · **TP-LPU-08** | **have** — `.bashrc` / missing `.profile` heal; `/usr/local/bin/${APP_NAME}-hook`; old-hook rewrite on `dns-adm` |
 | requirement-cloudflare-dns-mode | domain | TP-CF-MODE-01..08 have; 06/09/10 todo | stored mode + RR add/status + switch lock |
-| requirement-cloudflare-dns-request | domain | TP-CF-REQ-01..18 | **have** — inbound JSON types; dest-written `submit_by` after format check; hyphenated subject basename; DNS dest rejects sudoer `kind` |
+| requirement-cloudflare-dns-request | domain | TP-CF-REQ-01..20 | **have** — inbound JSON types; dest-written `submit_by` after format check; hyphenated subject basename; DNS dest rejects sudoer `kind`; keep-latest duplicate inbound; YAML review display |
 | requirement-external-ipv4 | shell | TP-CF-IP-01..04, TP-CLI-04 | **have** — vault-free `ip`; IPv6 MUST NOT |
 | requirement-application-local-vault | shell | TP-AV-01..08 have | specify + LPU dest = local vaults / global vault from ordinary login |
 | requirement-cloudflare-vault | domain | TP-CF-VAULT-01..33 have | v2 zone-slot CRUD + list verify; default dest Implemented 1.8.0 |
@@ -36,4 +37,4 @@
 
 **Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, folder-archive backup/restore, sudoers-manager extras.
 
-**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..06, TP-LPU-01..07, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..18**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.19.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).
+**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..06, TP-LPU-01..07, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..20**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.22.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).

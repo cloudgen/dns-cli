@@ -23,7 +23,8 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `test_cf_dns.sh` | Single A, add-implies-update, `--force`, stubbed curl | **TP-CF-DNS-*** · **TP-CF-MODE-*** |
 | `test_cf_ip.sh` | Vault-free public IPv4 display | **TP-CF-IP-*** |
 | `test_cf_lpu.sh` | `setup` / `remove-lpu` / `print-sudoers` / generate+submit JSON sudoer + dest-owned queued allowlist (stub `CF_TEST_LPU=1`) | **TP-LPU-*** · **TP-PRIV-*** · **TP-SUDOER-JSON-*** · **TP-FENCE-05** · **TP-FENCE-07** |
-| `test_cf_request.sh` | DNS inbound `submit` / `approve` / `reject` + closed schema; DNS dest rejects sudoer `kind`; Type 0 stamps `submit_app` / `submit_version`; hyphenated basename | **TP-CF-REQ-*** (incl. **TP-CF-REQ-18**) · **TP-FENCE-06** |
+| `test_cf_approver.sh` | Login-hook plant / heal of `dns-adm` rc; old `/usr/local/bin/dns-cli` hook → `dns-cli-hook` | **TP-CF-APR-01..08** |
+| `test_cf_request.sh` | DNS inbound `submit` / `approve` / `reject` + closed schema; DNS dest rejects sudoer `kind`; Type 0 stamps `submit_app` / `submit_version`; hyphenated basename; keep-latest duplicate inbound; YAML review display | **TP-CF-REQ-*** (incl. **TP-CF-REQ-18** · **TP-CF-REQ-19** · **TP-CF-REQ-20**) · **TP-FENCE-06** |
 | `test_cf_live.sh` | Optional live `crms.hk` as invoking user (not `dns-adm`) | **TP-CF-LIVE-*** |
 | `live/` | Seed / discover / teardown for Type 0 specify vault | — |
 | `fixtures/cf_curl_stub.sh` | Offline Cloudflare/ipinfo stand-in | — |

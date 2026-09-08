@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-actor-role-subject-approver.md  
-**Status**: Active (Version 1.1.0) — Submitter column before Approver (anyone / the actor itself / None)  
+**Status**: Active (Version 1.2.0) — login-hook plant points at independent REQ  
 **Area**: architecture  
 **Key**: `requirement-actor-role-subject-approver`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ This file is **not** a dest fence table and **not** a second domain SSOT.
 |-----|---------|---------|
 | You | Day-to-day login | `dns-cli help` — no dest approver |
 | Dest approver | Reviews a waiting DNS file | `dns-adm` via `dns-cli interactive` |
-| Not this file | Dest fence list or login-hook snippet | `requirement-dns-actor-table` |
+| Not this file | Dest fence list or login-hook snippet | `requirement-dns-actor-table` · `requirement-login-interactive-hook` |
 
 | Includes | Excludes |
 |----------|----------|
@@ -60,7 +60,7 @@ This file is **not** a dest fence table and **not** a second domain SSOT.
 | Root session | Host setup | **None** as dest subject | **None** | **None** as dest review — `setup` is password `sudo` / already root, not dest approve |
 | `nginx-adm` | Nginx dest approver (peer dest) | nginx-conf | **None here** | **None here** — dest product is not in this tree |
 
-**ARSA-M4.** Dest who, dest fence, queue move, and login-hook procedure **MUST** stay on `requirement-dns-actor-table` (and dest peers). This catalog **MUST NOT** absorb those tables.
+**ARSA-M4.** Dest who, dest fence, and queue move **MUST** stay on `requirement-dns-actor-table` (and dest peers). Login-hook plant / `/usr/local/bin/${APP_NAME}-hook` **MUST** stay on `requirement-login-interactive-hook`. This catalog **MUST NOT** absorb those tables.
 
 **ARSA-M5.** When Subject is a dest request, user identity is the JSON field (`subject` on DNS; `username` on sudoer), **not** the filename token.
 
@@ -111,7 +111,8 @@ This file is **not** a dest fence table and **not** a second domain SSOT.
 | `docs/requirements/index.md` | Registry SSOT |
 | `docs/requirements/requirement-class-software-dev.md` | Class MUST consider |
 | `docs/requirements/requirement-dns-actor-table.md` | DNS dest who / procedure |
-| `docs/requirements/requirement-dns-approver.md` | DNS dest login-hook heal |
+| `docs/requirements/requirement-login-interactive-hook.md` | Login-hook plant / `/usr/local/bin/${APP_NAME}-hook` |
+| `docs/requirements/requirement-dns-approver.md` | DNS dest approver identity |
 | `docs/requirements/requirement-sudoer-json-file.md` | Sibling dest submitter roles |
 | `docs/requirements/requirement-three-layer-privilege-model.md` | Privilege Types |
 | `docs/requirements/requirement-least-privilege-user.md` | `dns-adm` account |
@@ -132,11 +133,12 @@ This file is **not** a dest fence table and **not** a second domain SSOT.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-08 | Active 1.2.0 | Login-hook plant points at `requirement-login-interactive-hook`; dest who stays on actor table |
 | 2026-08-19 | Active 1.1.0 | Submitter column immediately before Approver (anyone / the actor itself / None) |
 | 2026-08-19 | Active 1.0.0 | Extracted catalog; software-dev MUST consider; None is valid |
 
 ---
 
-**Last Updated**: 2026-08-19  
+**Last Updated**: 2026-09-08  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

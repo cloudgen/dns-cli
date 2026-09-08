@@ -4,8 +4,8 @@
 **Class:** software-development · **B = hop 1** from **A = cli-template** · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-06  
-**Ship unit VERSION:** 1.19.0  
+**Last plan update:** 2026-09-08  
+**Ship unit VERSION:** 1.22.0  
 **Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** have)
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.19.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.22.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -30,6 +30,8 @@
 | P14 | Sudoer command identity (INC-20260821-001) | Queued `commands[].path` is `/usr/local/bin/dns-cli` even when tests set `GLOBAL_BIN` to a CI gbin. Live dest `/etc/sudoers.d/dns-cli-dns-adm` is not a test path. Do not rewrite `/etc/sudoers.d` from this product. |
 | P15 | Type 0 **test-purpose** `fence-test` (FC-M6) | Local test folder; `--file` xor `--dir`; no sudo except wrap chmod/chown of that folder; no queue. Help lists testers apart from operational. **TP-FENCE-09..15**. Per-row `test-json-format` remains. |
 | P16 | F5 trio directory owner (INC-20260823-001) | `/var/dns-cli/dns-request` · `dns-accepted` · `dns-declined` are **`dns-adm:dns-adm`** (inbound `3773`, archives `0700`). F4 symlink present ≠ listable. Do not `chown -R` inbound files. Do not cite **003** to skip directory `chown`. |
+| P17 | Keep-latest duplicate inbound | Dest `interactive` (login hook included) keeps the latest inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined (no dest-write, no extra yes/no). Not a dest Fence. **TP-CF-REQ-19**. |
+| P18 | YAML review display | Dest `interactive` (login hook included) shows a clear waiting body as YAML, not a JSON object dump. Inbound file stays JSON. **TP-CF-REQ-20**. |
 
 ---
 
@@ -57,7 +59,8 @@
 | External IPv4 | `requirement-external-ipv4.md` | ipinfo lookup + vault-free `ip`; IPv6 MUST NOT |
 | Domain DNS | `requirement-domain-cloudflare-dns.md` | consumes mode; `ip`, add/update/status |
 | Actor table | `requirement-dns-actor-table.md` | DNS inbound only; anyone submits; `dns-adm` approves; dest-writes `submit_by`; **not** sudoer print/submit roles |
-| Approver | `requirement-dns-approver.md` | heal `.bashrc` hook; create missing `.profile`; dest-writes `submit_by` |
+| Approver | `requirement-dns-approver.md` | identity `dns-adm`; dest review loop on actor table |
+| Login-interactive hook | `requirement-login-interactive-hook.md` | `/usr/local/bin/${APP_NAME}-hook` soft link; heal of `dns-adm` rewrites old hook |
 | Dest fence catalog | `requirement-approval-fencing-condition.md` | Closed dest refuse list; dest tables still print |
 | Dest fence | `requirement-incorrect-json-format.md` | Independent dest Fence; dest-owned allowlist; sudoer `kind` known |
 | Idempotency | `requirement-shell-idempotency.md` | Re-install |

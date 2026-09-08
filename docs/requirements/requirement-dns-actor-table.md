@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-dns-actor-table.md  
-**Status**: Active (Version 1.10.0) — login hook runs `/usr/local/bin/dns-cli-hook`  
+**Status**: Active (Version 1.13.0) — login-hook plant is `requirement-login-interactive-hook`  
 **Area**: architecture  
 **Key**: `requirement-dns-actor-table`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **Single Source of Truth** for the **dns-cli dest actor table**: who may **submit** a DNS request JSON file, who may **approve** or reject it, and the **login-time interactive review** procedure (hook after TTY login). Dest is the Cloudflare DNS dest leaf. It is **not** the sudoer dest and **not** the nginx-conf dest. The product-wide actor / role / subject / approver catalog (including honest **None**) is `requirement-actor-role-subject-approver`.
+This requirement is the **Single Source of Truth** for the **dns-cli dest actor table**: who may **submit** a DNS request JSON file, who may **approve** or reject it, and the **dest review loop** after login-time launch. Dest is the Cloudflare DNS dest leaf. It is **not** the sudoer dest and **not** the nginx-conf dest. The product-wide actor / role / subject / approver catalog (including honest **None**) is `requirement-actor-role-subject-approver`. Login-hook plant, rc heal, old-hook rewrite, and `/usr/local/bin/${APP_NAME}-hook` are `requirement-login-interactive-hook`.
 
 The **machine** (folder = state, JSON = proposal, four request types) is owned with `requirement-domain-cloudflare-dns` and `requirement-cloudflare-dns-request`. This file owns **who** and the **approval procedure**. Privilege Types are `requirement-three-layer-privilege-model`. Type 2 vault operator identity is `requirement-least-privilege-user` (`dns-adm`).
 
@@ -36,7 +36,7 @@ This is **not** a second `requirement-domain-*`. It is **not** the sudoer print/
 |---------|---------------|---------------|
 | Queue a DNS change | You cannot apply Cloudflare yourself | `dns-cli submit ./req.json` |
 | Approve as `dns-adm` | Re-check JSON, take ownership, move | `dns-cli approve` |
-| Log in as `dns-adm` | Review takes ownership, then asks **one** yes/no per file | (login hook → `interactive`) |
+| Log in as `dns-adm` | Collapse duplicate dest first, take ownership, then ask **one** yes/no per remaining file | (login hook → `interactive`) |
 
 ---
 
@@ -75,6 +75,7 @@ This is **not** a second `requirement-domain-*`. It is **not** the sudoer print/
 | Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
 | `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
+| Duplicate inbound same dest (`domain_id` + `subdomain`) | **MUST NOT** fence — keep latest; older superseded → declined (no dest-write, no yes/no) |
 
 **Incorrect JSON format** includes: not a regular file; not one parseable JSON object; dest-owned closed-schema fail (`schema_version` 1, unknown keys vs dest allowlist, missing required including `submit_app` / `submit_version` as non-empty strings, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest-written `submit_by` after format is allowed. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope is **not** a dest fencing condition. Who may run dest verbs is **authz**, not an inbound-file fence.
 
@@ -122,17 +123,18 @@ CLI `--json` is status only. It is **not** the request file.
 Procedure:
 
 1. `dns-adm` logs in on a keyboard TTY (SSH/console).  
-2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet in §2.6.  
-3. Guards pass → `sudo -n /usr/local/bin/dns-cli-hook interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink: `requirement-dns-approver`.  
-4. **At the beginning** of `interactive` (this login hook), dest **MUST** take file-ownership of inbound JSON as **`dns-adm`**. **Before** that `chown`, dest **MUST** read the original Unix file-ownership. Then dest **MUST** take ownership as `dns-adm`. Then dest **MUST** review JSON format. If the JSON is correct, dest **MUST** add `submit_by` (human: submit by) whose value is that original file-ownership. Dest **MUST NOT** add `submit_by` when format fails. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Type 0 `submit` **MUST NOT** include `submit_by`.  
-5. Then `interactive` lists inbound JSON, one file at a time. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as an unknown key.  
-6. If a fence **matches**: display the match in human-facing words (what happened / what it means / next). **MUST NOT** ask the approval question for that file. Continue to the next file.  
-7. If **no** fence matched: show purpose + body; ask the **approval question** (term `approval-question`): **one-off yes/no**. **Yes** = approve. **No** (including Enter) = reject. **MUST NOT** offer skip / quit / maybe.  
-8. Yes / no **MUST** then **move** (queue move **MUST** assume that previous ownership change — ACT-M6). Yes also applies the dest DNS/mode verb.  
-9. Empty inbound → exit 0; login continues to a shell.  
-10. `scp` / `SSH_ORIGINAL_COMMAND` / no TTY → hook **does nothing**.  
-11. `sudo -n` fail → warning; login **continues**.  
-12. `--force` **MUST NOT** auto-accept. `--json` / non-TTY `interactive` → fail closed.
+2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet owned by `requirement-login-interactive-hook`.  
+3. Guards pass → `sudo -n /usr/local/bin/dns-cli-hook interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink, snippet, and heal: `requirement-login-interactive-hook`.  
+4. **Duplicate inbound (early, login hook included):** **before** taking ownership, fencing, and yes/no, dest **MUST** group remaining inbound files by dest identity (JSON `domain_id` + `subdomain` — one live Cloudflare FQDN / vault slot). For each group with more than one file: **keep the latest**; move every older file inbound → declined. Latest = newer inbound mtime; equal mtime → later allocated basename. Files with no dest identity stay ungrouped. Different dest identities stay. **MUST NOT** dest-write Cloudflare. **MUST NOT** stamp `submit_by` on older copies. **MUST NOT** ask the approval question on them. **MUST NOT** treat this as a dest Fence. **MUST** print `superseded {old} (kept {new})`. **MUST NOT** say “skipped”. Standalone `approve` / `reject` of a remaining id stay **non-interactive**.  
+5. **At the beginning** of remaining review, dest **MUST** take file-ownership of inbound JSON as **`dns-adm`**. **Before** that `chown`, dest **MUST** read the original Unix file-ownership. Then dest **MUST** take ownership as `dns-adm`. Then dest **MUST** review JSON format. If the JSON is correct, dest **MUST** add `submit_by` (human: submit by) whose value is that original file-ownership. Dest **MUST NOT** add `submit_by` when format fails. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Type 0 `submit` **MUST NOT** include `submit_by`.  
+6. Then `interactive` lists inbound JSON, one file at a time. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as an unknown key.  
+7. If a fence **matches**: display the match in human-facing words (what happened / what it means / next). **MUST NOT** ask the approval question for that file. Continue to the next file.  
+8. If **no** fence matched: show purpose + body as **YAML** (human-facing; inbound file stays JSON); ask the **approval question** (term `approval-question`): **one-off yes/no**. **Yes** = approve. **No** (including Enter) = reject. **MUST NOT** offer skip / quit / maybe. **MUST NOT** dump the waiting file as a JSON object for that review.  
+9. Yes / no **MUST** then **move** (queue move **MUST** assume that previous ownership change — ACT-M6). Yes also applies the dest DNS/mode verb.  
+10. Empty inbound → exit 0; login continues to a shell.  
+11. `scp` / `SSH_ORIGINAL_COMMAND` / no TTY → hook **does nothing**.  
+12. `sudo -n` fail → warning; login **continues**.  
+13. `--force` **MUST NOT** auto-accept. `--json` / non-TTY `interactive` → fail closed.
 
 **ACT-M5.** `submit` / `approve` / `reject` / `interactive` **MUST NOT** appear in `help` until `app_main` routes them. Until then they **MUST** fail as unknown (fail closed).
 
@@ -151,35 +153,16 @@ sudo -n /usr/local/bin/dns-cli-hook interactive
 
 `submit` is Type 0 self-scope. `approve` / `reject` / `interactive` are Type 1 as `dns-adm` (or euid 0). Empty argv remains help.
 
-### 2.6 Complete login-hook snippet (normative sample)
+### 2.6 Complete login-hook snippet
 
-Markers: `# BEGIN dns-cli login hook` … `# END dns-cli login hook`. Session guard **MUST** be set **before** `sudo -n`.
-
-```sh
-# BEGIN dns-cli login hook
-if [ -z "${DNS_CLI_HOOK_RAN:-}" ] \
-    && [ -n "${PS1:-}" ] \
-    && [ -t 0 ] && [ -t 1 ] \
-    && case "$-" in *i*) true ;; *) false ;; esac \
-    && [ "$(id -un)" = "dns-adm" ] \
-    && [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
-    DNS_CLI_HOOK_RAN=1
-    export DNS_CLI_HOOK_RAN
-    if ! sudo -n /usr/local/bin/dns-cli-hook interactive; then
-        printf '%s\n' "dns-cli: login review hook skipped (sudo -n failed)" >&2
-    fi
-fi
-# END dns-cli login hook
-```
-
-F7 **MUST** strip this block from whichever rc files contain it.
+The **normative** snippet, markers, session guard, `-hook` soft link, and old-hook rewrite **MUST** live on `requirement-login-interactive-hook`. This procedure **MUST** use that block verbatim. This file **MUST NOT** keep a second snippet body.
 
 ### 2.7 Implementation Notes (this project)
 
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.9.4** — approval system: fence first, human-facing match, then yes/no |
+| **Ship unit** | `src/dns-cli` **1.21.0** — login-hook `interactive` shows the waiting body as YAML |
 | **Inbound** | `/var/dns-cli/dns-request` (`3773`); archives `dns-accepted` / `dns-declined` (`0700`); F4 `${LPU_HOME}/dns-request` |
 | **Submitter** | **Anyone** — any login (`id -un`; example `alice`) |
 | **Approver** | `dns-adm` |
@@ -188,7 +171,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | **Hook variable** | `DNS_CLI_HOOK_RAN` |
 | **Inbound create** | Type 1 `setup` creates the trio; Type 0 does not `mkdir` |
 | **Dest** | Cloudflare A / mode apply via vault — not `/etc/<subject>/dns` |
-| **Proof** | **TP-CF-ACTOR-01..07** · **TP-CF-REQ-01..09** |
+| **Login-hook plant** | `requirement-login-interactive-hook` |
+| **Proof** | **TP-CF-ACTOR-01..07** · **TP-CF-REQ-01..20** |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -228,7 +212,9 @@ F7 **MUST** strip this block from whichever rc files contain it.
 13. Replace the approval question with accept/decline/skip/quit (or add skip / quit / maybe). **Yes** = approve; **no** = reject.  
 14. Ask yes/no **before** dest fencing, or hide a fence match behind jargon-only text.  
 15. Drop incorrect JSON format from this file-based JSON dest fence table.  
-16. Run the login hook as `/usr/local/bin/dns-cli interactive` instead of `/usr/local/bin/dns-cli-hook interactive`.
+16. Run the login hook as `/usr/local/bin/dns-cli interactive` instead of `/usr/local/bin/dns-cli-hook interactive`.  
+17. In `interactive` (login hook included), keep every inbound copy of the same dest (`domain_id` + `subdomain`) and ask yes/no on older duplicates. **MUST** keep the latest and move older duplicates to declined without dest-write and without yes/no. **MUST NOT** add “duplicate” as a dest Fence.  
+18. Dump the waiting file as a JSON object during login-hook review. **MUST** show the body as YAML. Inbound file stays JSON.
 
 **Violating this rule is a critical privilege / stay-honest regression.**
 
@@ -240,7 +226,7 @@ F7 **MUST** strip this block from whichever rc files contain it.
 |----|-----------|
 | AC-ACT1 | Actor table present in this file **and** product README |
 | AC-ACT2 | `dns-adm` is the only approver; anyone may submit |
-| AC-ACT3 | Complete hook snippet present |
+| AC-ACT3 | Complete hook snippet present on `requirement-login-interactive-hook`; this file points |
 | AC-ACT4 | Routed `submit` / `approve` / `reject` / `interactive` are not unknown |
 | AC-ACT5 | Help lists those verbs now that they are routed |
 | AC-ACT6 | Empty argv is help |
@@ -249,6 +235,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | AC-ACT11 | Login-hook `interactive` takes inbound file-ownership as `dns-adm` **at the beginning** (ACT-M4) |
 | AC-ACT12 | Approval question is one-off yes/no: yes=approve, no=reject; no skip/quit (ACT-M4) |
 | AC-ACT13 | Dest review fences first; match is human-facing; question only if clear (ACT-M4 / approval-system) |
+| AC-ACT14 | Login-hook `interactive` keeps the latest inbound file per dest (`domain_id`+`subdomain`); older superseded → declined (ACT-M4) |
+| AC-ACT15 | Login-hook `interactive` shows a clear waiting body as YAML, not as a JSON object dump (ACT-M4) |
 | AC-ACT9 | Dest MUST NOT fence on file-ownership; JSON `subject` ≠ Unix owner (ACT-M7) |
 | AC-ACT10 | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (ACT-M8) |
 
@@ -258,7 +246,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-dns-approver` | Hook heal / `.bashrc` / `.profile` create |
+| `requirement-login-interactive-hook` | Snippet + rc heal + `/usr/local/bin/${APP_NAME}-hook` |
+| `requirement-dns-approver` | Approver identity `dns-adm` |
 | `requirement-domain-cloudflare-dns` | Consumes this table; names the machine |
 | `requirement-cloudflare-dns-request` | Request JSON types |
 | `requirement-three-layer-privilege-model` | Type 0 submit / Type 1 approve; sudoer print/submit role table is §2.1a there |
@@ -288,6 +277,8 @@ F7 **MUST** strip this block from whichever rc files contain it.
 | **TP-CF-REQ-13** | `tests/test_cf_request.sh` | have | dest fence first; human-facing match; no question on match |
 | **TP-CF-REQ-14** | `tests/test_cf_request.sh` | have | user SSOT is JSON `subject`; dest MUST NOT fence on filename token |
 | **TP-CF-REQ-15** | `tests/test_cf_request.sh` | have | interactive records original owner; dest-writes `submit_by` if format is clear |
+| **TP-CF-REQ-19** | `tests/test_cf_request.sh` | have | Duplicate inbound same dest: keep latest; older superseded → declined; no dest write; no extra yes/no |
+| **TP-CF-REQ-20** | `tests/test_cf_request.sh` | have | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump |
 | **TP-CF-ACTOR-08** | `tests/test_cli.sh` | have | ACT-M7 dest MUST NOT fence on file-ownership |
 | **TP-CF-ACTOR-09** | `tests/test_cli.sh` | have | ACT-M8 dest inbound fence is incorrect JSON format only |
 
@@ -299,6 +290,9 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-08 | Active 1.13.0 | Login-hook snippet / heal / `-hook` soft link moved to `requirement-login-interactive-hook`. Dest review loop stays here. |
+| 2026-09-06 | Active 1.12.0 | Login-hook `interactive` shows a clear waiting body as **YAML** (inbound file stays JSON). **TP-CF-REQ-20**. |
+| 2026-09-06 | Active 1.11.0 | Interactive / login-hook review keeps the **latest** inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined. Protection rule 17; **TP-CF-REQ-19**. |
 | 2026-09-03 | Active 1.10.0 | Login hook / snippet uses the login-hook-symlink `/usr/local/bin/dns-cli-hook` |
 | 2026-08-19 | Active 1.9.0 | ACT-M4 interactive records original file-ownership, then dest-writes `submit_by` if format is clear |
 | 2026-08-19 | Active 1.8.0 | User SSOT is JSON `subject`, not the filename token (ACT-M8 MUST NOT row) |
@@ -316,6 +310,6 @@ F7 **MUST** strip this block from whichever rc files contain it.
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-08  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

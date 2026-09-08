@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.10.0) — dest Fences ship Type 0 test-purpose `fence-test` (local test folder)  
+**Status**: Active (Version 1.11.0) — residual points at independent login-hook REQ  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -171,6 +171,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Scratch leaves | `requirement-shell-temp-file-system` | `mktemp`; no `$$` names; storage root stays storage REQ |
 | What is blocked vs must stay open | `requirement-privilege-prevention-set` | Closed prevention catalog; do not invent walls; Type 2 remains open |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
+| Login-interactive review hook | `requirement-login-interactive-hook` | Snippet + rc heal + `/usr/local/bin/${APP_NAME}-hook`; dest review loop stays on `requirement-dns-actor-table` |
 | JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Two kinds: `type-2-switch` (Type 0 submit) and `login-hook-elev` (setup auto-queue); `print-sudoers` is three-layer + this file’s peer; this product **MUST NOT** write `/etc/sudoers.d` |
 | Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
 | Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
@@ -273,6 +274,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-shell-idempotency` | Re-run safety |
 | `requirement-shell-interactive-vs-noninteractive` | Mode policy |
 | `requirement-shell-modular-function-design` | Prefixes / single-file modularity |
+| `requirement-login-interactive-hook` | Login-hook plant / `/usr/local/bin/${APP_NAME}-hook` |
 | `docs/requirements/index.md` | Registry SSOT |
 
 ---
@@ -281,6 +283,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-08 | Active 1.11.0 | Residual login-interactive review hook → `requirement-login-interactive-hook` |
 | 2026-08-03 | Active | Specialized class law for folder-backup (left genesis; bootstrap trim from selfmanaged) |
 | 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |
 | 2026-08-13 | Active 1.2.0 | Bootstrap origin = selfmanaged; folder-backup hop retired (no longer maintain bootstrap from it) |
@@ -295,6 +298,6 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ---
 
-**Last Updated**: 2026-08-21  
+**Last Updated**: 2026-09-08  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

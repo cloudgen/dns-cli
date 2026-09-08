@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.22.0] - 2026-09-08
+
+### Changed
+
+- Login-hook plant is an **independent** requirement: `requirement-login-interactive-hook`. The stable identity is the soft link **`/usr/local/bin/${APP_NAME}-hook`** (this product: `/usr/local/bin/dns-cli-hook`) so similar dest CLIs can utilize the same `-hook` name (a host admin **MAY** retarget it). Heal of the **`dns-adm`** account rewrites an old `sudo -n /usr/local/bin/dns-cli interactive` line to `dns-cli-hook`. Approver identity stays on `requirement-dns-approver`. Dest review loop stays on `requirement-dns-actor-table`. **TP-CF-APR-01..08** · **TP-LPU-08**. Ship unit **`VERSION="1.22.0"`**.
+
+## [1.21.0] - 2026-09-06
+
+### Changed
+
+- Dest **`interactive`** (login hook included) shows a clear waiting body as **YAML** (`key: value` lines). The inbound file stays JSON. Actor table **1.12.0**. Approver **1.9.0**. Request **1.8.0**. **TP-CF-REQ-20**. Ship unit **`VERSION="1.21.0"`**.
+
+## [1.20.0] - 2026-09-06
+
+### Changed
+
+- Dest **`interactive`** (login hook included) **keeps the latest** inbound file per dest (`domain_id` + `subdomain`) and moves older duplicates to declined without dest-write and without yes/no. Not a dest Fence. Actor table **1.11.0**. Approver **1.8.0**. Request **1.7.0**. **TP-CF-REQ-19**. Ship unit **`VERSION="1.20.0"`**.
+
 ## [1.19.0] - 2026-09-06
 
 ### Fixed

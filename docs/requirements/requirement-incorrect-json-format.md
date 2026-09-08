@@ -152,7 +152,8 @@ dns-cli test-json-format < ./request.json
 | `docs/requirements/requirement-dns-actor-table.md` | Dest fence table + dest who |
 | `docs/requirements/requirement-cloudflare-dns-request.md` | DNS dest schema + dest fence table |
 | `docs/requirements/requirement-sudoer-json-file.md` | Sudoer dest schema + dest fence table |
-| `docs/requirements/requirement-dns-approver.md` | Login-hook review |
+| `docs/requirements/requirement-login-interactive-hook.md` | Login-hook plant |
+| `docs/requirements/requirement-dns-approver.md` | Approver identity |
 | `./src/dns-cli` | `cf_req_dest_fence` |
 
 ## Design-time verification

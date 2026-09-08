@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.10.0) — Type 0 **`menu`/`main`**; family `sudoers` is not dispatched  
+**Status**: Active (Version 3.11.0) — `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -83,7 +83,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 | `vault` + store subcommands (`input` / `set` / `init` / `show` / `clear` / `account`/`zone` / `subdomain`) | `requirement-cloudflare-vault` **and** `requirement-domain-cloudflare-dns` |
 | `ip` | `requirement-external-ipv4` **and** `requirement-domain-cloudflare-dns` |
 | `add` / `update` / `remove` / `status` / `show` | `requirement-domain-cloudflare-dns` (`add`/`update`/`remove` dest also `requirement-cloudflare-dns-request`) |
-| `submit` / `approve` / `reject` / `interactive` | `requirement-dns-actor-table` **and** `requirement-domain-cloudflare-dns` (`interactive` also `requirement-dns-approver`) |
+| `submit` / `approve` / `reject` / `interactive` | `requirement-dns-actor-table` **and** `requirement-domain-cloudflare-dns` (`interactive` also `requirement-login-interactive-hook`) |
 | `test-json-format` | `requirement-incorrect-json-format` |
 | `fence-test` | `requirement-approval-fencing-condition` (domain SSOT also names it) |
 
@@ -248,6 +248,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `requirement-three-layer-privilege-model` | Type map + `setup` / `print-sudoers` / generate+submit |
 | `requirement-sudoer-json-file` | JSON grant body |
 | `requirement-shell-cli-default-interaction` | `menu` / `main` topic-owner |
+| `requirement-login-interactive-hook` | `interactive` login-hook plant / `/usr/local/bin/${APP_NAME}-hook` |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -271,6 +272,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-08 | Active 3.11.0 | Dual mention: `interactive` also `requirement-login-interactive-hook` |
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
 | 2026-08-21 | Active 3.7.0 | Dual mention Type 0 **test-purpose** `fence-test`; help lists testers apart from operational |
@@ -288,6 +290,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-08  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -37,7 +37,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.19.0"
+# VERSION: hard-assign VERSION="1.21.0"
 #
 # =============================================================================
 
@@ -55,8 +55,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.19.0"
-: "${VERSION:=1.19.0}"
+VERSION="1.22.0"
+: "${VERSION:=1.22.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -2995,7 +2995,7 @@ cf_vault_require_token_probe() {
     fi
 }
 
-# ALIGNMENT: requirement-dns-approver.md (APR-M3..M4)
+# ALIGNMENT: requirement-login-interactive-hook.md (HOOK-M1..M5)
 # Heal .bashrc hook + create .profile (if missing) when interactive approver.
 cf_approver_user() {
     printf '%s' "${CF_APPROVER_USER:-dns-adm}"
@@ -3151,6 +3151,7 @@ cf_approver_heal_login_rc() {
 # ALIGNMENT:
 # - requirement-least-privilege-user.md
 # - requirement-three-layer-privilege-model.md
+# - requirement-login-interactive-hook.md
 # - requirement-dns-approver.md
 # - requirement-shell-cli-interface.md
 #
@@ -5431,6 +5432,7 @@ app_about() {
 # - requirement-dns-actor-table.md
 # - requirement-cloudflare-dns-request.md
 # - requirement-domain-cloudflare-dns.md
+# - requirement-login-interactive-hook.md
 # - requirement-dns-approver.md
 #
 # Last reviewed: 2026-08-18
@@ -6296,6 +6298,145 @@ cf_req_reject() {
     out_success "Declined DNS ${CF_REQ_ACTION} request $(basename -- "${_moved}")"
 }
 
+# Dest identity for duplicate inbound collapse: JSON domain_id + subdomain
+# (one live Cloudflare FQDN / vault slot). ALIGNMENT: requirement-dns-actor-table.md
+cf_req_inbound_dest_key() {
+    _dkf="$1"
+    if [ ! -f "${_dkf}" ] || [ -L "${_dkf}" ]; then
+        return 1
+    fi
+    _dkd=$(cf_req_field "${_dkf}" "domain_id")
+    _dks=$(cf_req_field "${_dkf}" "subdomain")
+    if [ -z "${_dkd}" ] || [ -z "${_dks}" ]; then
+        return 1
+    fi
+    printf '%s|%s' "${_dkd}" "${_dks}"
+}
+
+# 0 when $1 is later than $2 (newer mtime; equal mtime → later basename).
+cf_req_inbound_is_later() {
+    _la="$1"
+    _lb="$2"
+    if [ "${_la}" -nt "${_lb}" ]; then
+        return 0
+    fi
+    if [ "${_lb}" -nt "${_la}" ]; then
+        return 1
+    fi
+    _lba=$(basename "${_la}")
+    _lbb=$(basename "${_lb}")
+    [ "${_lba}" \> "${_lbb}" ]
+}
+
+# Older duplicate: inbound → declined. No dest-write. No submit_by. No yes/no.
+# ALIGNMENT: requirement-dns-actor-table.md
+cf_req_drop_superseded_inbound() {
+    _din="$1"
+    _old="$2"
+    _kept="$3"
+    if [ ! -f "${_din}/${_old}" ]; then
+        return 0
+    fi
+    cf_req_move "${_din}/${_old}" "declined" >/dev/null
+    out_info "superseded ${_old} (kept ${_kept})"
+}
+
+# Keep the latest inbound file per dest identity. Move older duplicates to declined.
+# Not a dest Fence. Standalone approve/reject of a remaining id stay non-interactive.
+# ALIGNMENT: requirement-dns-actor-table.md
+cf_req_collapse_duplicate_inbound() {
+    _cin="$1"
+    [ -n "${_cin}" ] && [ -d "${_cin}" ] || return 0
+    : "${APP_NAME:=dns-cli}"
+    _pairs=$(mktemp "${TMPDIR:-/tmp}/${APP_NAME}.dup.XXXXXX") || \
+        out_die_code vault_insecure "cannot list duplicate inbound"
+    for _cf in "${_cin}"/*.json; do
+        [ -f "${_cf}" ] || continue
+        if [ -L "${_cf}" ]; then
+            continue
+        fi
+        _cbn=$(basename "${_cf}")
+        if ! cf_req_parse_basename "${_cbn}"; then
+            continue
+        fi
+        _ck=$(cf_req_inbound_dest_key "${_cf}") || continue
+        printf '%s\t%s\n' "${_cbn}" "${_ck}" >>"${_pairs}"
+    done
+    if [ ! -s "${_pairs}" ]; then
+        rm -f "${_pairs}"
+        return 0
+    fi
+    _keys=$(mktemp "${TMPDIR:-/tmp}/${APP_NAME}.dupk.XXXXXX") || {
+        rm -f "${_pairs}"
+        out_die_code vault_insecure "cannot list duplicate inbound keys"
+    }
+    cut -f2 "${_pairs}" | sort -u >"${_keys}"
+    while IFS= read -r _ckey || [ -n "${_ckey}" ]; do
+        [ -n "${_ckey}" ] || continue
+        _keep=""
+        while IFS= read -r _cline || [ -n "${_cline}" ]; do
+            [ -n "${_cline}" ] || continue
+            _cbn="${_cline%%	*}"
+            _ckk="${_cline#*	}"
+            [ "${_ckk}" = "${_ckey}" ] || continue
+            if [ -z "${_keep}" ]; then
+                _keep="${_cbn}"
+                continue
+            fi
+            if cf_req_inbound_is_later "${_cin}/${_cbn}" "${_cin}/${_keep}"; then
+                cf_req_drop_superseded_inbound "${_cin}" "${_keep}" "${_cbn}"
+                _keep="${_cbn}"
+            else
+                cf_req_drop_superseded_inbound "${_cin}" "${_cbn}" "${_keep}"
+            fi
+        done <"${_pairs}"
+    done <"${_keys}"
+    rm -f "${_pairs}" "${_keys}"
+}
+
+# Human-facing YAML of one inbound JSON object (login-hook review).
+# Inbound file stays JSON. No PyYAML: python3 stdlib only.
+# ALIGNMENT: requirement-dns-actor-table.md ACT-M4
+cf_req_json_to_yaml() {
+    _jf="$1"
+    [ -n "${_jf}" ] && [ -f "${_jf}" ] || return 1
+    python3 -c '
+import json, sys
+path = sys.argv[1]
+with open(path, encoding="utf-8") as fh:
+    data = json.load(fh)
+if not isinstance(data, dict):
+    raise SystemExit(2)
+
+def ystr(s):
+    s = str(s)
+    if not s or s.strip() != s:
+        return json.dumps(s, ensure_ascii=False)
+    if s.lower() in ("true", "false", "null", "yes", "no", "on", "off"):
+        return json.dumps(s, ensure_ascii=False)
+    if any(c in s for c in "\n\t:#{}[]&*!|>%@`"):
+        return json.dumps(s, ensure_ascii=False)
+    if chr(34) in s or chr(39) in s or chr(92) in s:
+        return json.dumps(s, ensure_ascii=False)
+    return s
+
+def scalar(v):
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return str(v)
+    return ystr(v)
+
+for k, v in data.items():
+    if isinstance(v, (dict, list)):
+        print("%s: %s" % (k, json.dumps(v, ensure_ascii=False)))
+    else:
+        print("%s: %s" % (k, scalar(v)))
+' "${_jf}"
+}
+
 cf_req_interactive() {
     : "${APP_NAME:=dns-cli}"
     : "${JSON:=0}"
@@ -6309,7 +6450,9 @@ cf_req_interactive() {
         out_info "no pending requests"
         return 0
     fi
-    # Login hook: take file-ownership as dns-adm at the beginning, then review.
+    # Login hook: at the beginning collapse duplicate dest inbound, then take
+    # file-ownership as dns-adm, then review.
+    cf_req_collapse_duplicate_inbound "${_in}"
     cf_req_take_inbound_ownership "${_in}"
     _any=0
     for _f in "${_in}"/*.json; do
@@ -6322,20 +6465,12 @@ cf_req_interactive() {
             continue
         fi
         out_info "request $(basename -- "${_f}")"
-        out_plain "purpose: ${CF_REQ_PURPOSE}"
-        out_plain "action:  ${CF_REQ_ACTION}  domain: ${CF_REQ_DOMAIN}  subdomain: ${CF_REQ_SUBDOMAIN}"
         if [ -n "${CF_REQ_SUBMIT_APP}" ] || [ -n "${CF_REQ_SUBMIT_VERSION}" ]; then
             out_plain "queued by ${CF_REQ_SUBMIT_APP} ${CF_REQ_SUBMIT_VERSION}"
         fi
-        if [ -n "${CF_REQ_SUBMIT_BY}" ]; then
-            out_plain "submit by: ${CF_REQ_SUBMIT_BY}"
-        fi
-        if [ -n "${CF_REQ_IPV4}" ]; then
-            out_plain "ipv4:    ${CF_REQ_IPV4}"
-        fi
-        if [ -n "${CF_REQ_MODE}" ]; then
-            out_plain "mode:    ${CF_REQ_MODE}"
-        fi
+        _yml=$(cf_req_json_to_yaml "${_f}") || \
+            out_die_code vault_insecure "cannot render request as YAML: ${_f}"
+        out_plain "${_yml}"
         # One-off approval question: yes = approve, no = reject (no skip/quit).
         if prompt_yes_no "Approve this request"; then
             cf_req_apply

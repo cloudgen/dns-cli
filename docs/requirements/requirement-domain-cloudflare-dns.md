@@ -44,9 +44,9 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 
 **Folder = state. JSON = the checkable proposal.** **Anyone** (any login) may drop self-scoped request JSON into inbound; **`dns-adm`** re-checks that JSON and **moves** the file. Dest on accept is a DNS / mode apply via the vault — not a host `/etc` grant file.
 
-The **actor table** (anyone submits; `dns-adm` approves; allocator / root) and the **login-hook procedure** are owned by `requirement-dns-actor-table`. This catalog **MUST NOT** invent a second table or a second approver account.
+The **actor table** (anyone submits; `dns-adm` approves; allocator / root) is owned by `requirement-dns-actor-table`. Login-hook plant, rc heal, and `/usr/local/bin/${APP_NAME}-hook` are `requirement-login-interactive-hook`. This catalog **MUST NOT** invent a second table or a second approver account.
 
-Submit-when, not-a-submit, verify-at-submit-and-approve, and the complete `.bashrc` snippet live in that file. Inbound / `submit` / `approve` / `reject` / `interactive` are **Implemented** on ship unit 1.9.0. Login-hook **rc heal** is **Implemented** (`requirement-dns-approver`). Help **MUST** list those verbs now that they are routed (D-M7).
+Submit-when, not-a-submit, and verify-at-submit-and-approve live on the actor table. The complete `.bashrc` snippet lives on `requirement-login-interactive-hook`. Inbound / `submit` / `approve` / `reject` / `interactive` are **Implemented** on ship unit 1.9.0. Login-hook **rc heal** is **Implemented**. Help **MUST** list those verbs now that they are routed (D-M7).
 
 **Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`. Dest who reprint: `requirement-dns-actor-table` ACT-M8.
 
@@ -126,7 +126,7 @@ dns-cli fence-test --file tests/fixtures/fence-test/pass/20260821-alice-add-1.js
 
 **D-M3. Cloudflare DNS API.** Transport, auth, envelope, zone GET, and DNS CRUD **MUST** follow `requirement-cloudflare-api`. This domain SSOT **consumes** that file: it does **not** invent a second base URL, auth scheme, or record JSON.
 
-**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Actors and the login hook **MUST** follow `requirement-dns-actor-table`. Submit/approve/`interactive` are **Implemented** on 1.9.0. Rc heal is **Implemented**.
+**D-M14. DNS request JSON.** When a submit/approve surface is routed, inbound bodies **MUST** follow `requirement-cloudflare-dns-request` (exactly four types; complete examples there). This catalog **MUST NOT** invent a fifth type. Actors **MUST** follow `requirement-dns-actor-table`. Login-hook plant **MUST** follow `requirement-login-interactive-hook`. Submit/approve/`interactive` are **Implemented** on 1.9.0. Rc heal is **Implemented**.
 
 **D-M4. A-record mode.** Verb **cardinality** **MUST** follow `requirement-cloudflare-dns-mode` (default `non-round-robin`; `round-robin` = many distinct IPv4 A rows; switch only when `ipv4_count` ∈ {0, 1}; IPv4 only). This catalog **MUST NOT** re-specify the enum. Query matching A records by `name`.  
 - Stored `non-round-robin` + N>1 on mutate: fail `dns_multi_record` unless `--force` **repairs** (collapse to one A; mode stays non-round-robin).  
@@ -286,7 +286,8 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 |-----|--------------|
 | `requirement-cloudflare-dns-mode` | Two A-record modes, default, switch gate, IPv4-only fence |
 | `requirement-cloudflare-dns-request` | Four inbound JSON types + examples |
-| `requirement-dns-actor-table` | Actor table + login-hook procedure |
+| `requirement-dns-actor-table` | Actor table + dest review loop |
+| `requirement-login-interactive-hook` | Login-hook snippet / heal / `/usr/local/bin/${APP_NAME}-hook` |
 | `requirement-external-ipv4` | Public IPv4 lookup + `ip` display SSOT |
 | `requirement-cloudflare-api` | HTTPS transport, Bearer token, envelope, zone GET, DNS CRUD |
 | `requirement-cloudflare-vault` | Multi-account fields, modes, token transport file |

@@ -72,7 +72,7 @@ This file is **not** a second copy of output, prefix, TTY-measure, prompt-body, 
 | Scratch leaves (`mktemp`; no `$$` names) | `requirement-shell-temp-file-system` | Point only |
 | Re-run install/uninstall | `requirement-shell-idempotency` | Point only |
 | In-tool sudo / chmod wrappers | `requirement-shell-sudo-command` | Point only |
-| Login-hook rc dest owner (`dns-adm`) | `requirement-least-privilege-user` (L-M9) · `requirement-dns-approver` | Point dest who; **adopt** write rules in §2.10 |
+| Login-hook rc dest owner (`dns-adm`) | `requirement-least-privilege-user` (L-M9) · `requirement-login-interactive-hook` | Point dest who; **adopt** write rules in §2.10 |
 
 ### 2.1 Interpreter and portability
 
@@ -186,7 +186,7 @@ fi
 
 ### 2.9 User-owned shell rc (writing)
 
-Dest **who** (owner must be `dns-adm`) stays on `requirement-least-privilege-user` L-M9 / `requirement-dns-approver`. This section owns **how** the rewrite is coded.
+Dest **who** (owner must be `dns-adm`) stays on `requirement-least-privilege-user` L-M9 / `requirement-login-interactive-hook`. This section owns **how** the rewrite is coded.
 
 50. When Type 1 `setup` / heal creates or rewrites another login’s `.profile` / `.bashrc` (including `mktemp`+`mv`):  
     - Owner **MUST** be the corresponding user, not the elevated invoker.  

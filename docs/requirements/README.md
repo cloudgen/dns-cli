@@ -26,6 +26,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 | Scratch leaves | `requirement-shell-temp-file-system` |
 | Prevention catalog | `requirement-privilege-prevention-set` — Type 2 remains; DNS dest is `dns-adm` |
 | DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0); queue-move `chown` (1.9.1); login-hook take-ownership-at-beginning (1.9.2) |
+| Login-interactive hook | `requirement-login-interactive-hook` — `/usr/local/bin/${APP_NAME}-hook` soft link; heal of `dns-adm` rewrites old hook |
 | External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
 | Application local vault (path + specify) | `requirement-application-local-vault` — specify + default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` **Implemented** (1.8.0) |
 | Vault law (schema / verbs) | `requirement-cloudflare-vault` 2.4.0 — zone-slot add/list/modify/remove; `{label, mode}`; v2 **Implemented** (1.2.0) |

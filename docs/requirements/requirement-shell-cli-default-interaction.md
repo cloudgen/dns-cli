@@ -59,7 +59,7 @@ Claimed **yes**. Specialized zero-argument requirement **exists**. Product is **
 
 Labels **MUST** be `command: what it does`. Look **MUST** be default CLI main menu style: header **`${APP_NAME}`**(*`${VERSION}`*) then ` - ${SHORT_DESC}`; numbered `{{explain}}` *italic* **and** light gray on a TTY via SGR **3** + **37** (`ESC[3;37m`) in `app_default_print_row`. Number and command name stay unstyled. Exit (no explain) stays unstyled. Off-TTY: the same words, no CSI.
 
-Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.19.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
+Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.22.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
 
 The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). **MUST NOT** capture a `read` helper with `$()` / backticks.
 
@@ -132,7 +132,7 @@ Class B return-via-stdout. Callers pass the result into `out_info`. Live code re
 ```sh
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.19.0}"
+    : "${VERSION:=1.22.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"

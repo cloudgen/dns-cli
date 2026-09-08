@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.19.0  
+**Product VERSION:** 1.22.0  
 **Last plan update:** 2026-09-06  
-**Last suite run:** PASS=765 FAIL=0 SKIP=1 (2026-09-06; **TP-CF-REQ-18** have; **TP-CLI-18** TTY `--json menu` / `main` have; **TP-FENCE-07** skip live sibling dest `kind`)
+**Last suite run:** PASS=799 FAIL=0 SKIP=1 (2026-09-06; **TP-CF-REQ-20** YAML review display have; **TP-FENCE-07** skip live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -92,18 +92,18 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-ACTOR-08 | dest MUST NOT fence on file-ownership (ACT-M7) | test_cli | requirement-dns-actor-table ACT-M7 | **have** |
 | TP-CF-ACTOR-09 | dest inbound fence is incorrect JSON format (ACT-M8) | test_cli | requirement-dns-actor-table ACT-M8 | **have** |
 
-### TP-CF-APR (approver hook heal)
+### TP-CF-APR (login-hook plant / heal)
 
 | TP-ID | Intent | Suite | Primary requirement(s) | Status |
 |-------|--------|-------|------------------------|--------|
-| TP-CF-APR-01 | interactive approver heals `.bashrc` hook | `tests/test_cf_approver.sh` | requirement-dns-approver | **have** |
-| TP-CF-APR-02 | missing `.profile` created and sources `.bashrc` | test_cf_approver | requirement-dns-approver | **have** |
-| TP-CF-APR-03 | existing `.profile` not overwritten | test_cf_approver | requirement-dns-approver | **have** |
-| TP-CF-APR-07 | rc heal aligns owner to corresponding user | test_cf_approver | requirement-dns-approver APR-M4 · term shell-rc-file-ownership | **have** |
-| TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-dns-approver | **have** |
-| TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-dns-approver | **have** |
-| TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-dns-approver | **have** |
-| TP-CF-APR-08 | heal rewrites old `/usr/local/bin/dns-cli` hook line to `dns-cli-hook` | test_cf_approver | requirement-dns-approver APR-M3a | **have** |
+| TP-CF-APR-01 | interactive approver heals `.bashrc` hook | `tests/test_cf_approver.sh` | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-02 | missing `.profile` created and sources `.bashrc` | test_cf_approver | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-03 | existing `.profile` not overwritten | test_cf_approver | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-07 | rc heal aligns owner to corresponding user | test_cf_approver | requirement-login-interactive-hook HOOK-M4 · term shell-rc-file-ownership | **have** |
+| TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-login-interactive-hook | **have** |
+| TP-CF-APR-08 | heal rewrites old `/usr/local/bin/dns-cli` hook line to `dns-cli-hook` | test_cf_approver | requirement-login-interactive-hook HOOK-M5 | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -267,7 +267,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-REQ-08 | `mode` plus `ipv4` fail | test_cf_request | requirement-cloudflare-dns-request | **have** |
 | TP-CF-REQ-09 | `cf_req_move` `chown`s to LPU before `mv`; skip in test mode | test_cf_request | requirement-dns-actor-table ACT-M6 | **have** |
 | TP-CF-REQ-10 | dest inbound fence is incorrect JSON format (REQ-M9 table) | test_cf_request | requirement-cloudflare-dns-request REQ-M9 | **have** |
-| TP-CF-REQ-11 | login-hook `interactive` takes inbound ownership at the beginning | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-dns-approver APR-M3 | **have** |
+| TP-CF-REQ-11 | login-hook `interactive` takes inbound ownership at the beginning | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-login-interactive-hook | **have** |
 | TP-CF-REQ-12 | approval question is one-off `prompt_yes_no` (yes=approve, no=reject) | test_cf_request | requirement-dns-actor-table ACT-M4 · term approval-question | **have** |
 | TP-CF-REQ-13 | dest fence first; human-facing match; no question on match | test_cf_request | requirement-dns-actor-table ACT-M4 · ACT-M8 · term approval-system | **have** |
 | TP-CF-REQ-14 | user SSOT is JSON `subject`; dest MUST NOT fence on filename token | test_cf_request | requirement-dns-actor-table ACT-M8 · requirement-cloudflare-dns-request REQ-M9 · term json-username-field | **have** |
@@ -275,6 +275,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-REQ-16 | dest-legal sudoer `kind` is not a DNS dest key | test_cf_request | requirement-incorrect-json-format IJF-M8 · requirement-cloudflare-dns-request | **have** |
 | TP-CF-REQ-17 | Type 0 `submit` stamps `submit_app` / `submit_version`; dest allowlists them; interactive `queued by` | test_cf_request | requirement-incorrect-json-format IJF-M8 · requirement-cloudflare-dns-request REQ-M3a | **have** |
 | TP-CF-REQ-18 | hyphenated subject in basename (`YYYYMMDD-ci-runner-add-1.json`); parse date left, action+n right | test_cf_request | requirement-cloudflare-dns-request REQ-M6 | **have** |
+| TP-CF-REQ-19 | Duplicate inbound same dest: keep latest; older superseded → declined; other dest stays | test_cf_request | requirement-dns-actor-table ACT-M4 | **have** |
+| TP-CF-REQ-20 | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump | test_cf_request | requirement-dns-actor-table ACT-M4 | **have** |
 | TP-ARSA-01 | software-dev class MUST consider actor / role / subject / approver even if no dest approver | test_cli | requirement-class-software-dev | **have** |
 | TP-ARSA-02 | catalog prints Actor / Role / Subject / Submitter / Approver; anyone or the actor itself | test_cli | requirement-actor-role-subject-approver | **have** |
 | TP-FENCE-01 | software-dev class MUST review dest fences; each Fence is an independent REQ or residual none | test_cli | requirement-class-software-dev §2.9 · AC-9 · AC-10 | **have** |

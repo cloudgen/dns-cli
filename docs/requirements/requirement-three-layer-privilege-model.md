@@ -83,7 +83,7 @@ Not a live-command whitelist. `print-sudoers` and dest `/etc/dns-adm/sudoers` **
 | ID | Job | Binary (absolute) | Fixed args | Source | Dest | Invoker CLI | Run-as | NOPASSWD? | Sudoers line shape |
 |----|-----|-------------------|------------|--------|------|-------------|--------|-----------|--------------------|
 | **ELEV-CF-01** | Run managed dns-cli as `dns-adm` | `${GLOBAL_BIN}/dns-cli` (`/usr/local/bin/dns-cli`) | (none — argv follows) | — | F6 dest `/etc/dns-adm/sudoers` **and** sibling dest `/etc/sudoers.d/dns-cli-<user>` | Type 2 context-switch; operator `sudo -u dns-adm dns-cli …` | `dns-adm` | yes | `%sudo ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` (F6 group) · `<user> ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` (`type-2-switch` JSON) |
-| **ELEV-CF-02** | Login hook `sudo -n` review verb | **login-hook-symlink** `/usr/local/bin/dns-cli-hook` (created → `/usr/local/bin/dns-cli` when missing) | `interactive` | — | Sibling dest `/etc/sudoers.d/dns-cli-dns-adm` (not F6) | Type 1 `interactive` after TTY login as `dns-adm` | `root` | yes | `dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli-hook interactive` (`login-hook-elev` JSON) |
+| **ELEV-CF-02** | Login hook `sudo -n` review verb | **login-hook-symlink** `/usr/local/bin/dns-cli-hook` (created → `/usr/local/bin/dns-cli` when missing; topic-owner `requirement-login-interactive-hook`) | `interactive` | — | Sibling dest `/etc/sudoers.d/dns-cli-dns-adm` (not F6) | Type 1 `interactive` after TTY login as `dns-adm` | `root` | yes | `dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli-hook interactive` (`login-hook-elev` JSON) |
 
 **P-M5.** Production fragment **MUST NOT** elevate `${USER_BIN}/dns-cli`. Local-only install is **test_local** — `setup` **SHOULD** refuse to install F6 dest unless a global managed binary exists, or warn TEST MODE and require `--force`.
 
@@ -278,6 +278,7 @@ sudo -n -u dns-adm dns-cli status home
 | `requirement-domain-cloudflare-dns` | Type 2 verb catalog |
 | `requirement-application-local-vault` | Specify stays Type 0 |
 | `requirement-bootstrap-chain` | Backup/restore still absent |
+| `requirement-login-interactive-hook` | ELEV-CF-02 `-hook` plant + heal |
 | `docs/requirements/index.md` | Registry |
 
 ---

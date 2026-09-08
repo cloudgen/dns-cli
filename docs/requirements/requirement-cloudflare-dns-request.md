@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-dns-request.md  
-**Status**: Active (Version 1.6.0) — dest-written `submit_by` after interactive format check  
+**Status**: Active (Version 1.8.0) — login-hook `interactive` shows the waiting body as YAML  
 **Area**: domain  
 **Key**: `requirement-cloudflare-dns-request`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -72,7 +72,7 @@ Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) ·
 
 **MUST NOT** include `token`, `CF_API_TOKEN`, `user_id` secrets, or any AAAA / IPv6 field. Unknown keys → `request_invalid`. Token stays in the vault.
 
-**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Type 0 `submit` **MUST** overwrite `submit_app` / `submit_version` from live Config `APP_NAME` / `VERSION`. Dest **MUST NOT** dest-write those keys. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` and Type 0 `submit_app` / `submit_version` as allowed keys, not unknown. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. After format is clear, dest **MUST** display `queued by {submit_app} {submit_version}` before the approval question.
+**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Type 0 `submit` **MUST** overwrite `submit_app` / `submit_version` from live Config `APP_NAME` / `VERSION`. Dest **MUST NOT** dest-write those keys. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` and Type 0 `submit_app` / `submit_version` as allowed keys, not unknown. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. After format is clear, dest **MUST** display `queued by {submit_app} {submit_version}` and the waiting body as **YAML** (inbound file stays JSON; **MUST NOT** dump the file as a JSON object) before the approval question.
 
 **REQ-M4.** IPv4 fields (`ipv4`, `from_ipv4`) **MUST** be dotted-quad public IPv4 per `requirement-external-ipv4` IP-M4. IPv6 literal → `ip_lookup_failed` / `request_invalid`.
 
@@ -233,7 +233,7 @@ Basename: `20260817-alice-mode-2.json`
 
 **REQ-M8.** Approve **MUST** re-run verify, then apply the dest in §2.1. **MUST NOT** `POST /zones`. Empty argv **MUST NOT** submit or approve.
 
-**REQ-M9. Queue move assumes prior ownership change.** Type 0 `submit` **MUST NOT** `chown` inbound. `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any inbound → accepted/declined move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST**, at the beginning, read original file-ownership, take ownership as `dns-adm`, review JSON format, and if correct add `submit_by` = that original owner, then **fence first** for the yes/no walk (this file-based JSON system **MUST** include incorrect JSON format). A fence match **MUST** be displayed in human-facing words; dest **MUST NOT** ask yes/no for that file. Queue move assumes that previous ownership change. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Peer: `requirement-dns-actor-table` ACT-M4 / ACT-M6 / ACT-M7.
+**REQ-M9. Queue move assumes prior ownership change.** Type 0 `submit` **MUST NOT** `chown` inbound. `approve` / `reject` **MUST** take file-ownership as `dns-adm` **before** any inbound → accepted/declined move. Login-hook `interactive` (`dns-adm` via `sudo -n`) **MUST**, at the beginning, keep the latest inbound file per dest (`domain_id` + `subdomain`) and move older duplicates to declined without dest-write and without yes/no (**MUST NOT** treat this as a dest Fence; **MUST NOT** stamp `submit_by` on older copies). Then dest **MUST** read original file-ownership, take ownership as `dns-adm`, review JSON format, and if correct add `submit_by` = that original owner, then **fence first** for the yes/no walk (this file-based JSON system **MUST** include incorrect JSON format). A fence match **MUST** be displayed in human-facing words; dest **MUST NOT** ask yes/no for that file. Queue move assumes that previous ownership change. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Peer: `requirement-dns-actor-table` ACT-M4 / ACT-M6 / ACT-M7.
 
 **Dest approval fencing conditions (closed).** Dest `approve` / `reject` / `interactive` **MUST** fail closed on inbound **only** for **incorrect JSON format**. Dest **MUST NOT** add extra fencing conditions. Catalog owner: `requirement-approval-fencing-condition`. Fence meaning: `requirement-incorrect-json-format`.
 
@@ -246,6 +246,7 @@ Basename: `20260817-alice-mode-2.json`
 | Filename subject token ≠ JSON `subject` | **MUST NOT** fence — user SSOT is the JSON field |
 | Dest-written `submit_by` / missing `submit_by` | **MUST NOT** fence — dest interactive writes it after format check |
 | `submit_app` ≠ dest `APP_NAME` / `submit_version` ≠ dest `VERSION` | **MUST NOT** fence — Type 0 stamps live Config; sibling submitters and mixed versions are dest-legal JSON |
+| Duplicate inbound same dest (`domain_id` + `subdomain`) | **MUST NOT** fence — keep latest; older superseded → declined (no dest-write, no yes/no) |
 
 **Incorrect JSON format** includes: not a regular file; not one parseable JSON object; dest-owned closed-schema fail (`schema_version` 1, unknown keys vs dest allowlist, missing required including `submit_app` / `submit_version` as non-empty strings, forbidden keys including `token`); field types/enums invalid; basename not `YYYYMMDD-subject-action-n.json`; basename `action` ≠ JSON `action`. Dest-written `submit_by` after format is allowed. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. Dest **MUST NOT** take the user from the filename; user SSOT is JSON `subject`. Type 0 submit self-scope and Type 1 **authz** are **not** dest inbound-file fences. Peer: ACT-M8. Catalog: `requirement-approval-fencing-condition`.
 
@@ -254,10 +255,10 @@ Basename: `20260817-alice-mode-2.json`
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Ship unit** | `src/dns-cli` **1.9.7** — dest interactive dest-writes `submit_by` after format check |
+| **Ship unit** | `src/dns-cli` **1.21.0** — login-hook `interactive` shows the waiting body as YAML |
 | **Types** | 4: `add` `update` `remove` `mode` |
 | **Inbound** | `/var/dns-cli/dns-request` (public 3773); JSON only |
-| **Proof** | **TP-CF-REQ-01..18** have |
+| **Proof** | **TP-CF-REQ-01..20** have |
 
 ### 2.8 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -288,7 +289,9 @@ Basename: `20260817-alice-mode-2.json`
 7. Move inbound → accepted/declined **without** a prior `chown` to `dns-adm`.  
 8. `chown` inbound DNS JSON from Type 0 `submit`.  
 9. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `subject` ≠ `dns-adm`).  
-10. Start login-hook `interactive` review **without** first taking inbound file-ownership as `dns-adm`.
+10. Start login-hook `interactive` review **without** first taking inbound file-ownership as `dns-adm`.  
+11. In `interactive` (login hook included), keep every inbound copy of the same dest (`domain_id` + `subdomain`) and ask yes/no on older duplicates. **MUST** keep the latest and move older copies to declined without dest-write. **MUST NOT** add “duplicate” as a dest Fence.  
+12. Dump the waiting file as a JSON object during login-hook review. **MUST** show the body as YAML. Inbound file stays JSON.
 
 **Violating this rule is a critical request-schema regression.**
 
@@ -347,6 +350,8 @@ Basename: `20260817-alice-mode-2.json`
 | **TP-CF-REQ-16** | `tests/test_cf_request.sh` | have | dest-legal sudoer `kind` is not a DNS dest key (same assert as **TP-FENCE-06**) |
 | **TP-CF-REQ-17** | `tests/test_cf_request.sh` | have | Type 0 submit stamps `submit_app` / `submit_version`; dest allowlists them; interactive `queued by` |
 | **TP-CF-REQ-18** | `tests/test_cf_request.sh` | have | hyphenated subject in basename (`YYYYMMDD-ci-runner-add-1.json`); parse date left, action+n right |
+| **TP-CF-REQ-19** | `tests/test_cf_request.sh` | have | Duplicate inbound same dest: keep latest; older superseded → declined; no dest write; no extra yes/no |
+| **TP-CF-REQ-20** | `tests/test_cf_request.sh` | have | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -357,6 +362,8 @@ Basename: `20260817-alice-mode-2.json`
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-06 | Active 1.8.0 | Login-hook `interactive` shows a clear waiting body as **YAML** (inbound file stays JSON). **TP-CF-REQ-20**. |
+| 2026-09-06 | Active 1.7.0 | Login-hook `interactive` keeps the **latest** inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined. **TP-CF-REQ-19**. |
 | 2026-09-06 | Active 1.6.0 | REQ-M6 subject MAY contain hyphens; parse date left, action+n right (**TP-CF-REQ-18**) |
 | 2026-08-19 | Active 1.6.0 | REQ-M3a dest-written `submit_by` after interactive format check |
 | 2026-08-19 | Active 1.5.0 | REQ-M9 user SSOT is JSON `subject`, not the filename token |

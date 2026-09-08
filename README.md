@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.19.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.22.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -72,7 +72,7 @@ sudo dns-cli setup
 **Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Off-TTY these commands print help. `sudoers` is not a typed CLI command.
 
 ```text
-[INFO] **dns-cli**(*1.19.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.22.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -209,16 +209,17 @@ This table is **DNS inbound only**. Sudoer print / JSON submit uses the next tab
 
 1. **Anyone** runs `dns-cli submit` (self-scope JSON only).  
 2. **`dns-adm`** logs in on a **TTY**.  
-3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-cli-hook interactive` (the **login-hook-symlink**). `setup` creates that short name as a symlink to `/usr/local/bin/dns-cli` when it is missing (it will not replace a hook you already pointed at another similar program).  
-4. **At the beginning**, `interactive` takes file-ownership of inbound JSON as **`dns-adm`**.  
-5. For each file, dest **fences first** (JSON format check). If the file is not a valid request, dest **explains** that in ordinary words and **does not** ask yes or no.  
-6. If the file is valid, dest shows purpose + body and asks **one** question: **yes** = approve, **no** = reject (Enter = no). There is no skip or quit.  
-7. Yes or no **moves** the file (that move assumes the ownership change in step 4). Yes also applies the dest DNS/mode verb.  
-8. Empty inbound → exit 0; the login continues to a shell.  
-9. `scp` / no TTY → the hook does nothing. `sudo -n` fail → warning; login still succeeds.  
-10. `dns-cli` with no arguments at a keyboard opens the **numbered main menu**, not review. Off-TTY (scripts, pipes) it remains **help**.
+3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-cli-hook interactive` (the **login-hook-symlink** `/usr/local/bin/${APP_NAME}-hook`). `setup` creates that short name as a symlink to `/usr/local/bin/dns-cli` when it is missing (it will not replace a hook you already pointed at another similar program). Similar dest CLIs use the same `/usr/local/bin/{{appname}}-hook` name so they can share the hook.  
+4. **At the beginning**, `interactive` keeps the **latest** waiting file per dest (`domain_id` + `subdomain`) and moves older duplicates to declined (no dest write, no yes/no).  
+5. Then `interactive` takes file-ownership of remaining inbound JSON as **`dns-adm`**.  
+6. For each remaining file, dest **fences first** (JSON format check). If the file is not a valid request, dest **explains** that in ordinary words and **does not** ask yes or no.  
+7. If the file is valid, dest shows the waiting body as **YAML** (easier to read than JSON) and asks **one** question: **yes** = approve, **no** = reject (Enter = no). There is no skip or quit. The waiting file on disk stays JSON.  
+8. Yes or no **moves** the file (that move assumes the ownership change in step 5). Yes also applies the dest DNS/mode verb.  
+9. Empty inbound → exit 0; the login continues to a shell.  
+10. `scp` / no TTY → the hook does nothing. `sudo -n` fail → warning; login still succeeds.  
+11. `dns-cli` with no arguments at a keyboard opens the **numbered main menu**, not review. Off-TTY (scripts, pipes) it remains **help**.
 
-When `dns-adm` runs `dns-cli` **interactively**, the CLI **heals** the hook: it appends the snippet to `~/.bashrc` if missing, and **creates** `~/.profile` (only if that file does not exist) so a login shell sources `.bashrc`. An existing `.profile` is never overwritten.
+When `dns-adm` runs `dns-cli` **interactively**, the CLI **heals** the hook: it appends the snippet to `~/.bashrc` if missing, **rewrites** an old `sudo -n /usr/local/bin/dns-cli interactive` line to `/usr/local/bin/dns-cli-hook`, and **creates** `~/.profile` (only if that file does not exist) so a login shell sources `.bashrc`. An existing `.profile` is never overwritten.
 
 Do not put the token in the JSON, `.bashrc`, `.profile`, or this README.
 
@@ -395,6 +396,9 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-08 — version **1.22.0** (independent login-hook requirement; `/usr/local/bin/dns-cli-hook` soft link; heal rewrites old hook).
+2026-09-06 — version **1.21.0** (login-hook `interactive` shows the waiting body as YAML).
+2026-09-06 — version **1.20.0** (login-hook `interactive` keeps the latest duplicate inbound request per dest).
 2026-09-06 — version **1.19.0** (hyphenated login in DNS request names; README people-first Features; menu invalid-choice wording).
 2026-09-03 — version **1.18.0** (main menu daily DNS work + family **sudoers** submenu).
 2026-09-03 — version **1.17.0** (TTY empty argv opens the numbered main menu; off-TTY stays help).

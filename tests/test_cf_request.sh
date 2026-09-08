@@ -377,6 +377,83 @@ run_test_cf_request() {
     _hook=$(sed -n '/^cf_req_interactive()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-11 interactive takes inbound ownership" "${_hook}" "cf_req_take_inbound_ownership"
     assert_contains "TP-CF-REQ-11 at the beginning" "${_hook}" "at the beginning"
+    _coll=$(sed -n '/^cf_req_collapse_duplicate_inbound()/,/^}/p' "${SCRIPT}")
+    _dkey=$(sed -n '/^cf_req_inbound_dest_key()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-REQ-19 interactive calls collapse" "${_hook}" "cf_req_collapse_duplicate_inbound"
+    _coll_line=$(printf '%s\n' "${_hook}" | grep -n 'cf_req_collapse_duplicate_inbound' | head -n1 | cut -d: -f1)
+    _own_line=$(printf '%s\n' "${_hook}" | grep -n 'cf_req_take_inbound_ownership' | head -n1 | cut -d: -f1)
+    if [ -n "${_coll_line}" ] && [ -n "${_own_line}" ] && [ "${_coll_line}" -lt "${_own_line}" ]; then
+        t_pass "TP-CF-REQ-19 collapse runs before take ownership"
+    else
+        t_fail "TP-CF-REQ-19 collapse must run before take ownership (collapse=${_coll_line} own=${_own_line})"
+    fi
+    assert_contains "TP-CF-REQ-19 dest key uses domain_id" "${_dkey}" 'cf_req_field "${_dkf}" "domain_id"'
+    assert_contains "TP-CF-REQ-19 dest key uses subdomain" "${_dkey}" 'cf_req_field "${_dkf}" "subdomain"'
+    assert_contains "TP-CF-REQ-19 collapse archives superseded" "${_coll}" "cf_req_drop_superseded_inbound"
+    assert_not_contains "TP-CF-REQ-19 collapse has no prompt" "${_coll}" "prompt_yes_no"
+    assert_contains "TP-CF-REQ-19 superseded note shape" "$(sed -n '/^cf_req_drop_superseded_inbound()/,/^}/p' "${SCRIPT}")" "superseded"
+    assert_not_contains "TP-CF-REQ-19 collapse has no skipped word" "${_coll}" "skipped"
+    _aprfn=$(sed -n '/^cf_req_approve()/,/^}/p' "${SCRIPT}")
+    _rejfn=$(sed -n '/^cf_req_reject()/,/^}/p' "${SCRIPT}")
+    assert_not_contains "TP-CF-REQ-19 approve does not collapse" "${_aprfn}" "cf_req_collapse_duplicate_inbound"
+    assert_not_contains "TP-CF-REQ-19 reject does not collapse" "${_rejfn}" "cf_req_collapse_duplicate_inbound"
+
+    _dq="${CI_HOME}/dupq"
+    mkdir -p "${_dq}/dns-request" "${_dq}/dns-accepted" "${_dq}/dns-declined"
+    _old="20260801-${_user}-add-1.json"
+    _new="20260903-${_user}-add-1.json"
+    _oth="20260903-${_user}-add-2.json"
+    _cf_req_write "${_dq}/dns-request/${_old}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"int-19 older dup\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.10\",
+  \"submit_app\": \"dns-cli\",
+  \"submit_version\": \"1.20.0\"
+}"
+    sleep 1
+    _cf_req_write "${_dq}/dns-request/${_new}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"int-19 latest dup\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.11\",
+  \"submit_app\": \"dns-cli\",
+  \"submit_version\": \"1.20.0\"
+}"
+    _cf_req_write "${_dq}/dns-request/${_oth}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"int-19 other dest\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"office\",
+  \"ipv4\": \"203.0.113.20\",
+  \"submit_app\": \"dns-cli\",
+  \"submit_version\": \"1.20.0\"
+}"
+    _derr=$(printf 'n\nn\nn\n' | HOME="${CI_HOME}" TTY=1 CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_dq}/dns-request" \
+        sh "${SCRIPT}" interactive 2>&1)
+    assert_eq "TP-CF-REQ-19 live exit 0" 0 "$?"
+    assert_contains "TP-CF-REQ-19 live superseded note" "${_derr}" "superseded ${_old}"
+    assert_contains "TP-CF-REQ-19 live kept latest" "${_derr}" "kept ${_new}"
+    assert_not_contains "TP-CF-REQ-19 live no skipped word" "${_derr}" "skipped"
+    assert_file_exists "TP-CF-REQ-19 live older in declined" "${_dq}/dns-declined/${_old}"
+    assert_file_missing "TP-CF-REQ-19 live older left inbound" "${_dq}/dns-request/${_old}"
+    assert_file_exists "TP-CF-REQ-19 live latest declined after no" "${_dq}/dns-declined/${_new}"
+    assert_file_exists "TP-CF-REQ-19 live other dest declined after no" "${_dq}/dns-declined/${_oth}"
+    assert_file_missing "TP-CF-REQ-19 live inbound empty" "${_dq}/dns-request/${_new}"
+    assert_file_missing "TP-CF-REQ-19 live other dest left inbound" "${_dq}/dns-request/${_oth}"
+    assert_contains "TP-CF-REQ-20 live YAML schema_version" "${_derr}" "schema_version: 1"
+    assert_contains "TP-CF-REQ-20 live YAML action" "${_derr}" "action: add"
+    assert_contains "TP-CF-REQ-20 live YAML domain_id" "${_derr}" "domain_id: example.test"
+    assert_not_contains "TP-CF-REQ-20 live no JSON object dump" "${_derr}" '"schema_version":'
     _tin=$(sed -n '/^cf_req_take_inbound_ownership()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-15 record original file-ownership" "${_tin}" "original file-ownership"
     assert_contains "TP-CF-REQ-15 take then dest_fence" "${_tin}" "cf_req_dest_fence"
@@ -386,6 +463,33 @@ run_test_cf_request() {
     assert_contains "TP-CF-REQ-12 one-off prompt_yes_no" "${_hook}" "prompt_yes_no"
     assert_contains "TP-CF-REQ-12 Approve this request" "${_hook}" "Approve this request"
     assert_contains "TP-CF-REQ-17 interactive queued by" "${_hook}" "queued by"
+    assert_contains "TP-CF-REQ-20 interactive prints YAML" "${_hook}" "cf_req_json_to_yaml"
+    assert_not_contains "TP-CF-REQ-20 interactive no field dump purpose line" "${_hook}" 'out_plain "purpose:'
+    _ymlfn=$(sed -n '/^cf_req_json_to_yaml()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-REQ-20 yaml helper python3" "${_ymlfn}" "python3"
+    assert_contains "TP-CF-REQ-20 yaml helper key colon value" "${_ymlfn}" 'print("%s: %s"'
+    assert_not_contains "TP-CF-REQ-20 yaml helper no PyYAML" "${_ymlfn}" "import yaml"
+    _ysrc="${CI_HOME}/yml-src.json"
+    _cf_req_write "${_ysrc}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"YAML display sample\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.10\",
+  \"submit_app\": \"dns-cli\",
+  \"submit_version\": \"1.21.0\"
+}"
+    _yrender=$(
+        eval "$(sed -n '/^cf_req_json_to_yaml()/,/^}/p' "${SCRIPT}")"
+        cf_req_json_to_yaml "${_ysrc}"
+    )
+    assert_eq "TP-CF-REQ-20 yaml helper exit 0" 0 "$?"
+    assert_contains "TP-CF-REQ-20 yaml helper schema_version" "${_yrender}" "schema_version: 1"
+    assert_contains "TP-CF-REQ-20 yaml helper purpose" "${_yrender}" "purpose: YAML display sample"
+    assert_contains "TP-CF-REQ-20 yaml helper ipv4" "${_yrender}" "ipv4: 203.0.113.10"
+    assert_not_contains "TP-CF-REQ-20 yaml helper not JSON dump" "${_yrender}" '"schema_version":'
     assert_not_contains "TP-CF-REQ-12 no skip/quit menu" "${_hook}" "skip / quit"
     _fence=$(sed -n '/^cf_req_dest_fence()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-13 dest fence helper" "${_fence}" "incorrect_json_format"

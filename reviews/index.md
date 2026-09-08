@@ -1,6 +1,6 @@
 # Review reports index — dns-cli
 
-**Current ship (living):** `src/dns-cli` **1.19.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; hyphenated login in DNS request names; Type 0 **test-purpose** `fence-test`; TTY main menu daily DNS work + family **sudoers** submenu; login hook **`/usr/local/bin/dns-cli-hook`**. Historical rows below keep the verdict they had on that date.
+**Current ship (living):** `src/dns-cli` **1.22.0** — inbound DNS `submit` / `approve` / `reject` / `interactive` **Implemented**; login-hook `interactive` shows the waiting body as YAML and keeps the latest duplicate inbound per dest; dest fence catalog `requirement-approval-fencing-condition`; dest Fence `requirement-incorrect-json-format`; hyphenated login in DNS request names; Type 0 **test-purpose** `fence-test`; TTY main menu daily DNS work + family **sudoers** submenu; independent login-hook REQ (`requirement-login-interactive-hook`) with soft link **`/usr/local/bin/dns-cli-hook`**. Historical rows below keep the verdict they had on that date.
 
 | Date | Report | Scope | Verdict | Suite |
 |------|--------|-------|---------|-------|
