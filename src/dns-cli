@@ -55,8 +55,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.22.0"
-: "${VERSION:=1.22.0}"
+VERSION="1.23.0"
+: "${VERSION:=1.23.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -3016,8 +3016,8 @@ cf_approver_hook_block() {
         "    && [ -z \"\${SSH_ORIGINAL_COMMAND:-}\" ]; then" \
         "    DNS_CLI_HOOK_RAN=1" \
         "    export DNS_CLI_HOOK_RAN" \
-        "    if ! sudo -n ${_hook_bin} interactive; then" \
-        "        printf '%s\\n' \"dns-cli: login review hook skipped (sudo -n failed)\" >&2" \
+        "    if ! sudo -n ${_hook_bin} interactive 2>/dev/null; then" \
+        "        printf '%s\\n' \"dns-cli: login review hook skipped (sudo -n failed). Next: as sudoer-adm, sudo sudoer-cli interactive to approve login-hook-elev.\" >&2" \
         "    fi" \
         "fi" \
         "# END dns-cli login hook"
@@ -3034,7 +3034,11 @@ cf_approver_apply_hook_to_bashrc() {
         return 0
     fi
     _old="sudo -n /usr/local/bin/${APP_NAME} interactive"
-    _new="sudo -n /usr/local/bin/${APP_NAME}-hook interactive"
+    _mid_semi="sudo -n /usr/local/bin/${APP_NAME}-hook interactive;"
+    _new="sudo -n /usr/local/bin/${APP_NAME}-hook interactive 2>/dev/null"
+    _new_semi="${_new};"
+    _old_skip="dns-cli: login review hook skipped (sudo -n failed)"
+    _new_skip="dns-cli: login review hook skipped (sudo -n failed). Next: as sudoer-adm, sudo sudoer-cli interactive to approve login-hook-elev."
     _dir=$(dirname -- "${_brc}")
     _has_begin=0
     _has_end=0
@@ -3043,14 +3047,20 @@ cf_approver_apply_hook_to_bashrc() {
         grep -q '# END dns-cli login hook' "${_brc}" 2>/dev/null && _has_end=1
     fi
     if [ "${_has_begin}" -eq 1 ] && [ "${_has_end}" -eq 1 ]; then
-        if grep -qF "${_old}" "${_brc}" 2>/dev/null; then
+        _need=0
+        grep -qF "${_old}" "${_brc}" 2>/dev/null && _need=1
+        grep -qF "${_mid_semi}" "${_brc}" 2>/dev/null && _need=1
+        if grep -qF "${_old_skip}" "${_brc}" 2>/dev/null && ! grep -qF "approve login-hook-elev" "${_brc}" 2>/dev/null; then
+            _need=1
+        fi
+        if [ "${_need}" -eq 1 ]; then
             _tmp=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || return 0
             if ! cp -p "${_brc}" "${_tmp}"; then
                 rm -f "${_tmp}"
                 return 0
             fi
             _tmp2=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || { rm -f "${_tmp}"; return 0; }
-            if ! sed "s|${_old}|${_new}|g" "${_tmp}" >"${_tmp2}"; then
+            if ! sed -e "s|${_old}|${_new}|g" -e "s|${_mid_semi}|${_new_semi}|g" -e "s|${_old_skip}\"|${_new_skip}\"|g" "${_tmp}" >"${_tmp2}"; then
                 rm -f "${_tmp}" "${_tmp2}"
                 return 0
             fi
@@ -3596,6 +3606,24 @@ lpu_install_sudoers() {
     if ! lpu_test_mode; then
         chown root:root "${_dest}" 2>/dev/null || true
     fi
+}
+
+# Type 1 interactive (euid 0) reviews dns-adm rc: old product-binary hook
+# becomes ${APP_NAME}-hook. Sibling sudoer-cli: lpu_review_old_login_hook.
+# ALIGNMENT: requirement-login-interactive-hook.md HOOK-M6
+lpu_review_old_login_hook() {
+    if [ "$(id -u 2>/dev/null || echo 1)" -ne 0 ]; then
+        return 0
+    fi
+    if lpu_test_mode; then
+        return 0
+    fi
+    lpu_resolve_home
+    if [ -z "${LPU_HOME:-}" ] || [ ! -d "${LPU_HOME}" ]; then
+        return 0
+    fi
+    lpu_ensure_login_hook_symlink
+    lpu_heal_home_rc "${LPU_HOME}"
 }
 
 lpu_heal_home_rc() {
@@ -4435,6 +4463,7 @@ lpu_setup() {
     lpu_install_sudoers
     lpu_ensure_login_hook_symlink
     lpu_heal_home_rc "${_home}"
+    lpu_review_old_login_hook
     cf_req_install_trio
     lpu_submit_login_hook_sudoer_request
     _dest=$(lpu_sudoers_dest)
@@ -6445,6 +6474,7 @@ cf_req_interactive() {
     if [ "${JSON}" -eq 1 ] || [ "${TTY}" -ne 1 ]; then
         out_die_code confirm_required "interactive requires a TTY. Do not use --json. Next: log in as $(lpu_user) or run without --json on a terminal"
     fi
+    lpu_review_old_login_hook
     _in=""
     if ! _in=$(cf_req_detect_inbound); then
         out_info "no pending requests"

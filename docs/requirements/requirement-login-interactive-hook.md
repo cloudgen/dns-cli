@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-login-interactive-hook.md  
-**Status**: Active (Version 1.0.0) — independent login-hook plant; `/usr/local/bin/${APP_NAME}-hook` soft link  
+**Status**: Active (Version 1.1.0) — Type 1 `interactive` reviews `dns-adm` rc; sudo -n fail names login-hook-elev next  
 **Area**: architecture  
 **Key**: `requirement-login-interactive-hook`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -45,7 +45,9 @@ The `-hook` name is a **shared convention**: similar dest CLIs plant `/usr/local
 
 ### 2.1 When this file applies
 
-**HOOK-M1.** This product **claims** login-time review. After a **TTY login** as **`dns-adm`**, a hook **MUST** run **`sudo -n /usr/local/bin/dns-cli-hook interactive`** **once** per session. Empty argv of `dns-cli` **MUST** remain help. `scp` / `SSH_ORIGINAL_COMMAND` / non-TTY **MUST** skip. `sudo -n` fail **MUST** warn on stderr and **MUST NOT** block login (`exit` from the login shell is forbidden). Dest review after launch is `requirement-dns-actor-table` ACT-M4.
+**HOOK-M1.** This product **claims** login-time review. After a **TTY login** as **`dns-adm`**, a hook **MUST** run **`sudo -n /usr/local/bin/dns-cli-hook interactive`** **once** per session. Empty argv of `dns-cli` **MUST** remain help. `scp` / `SSH_ORIGINAL_COMMAND` / non-TTY **MUST** skip. `sudo -n` fail **MUST** warn on stderr and **MUST NOT** block login (`exit` from the login shell is forbidden). The snippet **MUST** redirect that `sudo -n` stderr (`2>/dev/null`) so sudo’s `a password is required` does **not** look like a password prompt, then print a human next step: dest-approve **`login-hook-elev`** via sibling `sudoer-cli interactive` as `sudoer-adm`. Dest review after launch is `requirement-dns-actor-table` ACT-M4.
+
+This product’s F6 (`%sudo ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli`) is **not** that grant. Sibling `sudoer-cli` F6 grants `sudoer-adm ALL=(root) NOPASSWD: …-hook` because that product dest-writes `/etc/sudoers.d`. This product **MUST NOT** dest-write `/etc/sudoers.d` and **MUST NOT** copy whole-CLI-as-root onto F6. The live hook grant stays sibling dest `/etc/sudoers.d/dns-cli-dns-adm` after `login-hook-elev` approve.
 
 ### 2.2 Login-hook-symlink (`/usr/local/bin/{{appname}}-hook`)
 
@@ -64,7 +66,9 @@ The `-hook` name is a **shared convention**: similar dest CLIs plant `/usr/local
 **HOOK-M4.** When the process is **interactive** (`TTY=1`) **and** `JSON` is not 1 **and** `id -un` equals `dns-adm` (or test override `CF_APPROVER_USER`):
 
 1. **Check** the **`dns-adm`** account home `${HOME}/.bashrc` for `# BEGIN dns-cli login hook` … `# END dns-cli login hook`. If missing, **append** the complete snippet in §2.5 (uses `/usr/local/bin/dns-cli-hook`). Create `.bashrc` if absent. **MUST NOT** duplicate the block.  
-2. **HOOK-M5. Old-hook rewrite (sacred).** If the block is present and still runs `sudo -n /usr/local/bin/dns-cli interactive` (the **old** hook), **rewrite** that line to `sudo -n /usr/local/bin/dns-cli-hook interactive`. Already on the `-hook` name → no-op. Type 1 `setup` **MUST** run the same check on the `dns-adm` home.  
+2. **HOOK-M5. Old-hook rewrite (sacred).** If the block is present and still runs `sudo -n /usr/local/bin/dns-cli interactive` (the **old** hook), **rewrite** that line to `sudo -n /usr/local/bin/dns-cli-hook interactive 2>/dev/null`. If the line already uses the `-hook` name but lacks `2>/dev/null` or the skip next-step, **rewrite** those. Already complete → no-op. Type 1 `setup` **MUST** run the same check on the `dns-adm` home.
+
+**HOOK-M6. Type 1 `interactive` reviews `dns-adm` rc (sibling-aligned).** When euid is 0, dest `interactive` **MUST** review the dedicated approver home (not the invoker’s `HOME`): ensure the login-hook-symlink, then run the same heal as HOOK-M4/M5 on that home. `CF_TEST_LPU=1` **MUST NOT** write the live `dns-adm` home. Non-root `interactive` **MUST NOT** inspect another user’s rc. Invocation: `sudo dns-cli interactive`. Peer: sibling `sudoer-cli` `lpu_review_old_login_hook`.  
 3. **Check** `${HOME}/.profile`.  
    - **Does not exist:** **create** it with the §2.6 profile body (bash login shells **source** `.bashrc`).  
    - **Exists:** **MUST NOT** overwrite.  
@@ -79,6 +83,7 @@ The `-hook` name is a **shared convention**: similar dest CLIs plant `/usr/local
 
 ```sh
 dns-cli interactive
+sudo dns-cli interactive
 sudo -n /usr/local/bin/dns-cli-hook interactive
 sudo dns-cli setup
 ```
@@ -99,8 +104,8 @@ if [ -z "${DNS_CLI_HOOK_RAN:-}" ] \
     && [ -z "${SSH_ORIGINAL_COMMAND:-}" ]; then
     DNS_CLI_HOOK_RAN=1
     export DNS_CLI_HOOK_RAN
-    if ! sudo -n /usr/local/bin/dns-cli-hook interactive; then
-        printf '%s\n' "dns-cli: login review hook skipped (sudo -n failed)" >&2
+    if ! sudo -n /usr/local/bin/dns-cli-hook interactive 2>/dev/null; then
+        printf '%s\n' "dns-cli: login review hook skipped (sudo -n failed). Next: as sudoer-adm, sudo sudoer-cli interactive to approve login-hook-elev." >&2
     fi
 fi
 # END dns-cli login hook
@@ -146,7 +151,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | **Hook variable** | `DNS_CLI_HOOK_RAN` |
 | **Rc heal** | **Implemented** on `src/dns-cli` (`cf_approver_heal_login_rc` / `cf_approver_apply_hook_to_bashrc`); `setup` also heals the new home (`lpu_heal_home_rc`) and ensures the symlink (`lpu_ensure_login_hook_symlink`) |
 | **Test override** | `CF_APPROVER_USER` (default `dns-adm`); `CF_TEST_HEAL_RC=1` skips TTY for suite; `CF_TEST_LPU=1` skips live `/usr/local/bin` |
-| **Proof** | **TP-CF-APR-01..08** · **TP-LPU-08** |
+| **Proof** | **TP-CF-APR-01..09** · **TP-LPU-08** |
 
 ### 2.9 Why This Requirement Exists (Direct CIAO Alignment)
 
@@ -178,7 +183,9 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 5. Hang `scp` / CI (`sudo` without `-n`, or `exit` on `sudo -n` fail).  
 6. Put a token in `.bashrc` or `.profile`.  
 7. Leave `.bashrc` / `.profile` owned by root (or the writer) after heal.  
-8. Leave an old `sudo -n /usr/local/bin/dns-cli interactive` line in the `dns-adm` `.bashrc` after heal.  
+8. Leave an old `sudo -n /usr/local/bin/dns-cli interactive` line in the `dns-adm` `.bashrc` after heal or Type 1 `interactive`.  
+8a. Let sudo’s `a password is required` be the only skip text (hide it; print the `login-hook-elev` next step).  
+8b. Skip Type 1 `interactive` review of `dns-adm` rc when euid is 0.  
 9. Overwrite an existing `/usr/local/bin/dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.  
 10. Treat rc heal as the `login-hook-elev` grant.  
 11. Unlink the global `-hook` name from `remove-lpu`.
@@ -199,6 +206,8 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | AC-HOOK8 | Heal of the `dns-adm` account rewrites old `/usr/local/bin/dns-cli` hook line to `/usr/local/bin/dns-cli-hook` |
 | AC-HOOK9 | Setup creates `dns-cli-hook` only when missing; test-mode does not write live `/usr/local/bin` |
 | AC-HOOK10 | Host admin MAY retarget an existing `dns-cli-hook`; this product MUST NOT overwrite it |
+| AC-HOOK11 | Snippet `sudo -n` redirects stderr; skip names `login-hook-elev` next via `sudoer-cli interactive` |
+| AC-HOOK12 | Type 1 `interactive` (euid 0) calls `lpu_review_old_login_hook`; test-mode skips live home |
 
 ---
 
@@ -229,6 +238,7 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 | **TP-CF-APR-06** | test_cf_approver | have | second heal idempotent |
 | **TP-CF-APR-07** | test_cf_approver | have | heal calls `util_align_rc_owner` (corresponding user) |
 | **TP-CF-APR-08** | test_cf_approver | have | heal rewrites old `/usr/local/bin/dns-cli` hook path to `dns-cli-hook` |
+| **TP-CF-APR-09** | test_cf_approver | have | Type 1 `interactive` reviews `dns-adm` rc (`lpu_review_old_login_hook`); snippet skip names login-hook-elev |
 | **TP-LPU-08** | `tests/test_cf_lpu.sh` | have | L-M15 login-hook-symlink helper; test-mode skips live `/usr/local/bin` |
 
 **Map:** `reviews/test-plan.md`
@@ -239,10 +249,11 @@ Session `DNS_CLI_HOOK_RAN` **MUST** prevent a second `interactive` if both login
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-08 | Active 1.1.0 | HOOK-M1 skip hides sudo password-required and names `login-hook-elev` next. HOOK-M6 Type 1 `interactive` reviews `dns-adm` rc (sibling `lpu_review_old_login_hook`). **TP-CF-APR-09**. |
 | 2026-09-08 | Active 1.0.0 | Independent login-hook REQ. Soft link `/usr/local/bin/${APP_NAME}-hook` so similar apps can utilize the hook. Heal of `dns-adm` rewrites old `dns-cli interactive` to `dns-cli-hook`. Split from `requirement-dns-approver`. |
 
 ---
 
-**Last Updated**: 2026-09-08  
+**Last Updated**: 2026-09-08 (1.1.0)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

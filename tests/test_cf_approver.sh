@@ -24,8 +24,9 @@ run_test_cf_approver() {
     assert_contains "TP-CF-APR-01 hook begin" "${_brc}" "# BEGIN dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook end" "${_brc}" "# END dns-cli login hook"
     assert_contains "TP-CF-APR-01 hook sudo -n" "${_brc}" "sudo -n"
-    assert_contains "TP-CF-APR-01 hook production bin" "${_brc}" "sudo -n /usr/local/bin/dns-cli-hook interactive"
-    assert_not_contains "TP-CF-APR-01 no old binary hook" "${_brc}" "sudo -n /usr/local/bin/dns-cli interactive"
+    assert_contains "TP-CF-APR-01 hook production bin" "${_brc}" "sudo -n /usr/local/bin/dns-cli-hook interactive 2>/dev/null"
+    assert_not_contains "TP-CF-APR-01 no old binary hook" "${_brc}" "sudo -n /usr/local/bin/dns-cli interactive;"
+    assert_contains "TP-CF-APR-01 skip next-step" "${_brc}" "approve login-hook-elev"
     assert_contains "TP-CF-APR-01 hook interactive" "${_brc}" "interactive"
     assert_file_exists "TP-CF-APR-02 .profile created" "${_home}/.profile"
     _prf=$(cat "${_home}/.profile")
@@ -59,8 +60,9 @@ EOF
     printf '%s\n' "${_old_block}" >"${_home}/.bashrc"
     sh "${SCRIPT}" version >/dev/null 2>&1
     _rew=$(cat "${_home}/.bashrc")
-    assert_contains "TP-CF-APR-08 rewrote hook path" "${_rew}" "sudo -n /usr/local/bin/dns-cli-hook interactive"
-    assert_not_contains "TP-CF-APR-08 old path gone" "${_rew}" "sudo -n /usr/local/bin/dns-cli interactive"
+    assert_contains "TP-CF-APR-08 rewrote hook path" "${_rew}" "sudo -n /usr/local/bin/dns-cli-hook interactive 2>/dev/null"
+    assert_not_contains "TP-CF-APR-08 old path gone" "${_rew}" "sudo -n /usr/local/bin/dns-cli interactive;"
+    assert_contains "TP-CF-APR-08 skip next-step" "${_rew}" "approve login-hook-elev"
     assert_contains "TP-CF-APR-08 kept operator text" "${_rew}" "keep-operator-text"
     _n3=$(grep -c '# BEGIN dns-cli login hook' "${_home}/.bashrc")
     assert_eq "TP-CF-APR-08 no duplicate block" "1" "${_n3}"
@@ -82,6 +84,15 @@ EOF
     _align=$(sed -n '/^util_align_rc_owner()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-APR-07 align helper chown" "${_align}" "chown"
     assert_contains "TP-CF-APR-07 corresponding user" "${_align}" "Corresponding user"
+
+    _intfn=$(sed -n '/^cf_req_interactive()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-APR-09 interactive reviews old hook" "${_intfn}" "lpu_review_old_login_hook"
+    _revfn=$(sed -n '/^lpu_review_old_login_hook()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-APR-09 review helper euid 0" "${_revfn}" 'id -u'
+    assert_contains "TP-CF-APR-09 review helper heals LPU home" "${_revfn}" "lpu_heal_home_rc"
+    assert_contains "TP-CF-APR-09 review helper skips test-mode" "${_revfn}" "lpu_test_mode"
+    _setupfn=$(sed -n '/^lpu_setup()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-APR-09 setup reviews old hook" "${_setupfn}" "lpu_review_old_login_hook"
 
     unset CF_TEST_HEAL_RC
     unset CF_APPROVER_USER

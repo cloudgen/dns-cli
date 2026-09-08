@@ -3,7 +3,7 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.22.0  
+**Product VERSION:** 1.23.0  
 **Last plan update:** 2026-09-06  
 **Last suite run:** PASS=799 FAIL=0 SKIP=1 (2026-09-06; **TP-CF-REQ-20** YAML review display have; **TP-FENCE-07** skip live sibling dest `kind`)
 
@@ -104,6 +104,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-login-interactive-hook | **have** |
 | TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-login-interactive-hook | **have** |
 | TP-CF-APR-08 | heal rewrites old `/usr/local/bin/dns-cli` hook line to `dns-cli-hook` | test_cf_approver | requirement-login-interactive-hook HOOK-M5 | **have** |
+| TP-CF-APR-09 | Type 1 `interactive` reviews `dns-adm` rc; snippet skip names `login-hook-elev` | test_cf_approver | requirement-login-interactive-hook HOOK-M1 · HOOK-M6 | **have** |
 
 ### TP-LC (local lifecycle)
 

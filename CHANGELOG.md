@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.23.0] - 2026-09-08
+
+### Changed
+
+- Login-hook `sudo -n` skip hides sudo’s `a password is required` and names the next step: as `sudoer-adm`, `sudo sudoer-cli interactive` to approve **`login-hook-elev`**. Type 1 `interactive` (euid 0) reviews `dns-adm` rc (`lpu_review_old_login_hook`) like sibling `sudoer-cli`. Does **not** copy sibling F6 whole-CLI-as-root. Law `requirement-login-interactive-hook` **1.1.0**. **TP-CF-APR-09**. Ship unit **`VERSION="1.23.0"`**.
+
 ## [1.22.0] - 2026-09-08
 
 ### Changed

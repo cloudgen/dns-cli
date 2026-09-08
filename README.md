@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.22.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.23.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -72,7 +72,7 @@ sudo dns-cli setup
 **Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Off-TTY these commands print help. `sudoers` is not a typed CLI command.
 
 ```text
-[INFO] **dns-cli**(*1.22.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.23.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -216,7 +216,7 @@ This table is **DNS inbound only**. Sudoer print / JSON submit uses the next tab
 7. If the file is valid, dest shows the waiting body as **YAML** (easier to read than JSON) and asks **one** question: **yes** = approve, **no** = reject (Enter = no). There is no skip or quit. The waiting file on disk stays JSON.  
 8. Yes or no **moves** the file (that move assumes the ownership change in step 5). Yes also applies the dest DNS/mode verb.  
 9. Empty inbound → exit 0; the login continues to a shell.  
-10. `scp` / no TTY → the hook does nothing. `sudo -n` fail → warning; login still succeeds.  
+10. `scp` / no TTY → the hook does nothing. `sudo -n` fail → warning with next step (`sudoer-cli interactive` as `sudoer-adm` to approve `login-hook-elev`); login still succeeds. That grant is **not** F6 (`%sudo ALL=(dns-adm)`).  
 11. `dns-cli` with no arguments at a keyboard opens the **numbered main menu**, not review. Off-TTY (scripts, pipes) it remains **help**.
 
 When `dns-adm` runs `dns-cli` **interactively**, the CLI **heals** the hook: it appends the snippet to `~/.bashrc` if missing, **rewrites** an old `sudo -n /usr/local/bin/dns-cli interactive` line to `/usr/local/bin/dns-cli-hook`, and **creates** `~/.profile` (only if that file does not exist) so a login shell sources `.bashrc`. An existing `.profile` is never overwritten.
@@ -396,6 +396,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-08 — version **1.23.0** (login-hook skip names `login-hook-elev` next; Type 1 `interactive` reviews `dns-adm` rc).
 2026-09-08 — version **1.22.0** (independent login-hook requirement; `/usr/local/bin/dns-cli-hook` soft link; heal rewrites old hook).
 2026-09-06 — version **1.21.0** (login-hook `interactive` shows the waiting body as YAML).
 2026-09-06 — version **1.20.0** (login-hook `interactive` keeps the latest duplicate inbound request per dest).
