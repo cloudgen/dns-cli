@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.25.0] - 2026-09-13
+
+### Changed
+
+- Login doorbell for `dns-adm` is **`/usr/local/bin/dns-review-hooks`** (not leftover `dns-cli-hook`, not sibling `login-review-hook`). Setup creates that symlink to `/usr/local/bin/dns-cli` when missing and does not overwrite. Heal and Type 1 `interactive` rewrite old `dns-cli interactive`, `dns-cli-hook`, and `login-review-hook` rc lines. `login-hook-elev` emit path is `dns-review-hooks`. This product still does **not** dest-write `/etc/sudoers.d`. Law `requirement-login-interactive-hook` **1.2.0**. **TP-CF-APR-08** · **TP-CF-APR-09** · **TP-LPU-08** · **TP-SUDOER-JSON-11**. Ship unit **`VERSION="1.25.0"`**.
+
 ## [1.24.0] - 2026-09-13
 
 ### Changed

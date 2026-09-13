@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-sudoer-json-file.md  
-**Status**: Active (Version 1.12.0) — login-hook-elev path is `/usr/local/bin/dns-cli-hook`  
+**Status**: Active (Version 1.13.0) — login-hook-elev path is `/usr/local/bin/dns-review-hooks`  
 **Area**: architecture  
 **Key**: `requirement-sudoer-json-file`  
 **Optional RQ-ID**: `RQ-SUDOER-JSON-FILE`  
@@ -14,11 +14,11 @@ This requirement is the **product Single Source of Truth** for the **JSON-type s
 | **`type-2-switch`** | Invoking login (example `alice`) | `dns-adm` | `[]` | Type 0 `generate-sudoer-request` / `submit-sudoer-request` (self-scope) |
 | **`login-hook-elev`** | LPU `dns-adm` | `root` | `["interactive"]` | Type 1 `setup` **automatically** when sibling `sudoer-cli` + `sudoer-adm` + inbound exist. Type 0 submit **MUST** refuse this kind |
 
-They are **not** the same dest, **not** the same subject, and **MUST NOT** be collapsed. The Type 2 switch lets the current user run `sudo -u dns-adm dns-cli …`. The login-hook grant lets the rc hook run `sudo -n /usr/local/bin/dns-cli-hook interactive`.
+They are **not** the same dest, **not** the same subject, and **MUST NOT** be collapsed. The Type 2 switch lets the current user run `sudo -u dns-adm dns-cli …`. The login-hook grant lets the rc hook run `sudo -n /usr/local/bin/dns-review-hooks interactive`.
 
 dns-cli **is** a **sudoer-approval-submitter**. It **is not** a sudoers-manager. Sibling dest (`sudoer-cli` / `sudoer-adm`) owns inbound, approve, and any write under `/etc/sudoers.d`. This product **MUST NOT** `mkdir` that inbound, approve, or write `/etc/sudoers.d`.
 
-`type-2-switch` **MUST** name **`/usr/local/bin/dns-cli`**. `login-hook-elev` **MUST** name the **login-hook-symlink** **`/usr/local/bin/dns-cli-hook`**. They **MUST NOT** allowlist other shell or OS tools. They **MUST NOT** grant Type 1 `setup` / `remove-lpu` (password `sudo` stays the approval) or Type 0 verbs. `login-hook-elev` **MUST** stay verb-bound to `interactive` — whole-CLI-as-root is forbidden. The host admin **MAY** retarget `dns-cli-hook` at another similar program; this product **MUST NOT** overwrite an existing hook name.
+`type-2-switch` **MUST** name **`/usr/local/bin/dns-cli`**. `login-hook-elev` **MUST** name the **login-hook-symlink** **`/usr/local/bin/dns-review-hooks`**. They **MUST NOT** allowlist other shell or OS tools. They **MUST NOT** grant Type 1 `setup` / `remove-lpu` (password `sudo` stays the approval) or Type 0 verbs. `login-hook-elev` **MUST** stay verb-bound to `interactive` — whole-CLI-as-root is forbidden. The host admin **MAY** retarget `dns-review-hooks` at another similar program; this product **MUST NOT** overwrite an existing common name.
 
 This file does **not** own:
 
@@ -108,7 +108,7 @@ This product runs **two** Type 0 sudoer surfaces **and** one Type 1 auto-queue. 
 | Kind / dual | JSON `username` | Installed dest after sibling approve | What it allows |
 |-------------|-----------------|--------------------------------------|----------------|
 | **`type-2-switch`** | Invoker (`id -un`, example `alice`) | `/etc/sudoers.d/dns-cli-<user>` (example `dns-cli-alice`) | `sudo -n -u dns-adm /usr/local/bin/dns-cli …` |
-| **`login-hook-elev`** | LPU `dns-adm` | `/etc/sudoers.d/dns-cli-dns-adm` | `sudo -n /usr/local/bin/dns-cli-hook interactive` |
+| **`login-hook-elev`** | LPU `dns-adm` | `/etc/sudoers.d/dns-cli-dns-adm` | `sudo -n /usr/local/bin/dns-review-hooks interactive` |
 | **F6 group dual** (not JSON) | n/a — `%sudo` | `/etc/dns-adm/sudoers` (Type 1 `setup` / `print-sudoers`) | `%sudo ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli` |
 
 Type 1 `setup` / account create queues **`login-hook-elev`**. After approve the dest is **`dns-cli-dns-adm`**. **MUST NOT** describe setup as writing `dns-cli-<invoker>`.
@@ -163,8 +163,8 @@ This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Typ
 
 | Rule | Detail |
 |------|--------|
-| **Identity** | `type-2-switch` `commands[].path` **MUST** be `/usr/local/bin/dns-cli`. `login-hook-elev` `commands[].path` **MUST** be `/usr/local/bin/dns-cli-hook`. **MUST NOT** copy `$GLOBAL_BIN` (install isolation / CI `.ci-homes/…/gbin`). Incident **INC-20260821-001** |
-| **Basename** | `type-2-switch`: `dns-cli`. `login-hook-elev`: `dns-cli-hook` |
+| **Identity** | `type-2-switch` `commands[].path` **MUST** be `/usr/local/bin/dns-cli`. `login-hook-elev` `commands[].path` **MUST** be `/usr/local/bin/dns-review-hooks`. **MUST NOT** copy `$GLOBAL_BIN` (install isolation / CI `.ci-homes/…/gbin`). Incident **INC-20260821-001** |
+| **Basename** | `type-2-switch`: `dns-cli`. `login-hook-elev`: `dns-review-hooks` |
 | **Service** | JSON `service` **MUST** equal `dns-cli` |
 | **One program** | **MUST NOT** list any other executable |
 | **No local binary** | **MUST NOT** elevate `${HOME}/.local/bin/dns-cli` |
@@ -189,7 +189,7 @@ This product **MUST NOT** write `/etc/sudoers.d`. Sibling dest write is dest Typ
 | `commands` | array | yes | Exactly one object |
 | `commands[].runas` | string | yes | `type-2-switch`: `dns-adm`. `login-hook-elev`: `root` |
 | `commands[].tags` | array | yes | `["NOPASSWD"]` |
-| `commands[].path` | string | yes | `type-2-switch`: `/usr/local/bin/dns-cli`. `login-hook-elev`: `/usr/local/bin/dns-cli-hook` |
+| `commands[].path` | string | yes | `type-2-switch`: `/usr/local/bin/dns-cli`. `login-hook-elev`: `/usr/local/bin/dns-review-hooks` |
 | `commands[].args` | array | yes | `type-2-switch`: `[]`. `login-hook-elev`: `["interactive"]` |
 
 **MUST NOT** include `token`, `CF_API_TOKEN`, `setup`, `remove-lpu`, `install`, or OS-tool paths. `kind` is **not** `action` and **not** a DNS request type.
@@ -236,7 +236,7 @@ Normative **`login-hook-elev` add** JSON:
 {
   "schema_version": 1,
   "kind": "login-hook-elev",
-  "purpose": "Allow dns-adm login hook to run dns-cli-hook interactive via sudo -n.",
+  "purpose": "Allow dns-adm login hook to run dns-review-hooks interactive via sudo -n.",
   "username": "dns-adm",
   "service": "dns-cli",
   "action": "add",
@@ -244,7 +244,7 @@ Normative **`login-hook-elev` add** JSON:
     {
       "runas": "root",
       "tags": ["NOPASSWD"],
-      "path": "/usr/local/bin/dns-cli-hook",
+      "path": "/usr/local/bin/dns-review-hooks",
       "args": ["interactive"]
     }
   ]
@@ -263,8 +263,8 @@ alice ALL=(dns-adm) NOPASSWD: /usr/local/bin/dns-cli
 Equivalent **text dual** of the **login-hook** grant (sibling dest `/etc/sudoers.d/dns-cli-dns-adm` after approve — not F6):
 
 ```text
-# Purpose: Allow dns-adm login hook to run dns-cli-hook interactive via sudo -n.
-dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-cli-hook interactive
+# Purpose: Allow dns-adm login hook to run dns-review-hooks interactive via sudo -n.
+dns-adm ALL=(root) NOPASSWD: /usr/local/bin/dns-review-hooks interactive
 ```
 
 F6 text dual (Type 1 `setup` / `print-sudoers`; **not** either JSON dest):
@@ -281,7 +281,7 @@ F6 text dual (Type 1 `setup` / `print-sudoers`; **not** either JSON dest):
 2. `submit-sudoer-request` **MUST** detect `sudoer-cli` + `sudoer-adm` + inbound; fail closed if missing (next: `sudo sudoer-cli setup`). **MUST NOT** `mkdir` inbound. **MUST** refuse `kind=login-hook-elev` and any body whose `username` ≠ `id -un`.  
 3. Prefer a file from generate. No file → compact **`type-2-switch`** body for the invoker.  
 4. Default action for Type 0 submit: **update** when `/etc/sudoers.d/dns-cli-<user>` exists; else **add**. `--add` / `--update` override. F6 dest `/etc/dns-adm/sudoers` **MUST NOT** count as that probe.  
-5. **MUST** fail closed if an input file’s `commands` contain a forbidden path, `service` ≠ `dns-cli`, a `type-2-switch` with `runas` ≠ `dns-adm`, or a `login-hook-elev` with `runas` ≠ `root` or `args` ≠ `["interactive"]`. Emit **MUST** set `type-2-switch` `commands[].path` to `/usr/local/bin/dns-cli` and `login-hook-elev` `commands[].path` to `/usr/local/bin/dns-cli-hook`. **MUST NOT** copy `$GLOBAL_BIN`.  
+5. **MUST** fail closed if an input file’s `commands` contain a forbidden path, `service` ≠ `dns-cli`, a `type-2-switch` with `runas` ≠ `dns-adm`, or a `login-hook-elev` with `runas` ≠ `root` or `args` ≠ `["interactive"]`. Emit **MUST** set `type-2-switch` `commands[].path` to `/usr/local/bin/dns-cli` and `login-hook-elev` `commands[].path` to `/usr/local/bin/dns-review-hooks`. **MUST NOT** copy `$GLOBAL_BIN`.  
 6. When inbound `${request_id}` is readable, **MUST** fail closed if `service`, `path`, `runas`, or `kind` (when present) is inconsistent.  
 7. Trust-tier: production requires global managed `/usr/local/bin/dns-cli`. Otherwise `--allow-test-local` / `ALLOW_TEST_LOCAL_SUDOERS=1`.  
 8. Type 1 `setup` **MUST** auto-queue `login-hook-elev` when sibling CLI + `sudoer-adm` + writable inbound exist. Action **update** when `/etc/sudoers.d/dns-cli-dns-adm` exists; else **add**. **MUST** write the JSON into inbound with dest request-id grammar (`sudoer-YYYYMMDD-dns-cli-dns-adm-<action>-<n>.json`). **MUST NOT** `chown` dest inbound (SJ-M5 — dest `sudoer-adm` takes ownership). **MUST NOT** call dest Type 0 `add-sudoer-request` / `update-sudoer-request` for this grant (SJ-M3: dest Type 0 self-scope is a **blockage**, not dest approval). Missing sibling → skip (setup succeeds). Queue fail → warn; setup still succeeds. **MUST NOT** write `/etc/sudoers.d` as a fallback. `--json` **MUST** include `login_hook_sudoer` = `submitted` \| `skipped` \| `failed`. **SJ-M6:** `CF_TEST_LPU=1` **MUST NOT** write live dest inbound unless `SUDOER_QUEUE_INBOUND` is set (explicit stub). Missing stub → skip.
@@ -333,7 +333,7 @@ sudo dns-cli setup
 
 - **CIAO Principle 10 – Least privilege**: Grant is one managed binary as `dns-adm`, not root and not OS tools.  
 - **CIAO Principle 1 – Caution**: Type 0 never writes `/etc/sudoers.d`; sibling re-validates.  
-- **CIAO Principle 2 – Intentional**: `kind=type-2-switch` means “this login may run `dns-cli` as `dns-adm`.” `kind=login-hook-elev` means “`dns-adm` may `sudo -n dns-cli-hook interactive`.”  
+- **CIAO Principle 2 – Intentional**: `kind=type-2-switch` means “this login may run `dns-cli` as `dns-adm`.” `kind=login-hook-elev` means “`dns-adm` may `sudo -n dns-review-hooks interactive`.”  
 - **CIAO Principle 9 – Type 0 / 1 / 2**: Submit is Type 0; approve is sibling Type 1; day-to-day is Type 2.  
 - **CIAO Principle 21 – Dual policies**: Placeholders in the mold; this file fills `dns-cli` / `dns-adm`.
 
@@ -365,7 +365,7 @@ sudo dns-cli setup
 5f. Tell dest `sudoer-cli` to fence on file-ownership (owner ≠ JSON `username`). Dest **takes** ownership as `sudoer-adm`.  
 5g. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `username` ≠ dest LPU).  
 5h. From `CF_TEST_LPU=1` `setup` / Type 0 submit, write live dest inbound when `SUDOER_QUEUE_INBOUND` is unset (SJ-M6).  
-5i. Emit `login-hook-elev` `commands[].path` as `/usr/local/bin/dns-cli` (it **MUST** be `/usr/local/bin/dns-cli-hook`), overwrite an existing `dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.  
+5i. Emit `login-hook-elev` `commands[].path` as `/usr/local/bin/dns-cli` or leftover `dns-cli-hook` (it **MUST** be `/usr/local/bin/dns-review-hooks`), overwrite an existing `dns-review-hooks`, or create that live symlink from `CF_TEST_LPU=1`.  
 6. Claim generate/submit are trimmed sudoers-manager extras.  
 7. Make submit, inbound, or a deleted temp the only way to obtain this JSON.  
 8. Store tokens in the JSON body.  
@@ -380,7 +380,7 @@ sudo dns-cli setup
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `type-2-switch` `commands[].path` is `/usr/local/bin/dns-cli`; `login-hook-elev` path is `/usr/local/bin/dns-cli-hook` |
+| AC-1 | `type-2-switch` `commands[].path` is `/usr/local/bin/dns-cli`; `login-hook-elev` path is `/usr/local/bin/dns-review-hooks` |
 | AC-2 | `service` equals `dns-cli`; `type-2-switch` `runas` equals `dns-adm`; `login-hook-elev` `runas` equals `root` |
 | AC-3 | `type-2-switch` `args` is `[]`; `login-hook-elev` `args` is `["interactive"]` |
 | AC-4 | No OS-tool basename in `path` or `args` |
@@ -455,6 +455,7 @@ sudo dns-cli setup
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-13 | Active 1.13.0 | `login-hook-elev` path is `/usr/local/bin/dns-review-hooks` (not leftover `dns-cli-hook`); type-2-switch stays `/usr/local/bin/dns-cli` |
 | 2026-09-03 | Active 1.12.0 | `login-hook-elev` path is `/usr/local/bin/dns-cli-hook`; type-2-switch stays `/usr/local/bin/dns-cli` |
 | 2026-09-01 | Active 1.11.0 | SJ-M6: `CF_TEST_LPU=1` MUST NOT write live dest inbound unless stub `SUDOER_QUEUE_INBOUND` (INC-20260821-001) |
 | 2026-09-01 | Active 1.10.0 | Grant path pin: emit/verify MUST NOT copy `$GLOBAL_BIN` (INC-20260821-001) |
@@ -471,6 +472,6 @@ sudo dns-cli setup
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-13  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.14.0) — L-M15 login-hook-symlink topic-owner is `requirement-login-interactive-hook`  
+**Status**: Active (Version 1.15.0) — L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -12,7 +12,7 @@ The operator is **`dns-adm`**. It owns **one** host vault with **N domains**. Ea
 
 Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `requirement-three-layer-privilege-model`. Vault **schema** (multi-account, per-domain-id token, subdomains) lives in `requirement-cloudflare-vault`. Default vault **path** lives in `requirement-application-local-vault`. This file owns **who** `dns-adm` is (F1–F7).
 
-`dns-adm` **is** the approver for inbound DNS request JSON (`requirement-dns-actor-table`). Approval-subject: Cloudflare DNS request (`add` / `update` / `remove` / `mode`). **Anyone** may submit. **MUST NOT** invent a second approver account. Login-hook heal (`.bashrc` / missing `.profile` / old-hook rewrite) and `/usr/local/bin/${APP_NAME}-hook` are `requirement-login-interactive-hook`. Approver identity is `requirement-dns-approver`.
+`dns-adm` **is** the approver for inbound DNS request JSON (`requirement-dns-actor-table`). Approval-subject: Cloudflare DNS request (`add` / `update` / `remove` / `mode`). **Anyone** may submit. **MUST NOT** invent a second approver account. Login-hook heal (`.bashrc` / missing `.profile` / old-hook rewrite) and `/usr/local/bin/dns-review-hooks` are `requirement-login-interactive-hook`. Approver identity is `requirement-dns-approver`.
 
 `dns-adm` **is not** the sudoer-JSON approver. Print sudoer file (`print-sudoers`) and JSON generate/submit roles live in `requirement-sudoer-json-file` §2.0. Sibling approver is **`sudoer-adm`**.
 
@@ -128,7 +128,7 @@ Absent account → success no-op.
 
 **L-M9.** `setup` **MUST NOT** require `SUDO_USER` to already be `dns-adm`. Re-run when the account exists: success no-op for useradd; still heal home mode, F5 dir, F6 dest, login-hook rc, and the login-hook-symlink. After any create or modify of that home’s `.bashrc` / `.profile` (and the same rc class), dest **MUST** align **shell-rc file ownership** to **`dns-adm`**. Writer euid **MUST NOT** remain the owner. This is **not** queue file-ownership (L-M13).
 
-**L-M15. Login-hook-symlink.** When `/usr/local/bin/dns-cli` exists, Type 1 `setup` **MUST** create the **login-hook-symlink** `/usr/local/bin/dns-cli-hook` → `/usr/local/bin/dns-cli` if that name is absent. **MUST NOT** overwrite an existing `dns-cli-hook` (the host admin **MAY** point it at another similar program). `CF_TEST_LPU=1` **MUST NOT** create the live symlink. Rc heal **MUST** write `/usr/local/bin/dns-cli-hook` when the hook block is missing, and **MUST** rewrite an old `sudo -n /usr/local/bin/dns-cli interactive` line to the hook name on the **`dns-adm`** account. `remove-lpu` **MUST NOT** unlink the global hook name. Topic-owner: `requirement-login-interactive-hook` HOOK-M2 / HOOK-M5.
+**L-M15. Login-hook-symlink.** When `/usr/local/bin/dns-cli` exists, Type 1 `setup` **MUST** create the **login-hook-symlink** `/usr/local/bin/dns-review-hooks` → `/usr/local/bin/dns-cli` if that name is absent. **MUST NOT** overwrite an existing `dns-review-hooks`. **MUST NOT** overwrite sibling `login-review-hook`. **MUST NOT** plant leftover `dns-cli-hook` as the live doorbell. `CF_TEST_LPU=1` **MUST NOT** create the live symlink. Rc heal **MUST** write `/usr/local/bin/dns-review-hooks` when the hook block is missing, and **MUST** rewrite old `dns-cli interactive`, `dns-cli-hook`, and `login-review-hook` lines on the **`dns-adm`** account. `remove-lpu` **MUST NOT** unlink the global hook name. Topic-owner: `requirement-login-interactive-hook` HOOK-M2 / HOOK-M5.
 
 **L-M10.** After rc heal, `setup` **MUST** auto-queue a `login-hook-elev` JSON sudoer request when sibling `sudoer-cli` + `sudoer-adm` + writable inbound exist (`requirement-sudoer-json-file`). **MUST** write inbound (dest request-id grammar). **MUST NOT** call dest Type 0 `add-sudoer-request`. Dest Type 0 self-scope **MUST NOT** apply to `setup` (blockage, not dest approval). Missing sibling → skip (setup succeeds). **MUST NOT** `mkdir` inbound, **`chown` inbound**, or write `/etc/sudoers.d`. This is **not** Type 0 `submit-sudoer-request`. **L-M14** applies.
 
@@ -204,7 +204,7 @@ Absent account → success no-op.
 9. Invent a second approver leaf after this redesign — `dns-adm` **is** the approver.  
 10. Dump glossary/skill paths into this file.  
 11. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON username ≠ dest LPU).  
-12. Overwrite an existing `/usr/local/bin/dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.
+12. Overwrite an existing `/usr/local/bin/dns-review-hooks`, plant a second per-app `dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.
 
 **Violating this rule is a critical least-privilege identity regression.**
 
@@ -220,7 +220,7 @@ Absent account → success no-op.
 | AC-L2b | Dest Type 0 self-scope does not apply to `setup` (SJ-M3 / L-M11) |
 | AC-L2c | `setup` does not `chown` dest inbound (SJ-M5 / L-M13) |
 | AC-L2d | After setup rc heal, `.bashrc` / `.profile` owner is `dns-adm` (shell-rc-file-ownership; L-M9) |
-| AC-L2e | Setup creates `/usr/local/bin/dns-cli-hook` only when missing; test-mode skips the live symlink (L-M15) |
+| AC-L2e | Setup creates `/usr/local/bin/dns-review-hooks` only when missing; test-mode skips the live symlink (L-M15) |
 | AC-L2d | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (L-M13) |
 | AC-L3 | Default vault I/O as non-`dns-adm` context-switches or fails `lpu_required` |
 | AC-L4 | `--vault-dir` works without the LPU (QA) |
@@ -239,7 +239,7 @@ Absent account → success no-op.
 | `requirement-domain-cloudflare-dns` | Consumes selected account |
 | `requirement-shell-cli-interface` | `setup` / `remove-lpu` names |
 | `requirement-shell-local-self-management` | `uninstall` ≠ F7 |
-| `requirement-login-interactive-hook` | `/usr/local/bin/${APP_NAME}-hook` plant + heal (L-M15 points) |
+| `requirement-login-interactive-hook` | `/usr/local/bin/dns-review-hooks` plant + heal (L-M15 points) |
 | `docs/requirements/index.md` | Registry |
 
 ---
@@ -266,6 +266,7 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-13 | Active 1.15.0 | L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`; heal rewrites old product-binary and `dns-cli-hook` |
 | 2026-09-08 | Active 1.14.0 | L-M15 topic-owner is `requirement-login-interactive-hook` (heal of `dns-adm` old hook → `${APP_NAME}-hook`) |
 | 2026-09-03 | Active 1.13.0 | L-M15 setup creates `/usr/local/bin/dns-cli-hook` when missing; heal rewrites old rc path |
 | 2026-09-01 | Active 1.12.0 | L-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |
@@ -285,6 +286,6 @@ Absent account → success no-op.
 
 ---
 
-**Last Updated**: 2026-09-08  
+**Last Updated**: 2026-09-13  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

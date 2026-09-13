@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.24.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.25.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -36,7 +36,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 - **Two A-record modes**: default `non-round-robin`; optional `round-robin`; switch locked when `ipv4_count` ≥ 2
 - **Four DNS request types**: inbound JSON `add` / `update` / `remove` / `mode` — **no token in the file**. Anyone queues with `submit`. Dedicated account **dns-adm** reviews with `approve` / `reject` / `interactive` (yes/no after a format check; the JSON `subject` is the user, not the filename). Testers `fence-test` / `test-json-format` check a local JSON file (not the waiting folder). `submit` stamps which program and version queued the file
 - **Dedicated account**: `sudo dns-cli setup` creates `dns-adm` plus that account’s vault folder; `remove-lpu` tears it down; `print-sudoers` **prints the sudoer file** (does not install it)
-- **JSON grant files**: `generate-sudoer-request` / `submit-sudoer-request` queue a grant so **this login** may run `dns-cli` as `dns-adm`. First-time `setup` also queues the login-hook grant (`dns-adm` may `sudo -n dns-cli-hook interactive`) when sibling `sudoer-cli` exists. This product does not write `/etc/sudoers.d`
+- **JSON grant files**: `generate-sudoer-request` / `submit-sudoer-request` queue a grant so **this login** may run `dns-cli` as `dns-adm`. First-time `setup` also queues the login-hook grant (`dns-adm` may `sudo -n dns-review-hooks interactive`) when sibling `sudoer-cli` exists. This product does not write `/etc/sudoers.d`
 - **CIAO / CIAO-Lite** defensive design (Protection Zones, `out_*` output SSOT)
 
 ## Quick Installation
@@ -72,7 +72,7 @@ sudo dns-cli setup
 **Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). A number that is not on the list prints **that same list** again. Off-TTY these commands print help. `sudoers` is not a typed CLI command.
 
 ```text
-[INFO] **dns-cli**(*1.24.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.25.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -209,7 +209,7 @@ This table is **DNS inbound only**. Sudoer print / JSON submit uses the next tab
 
 1. **Anyone** runs `dns-cli submit` (self-scope JSON only).  
 2. **`dns-adm`** logs in on a **TTY**.  
-3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-cli-hook interactive` (the **login-hook-symlink** `/usr/local/bin/${APP_NAME}-hook`). `setup` creates that short name as a symlink to `/usr/local/bin/dns-cli` when it is missing (it will not replace a hook you already pointed at another similar program). Similar dest CLIs use the same `/usr/local/bin/{{appname}}-hook` name so they can share the hook.  
+3. A `.bashrc` hook runs **once** per session: `sudo -n /usr/local/bin/dns-review-hooks interactive`. `setup` creates that name as a symlink to `/usr/local/bin/dns-cli` when it is missing (it will not replace a hook you already pointed at another similar program). This product does **not** plant leftover `dns-cli-hook` and does **not** point `dns-adm` at sibling `login-review-hook`.  
 4. **At the beginning**, `interactive` keeps the **latest** waiting file per dest (`domain_id` + `subdomain`) and moves older duplicates to declined (no dest write, no yes/no).  
 5. Then `interactive` takes file-ownership of remaining inbound JSON as **`dns-adm`**.  
 6. For each remaining file, dest **fences first** (JSON format check). If the file is not a valid request, dest **explains** that in ordinary words and **does not** ask yes or no.  
@@ -219,7 +219,7 @@ This table is **DNS inbound only**. Sudoer print / JSON submit uses the next tab
 10. `scp` / no TTY → the hook does nothing. `sudo -n` fail → warning with next step (`sudoer-cli interactive` as `sudoer-adm` to approve `login-hook-elev`); login still succeeds. That grant is **not** F6 (`%sudo ALL=(dns-adm)`).  
 11. `dns-cli` with no arguments at a keyboard opens the **numbered main menu**, not review. Off-TTY (scripts, pipes) it remains **help**.
 
-When `dns-adm` runs `dns-cli` **interactively**, the CLI **heals** the hook: it appends the snippet to `~/.bashrc` if missing, **rewrites** an old `sudo -n /usr/local/bin/dns-cli interactive` line to `/usr/local/bin/dns-cli-hook`, and **creates** `~/.profile` (only if that file does not exist) so a login shell sources `.bashrc`. An existing `.profile` is never overwritten.
+When `dns-adm` runs `dns-cli` **interactively**, the CLI **heals** the hook: it appends the snippet to `~/.bashrc` if missing, **rewrites** old `dns-cli interactive`, `dns-cli-hook`, and `login-review-hook` lines to `/usr/local/bin/dns-review-hooks`, and **creates** `~/.profile` (only if that file does not exist) so a login shell sources `.bashrc`. An existing `.profile` is never overwritten.
 
 Do not put the token in the JSON, `.bashrc`, `.profile`, or this README.
 
@@ -396,6 +396,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-13 — version **1.25.0** (doorbell `/usr/local/bin/dns-review-hooks`; heal rewrites old `dns-cli`, `dns-cli-hook`, and `login-review-hook`).
 2026-09-13 — version **1.24.0** (wrong menu pick reprints that same numbered list on every layer).
 2026-09-08 — version **1.23.0** (login-hook skip names `login-hook-elev` next; Type 1 `interactive` reviews `dns-adm` rc).
 2026-09-08 — version **1.22.0** (independent login-hook requirement; `/usr/local/bin/dns-cli-hook` soft link; heal rewrites old hook).

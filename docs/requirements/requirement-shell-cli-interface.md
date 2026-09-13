@@ -136,7 +136,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY (daily DNS + family `sudoers` submenu); off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented**. Token `sudoers` is **not** a command |
-| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-cli-hook` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
+| `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-review-hooks` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Implemented** (1.5.0) |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
 | `generate-sudoer-request` | Type 0 | `lpu_generate_sudoer_request` | Independent JSON dest; `--kind type-2-switch` (default) or `login-hook-elev` — **Implemented** |

@@ -3,7 +3,7 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.24.0  
+**Product VERSION:** 1.25.0  
 **Last plan update:** 2026-09-13  
 **Last suite run:** PASS=818 FAIL=0 SKIP=2 (2026-09-13; **TP-CLI-21** invalid menu pick reprints the same layer have; **TP-FENCE-07** skip live sibling dest `kind`)
 
@@ -104,8 +104,8 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-APR-04 | non-approver does not write rc | test_cf_approver | requirement-login-interactive-hook | **have** |
 | TP-CF-APR-05 | `--json` does not heal | test_cf_approver | requirement-login-interactive-hook | **have** |
 | TP-CF-APR-06 | second heal idempotent | test_cf_approver | requirement-login-interactive-hook | **have** |
-| TP-CF-APR-08 | heal rewrites old `/usr/local/bin/dns-cli` hook line to `dns-cli-hook` | test_cf_approver | requirement-login-interactive-hook HOOK-M5 | **have** |
-| TP-CF-APR-09 | Type 1 `interactive` reviews `dns-adm` rc; snippet skip names `login-hook-elev` | test_cf_approver | requirement-login-interactive-hook HOOK-M1 · HOOK-M6 | **have** |
+| TP-CF-APR-08 | heal rewrites old `dns-cli`, `dns-cli-hook`, and `login-review-hook` to `dns-review-hooks` | test_cf_approver | requirement-login-interactive-hook HOOK-M5 | **have** |
+| TP-CF-APR-09 | Type 1 `interactive` reviews `dns-adm` rc; already-common not rewritten; snippet skip names `login-hook-elev` | test_cf_approver | requirement-login-interactive-hook HOOK-M1 · HOOK-M6 | **have** |
 
 ### TP-LC (local lifecycle)
 
@@ -185,7 +185,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LPU-05 | `uninstall` does not `userdel` | test_cf_lpu | requirement-least-privilege-user · local-self-management | **have** |
 | TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-07 | dest inbound fence is incorrect JSON format (L-M13 table) | test_cf_lpu | requirement-least-privilege-user L-M13 | **have** |
-| TP-LPU-08 | setup hook alias helper; test-mode skips live `/usr/local/bin/dns-cli-hook` | test_cf_lpu | requirement-least-privilege-user L-M15 | **have** |
+| TP-LPU-08 | setup hook alias helper; test-mode skips live `/usr/local/bin/dns-review-hooks` | test_cf_lpu | requirement-least-privilege-user L-M15 | **have** |
 
 ### TP-PRIV (Type map / fragment)
 
@@ -212,7 +212,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-SUDOER-JSON-08 | generate dest readable without sudo | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-09 | §2.0 role table (printer / generator / submitter / sudoer-adm) | test_cf_lpu | requirement-sudoer-json-file AC-11 | **have** |
 | TP-SUDOER-JSON-10 | generate writes `kind` | test_cf_lpu | requirement-sudoer-json-file | **have** |
-| TP-SUDOER-JSON-11 | `--kind login-hook-elev` → username `dns-adm`, runas `root`, args `interactive`, path `dns-cli-hook` | test_cf_lpu | requirement-sudoer-json-file | **have** |
+| TP-SUDOER-JSON-11 | `--kind login-hook-elev` → username `dns-adm`, runas `root`, args `interactive`, path `dns-review-hooks` | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-12 | Type 0 submit of hook kind fails closed | test_cf_lpu | requirement-sudoer-json-file | **have** |
 | TP-SUDOER-JSON-13 | setup auto-submits hook kind when sibling stub present | test_cf_lpu | requirement-sudoer-json-file · LPU | **have** |
 | TP-SUDOER-JSON-16 | dest Type 0 `self_scope` does not block setup inbound write | test_cf_lpu | requirement-sudoer-json-file SJ-M3 | **have** |

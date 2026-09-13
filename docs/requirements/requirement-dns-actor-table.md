@@ -124,7 +124,7 @@ Procedure:
 
 1. `dns-adm` logs in on a keyboard TTY (SSH/console).  
 2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet owned by `requirement-login-interactive-hook`.  
-3. Guards pass → `sudo -n /usr/local/bin/dns-cli-hook interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink, snippet, and heal: `requirement-login-interactive-hook`.  
+3. Guards pass → `sudo -n /usr/local/bin/dns-review-hooks interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink, snippet, and heal: `requirement-login-interactive-hook`.  
 4. **Duplicate inbound (early, login hook included):** **before** taking ownership, fencing, and yes/no, dest **MUST** group remaining inbound files by dest identity (JSON `domain_id` + `subdomain` — one live Cloudflare FQDN / vault slot). For each group with more than one file: **keep the latest**; move every older file inbound → declined. Latest = newer inbound mtime; equal mtime → later allocated basename. Files with no dest identity stay ungrouped. Different dest identities stay. **MUST NOT** dest-write Cloudflare. **MUST NOT** stamp `submit_by` on older copies. **MUST NOT** ask the approval question on them. **MUST NOT** treat this as a dest Fence. **MUST** print `superseded {old} (kept {new})`. **MUST NOT** say “skipped”. Standalone `approve` / `reject` of a remaining id stay **non-interactive**.  
 5. **At the beginning** of remaining review, dest **MUST** take file-ownership of inbound JSON as **`dns-adm`**. **Before** that `chown`, dest **MUST** read the original Unix file-ownership. Then dest **MUST** take ownership as `dns-adm`. Then dest **MUST** review JSON format. If the JSON is correct, dest **MUST** add `submit_by` (human: submit by) whose value is that original file-ownership. Dest **MUST NOT** add `submit_by` when format fails. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Type 0 `submit` **MUST NOT** include `submit_by`.  
 6. Then `interactive` lists inbound JSON, one file at a time. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as an unknown key.  
@@ -148,7 +148,7 @@ dns-cli submit /home/alice/.config/dns-cli/dns-request.json
 dns-cli approve
 dns-cli reject
 dns-cli interactive
-sudo -n /usr/local/bin/dns-cli-hook interactive
+sudo -n /usr/local/bin/dns-review-hooks interactive
 ```
 
 `submit` is Type 0 self-scope. `approve` / `reject` / `interactive` are Type 1 as `dns-adm` (or euid 0). Empty argv remains help.
@@ -212,7 +212,7 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 13. Replace the approval question with accept/decline/skip/quit (or add skip / quit / maybe). **Yes** = approve; **no** = reject.  
 14. Ask yes/no **before** dest fencing, or hide a fence match behind jargon-only text.  
 15. Drop incorrect JSON format from this file-based JSON dest fence table.  
-16. Run the login hook as `/usr/local/bin/dns-cli interactive` instead of `/usr/local/bin/dns-cli-hook interactive`.  
+16. Run the login hook as `/usr/local/bin/dns-cli interactive`, leftover `/usr/local/bin/dns-cli-hook interactive`, or sibling `/usr/local/bin/login-review-hook interactive` instead of `/usr/local/bin/dns-review-hooks interactive`.  
 17. In `interactive` (login hook included), keep every inbound copy of the same dest (`domain_id` + `subdomain`) and ask yes/no on older duplicates. **MUST** keep the latest and move older duplicates to declined without dest-write and without yes/no. **MUST NOT** add “duplicate” as a dest Fence.  
 18. Dump the waiting file as a JSON object during login-hook review. **MUST** show the body as YAML. Inbound file stays JSON.
 

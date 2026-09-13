@@ -37,7 +37,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.24.0"
+# VERSION: hard-assign VERSION="1.25.0"
 #
 # =============================================================================
 
@@ -50,13 +50,15 @@ set -u  # Treat unset variables as error (defensive)
 # Product identity SSOT (extractors use: grep '^APP_NAME="' / '^VERSION="').
 APP_NAME="dns-cli"
 : "${APP_NAME:=dns-cli}"
+# This product's login doorbell (dns-adm .bashrc). Not sibling login-review-hook.
+: "${COMMON_LOGIN_HOOK_NAME:=dns-review-hooks}"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.24.0"
-: "${VERSION:=1.24.0}"
+VERSION="1.25.0"
+: "${VERSION:=1.25.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -3002,10 +3004,13 @@ cf_approver_user() {
 }
 
 cf_approver_hook_block() {
-    # Login-hook-symlink: /usr/local/bin/${APP_NAME}-hook
-    # (INC-20260821-001: MUST NOT copy GLOBAL_BIN). Type 2 switch stays
-    # /usr/local/bin/${APP_NAME}.
+    # Future dns-adm .bashrc MUST sudo -n this product doorbell
+    # /usr/local/bin/dns-review-hooks (HOOK-M2). INC-20260821-001: MUST NOT
+    # copy GLOBAL_BIN. MUST NOT plant dns-cli-hook or sibling login-review-hook.
     _hook_bin=$(lpu_login_hook_grant_path)
+    if [ "${_hook_bin}" != "/usr/local/bin/dns-review-hooks" ]; then
+        _hook_bin="/usr/local/bin/dns-review-hooks"
+    fi
     printf '%s\n' \
         "# BEGIN dns-cli login hook" \
         "if [ -z \"\${DNS_CLI_HOOK_RAN:-}\" ] \\" \
@@ -3024,9 +3029,9 @@ cf_approver_hook_block() {
 }
 
 # Rewrite or append the login-hook block on one .bashrc.
-# Missing markers → append the current snippet (dns-cli-hook).
-# Old sudo -n /usr/local/bin/${APP_NAME} interactive → replace with ${APP_NAME}-hook.
-# Already on the hook alias → no-op. MUST NOT duplicate the block.
+# Missing markers → append the current snippet (dns-review-hooks).
+# Old product-binary, dns-cli-hook, and login-review-hook → dns-review-hooks.
+# Already on dns-review-hooks → no-op. MUST NOT duplicate the block.
 cf_approver_apply_hook_to_bashrc() {
     _brc="${1:-}"
     : "${APP_NAME:=dns-cli}"
@@ -3034,8 +3039,17 @@ cf_approver_apply_hook_to_bashrc() {
         return 0
     fi
     _old="sudo -n /usr/local/bin/${APP_NAME} interactive"
-    _mid_semi="sudo -n /usr/local/bin/${APP_NAME}-hook interactive;"
-    _new="sudo -n /usr/local/bin/${APP_NAME}-hook interactive 2>/dev/null"
+    _mid="sudo -n /usr/local/bin/${APP_NAME}-hook interactive"
+    _mid_redir="${_mid} 2>/dev/null"
+    _mid_semi="${_mid};"
+    _sib="sudo -n /usr/local/bin/login-review-hook interactive"
+    _sib_redir="${_sib} 2>/dev/null"
+    _sib_semi="${_sib};"
+    _hook_bin=$(lpu_login_hook_grant_path)
+    if [ "${_hook_bin}" != "/usr/local/bin/dns-review-hooks" ]; then
+        _hook_bin="/usr/local/bin/dns-review-hooks"
+    fi
+    _new="sudo -n ${_hook_bin} interactive 2>/dev/null"
     _new_semi="${_new};"
     _old_skip="dns-cli: login review hook skipped (sudo -n failed)"
     _new_skip="dns-cli: login review hook skipped (sudo -n failed). Next: as sudoer-adm, sudo sudoer-cli interactive to approve login-hook-elev."
@@ -3049,8 +3063,13 @@ cf_approver_apply_hook_to_bashrc() {
     if [ "${_has_begin}" -eq 1 ] && [ "${_has_end}" -eq 1 ]; then
         _need=0
         grep -qF "${_old}" "${_brc}" 2>/dev/null && _need=1
-        grep -qF "${_mid_semi}" "${_brc}" 2>/dev/null && _need=1
+        grep -qF "${_mid}" "${_brc}" 2>/dev/null && _need=1
+        grep -qF "${_sib}" "${_brc}" 2>/dev/null && _need=1
         if grep -qF "${_old_skip}" "${_brc}" 2>/dev/null && ! grep -qF "approve login-hook-elev" "${_brc}" 2>/dev/null; then
+            _need=1
+        fi
+        if grep -qF "sudo -n ${_hook_bin} interactive" "${_brc}" 2>/dev/null \
+            && ! grep -qF "${_new}" "${_brc}" 2>/dev/null; then
             _need=1
         fi
         if [ "${_need}" -eq 1 ]; then
@@ -3060,7 +3079,16 @@ cf_approver_apply_hook_to_bashrc() {
                 return 0
             fi
             _tmp2=$(mktemp "${_dir}/.bashrc.dns-cli.XXXXXX") || { rm -f "${_tmp}"; return 0; }
-            if ! sed -e "s|${_old}|${_new}|g" -e "s|${_mid_semi}|${_new_semi}|g" -e "s|${_old_skip}\"|${_new_skip}\"|g" "${_tmp}" >"${_tmp2}"; then
+            if ! sed \
+                -e "s|${_mid_redir}|${_new}|g" \
+                -e "s|${_mid_semi}|${_new_semi}|g" \
+                -e "s|${_mid}|${_new}|g" \
+                -e "s|${_sib_redir}|${_new}|g" \
+                -e "s|${_sib_semi}|${_new_semi}|g" \
+                -e "s|${_sib}|${_new}|g" \
+                -e "s|${_old}|${_new}|g" \
+                -e "s|${_old_skip}\"|${_new_skip}\"|g" \
+                "${_tmp}" >"${_tmp2}"; then
                 rm -f "${_tmp}" "${_tmp2}"
                 return 0
             fi
@@ -3608,8 +3636,9 @@ lpu_install_sudoers() {
     fi
 }
 
-# Type 1 interactive (euid 0) reviews dns-adm rc: old product-binary hook
-# becomes ${APP_NAME}-hook. Sibling sudoer-cli: lpu_review_old_login_hook.
+# Type 1 interactive (euid 0) reviews dns-adm rc: old product-binary hook,
+# old dns-cli-hook, and login-review-hook become dns-review-hooks.
+# Sibling sudoer-cli: lpu_review_old_login_hook.
 # ALIGNMENT: requirement-login-interactive-hook.md HOOK-M6
 lpu_review_old_login_hook() {
     if [ "$(id -u 2>/dev/null || echo 1)" -ne 0 ]; then
@@ -3711,15 +3740,17 @@ lpu_sudoers_normalize_kind() {
 # Sibling sudoer grant identity. GLOBAL_BIN is install isolation (CI gbin) and
 # MUST NOT be copied into commands[].path (INC-20260821-001).
 # type-2-switch / F6: /usr/local/bin/${APP_NAME}
-# login-hook-elev / .bashrc: login-hook-symlink /usr/local/bin/${APP_NAME}-hook
+# login-hook-elev / .bashrc: login-hook-symlink /usr/local/bin/${COMMON_LOGIN_HOOK_NAME}
 lpu_sudoers_grant_path() {
     : "${APP_NAME:=dns-cli}"
     printf '%s' "/usr/local/bin/${APP_NAME}"
 }
 
 lpu_login_hook_grant_path() {
-    : "${APP_NAME:=dns-cli}"
-    printf '%s' "/usr/local/bin/${APP_NAME}-hook"
+    # Production doorbell only (INC-20260821-001). MUST NOT copy GLOBAL_BIN.
+    # This product: /usr/local/bin/dns-review-hooks. Env MUST NOT retarget this.
+    # MUST NOT plant dns-cli-hook or sibling login-review-hook as this snippet.
+    printf '%s' "/usr/local/bin/dns-review-hooks"
 }
 
 lpu_sudoers_expected_path_for_kind() {
@@ -3731,10 +3762,11 @@ lpu_sudoers_expected_path_for_kind() {
     lpu_sudoers_grant_path
 }
 
-# Create the login-hook-symlink /usr/local/bin/${APP_NAME}-hook ->
+# Create the login-hook-symlink /usr/local/bin/${COMMON_LOGIN_HOOK_NAME} ->
 # /usr/local/bin/${APP_NAME} when the global binary exists and the hook name
-# is absent. MUST NOT overwrite an existing hook name (operator may retarget
-# it). Test-mode MUST NOT write live /usr/local/bin (SJ-M6 peer).
+# is absent. MUST NOT overwrite an existing hook name (operator or sibling
+# may retarget it). MUST NOT reverse-symlink APP_NAME onto the doorbell.
+# Test-mode MUST NOT write live /usr/local/bin (SJ-M6 peer).
 lpu_ensure_login_hook_symlink() {
     : "${APP_NAME:=dns-cli}"
     LOGIN_HOOK_SYMLINK_STATUS="skipped"
@@ -3763,7 +3795,8 @@ lpu_ensure_login_hook_symlink() {
 
 lpu_sudoers_json_text_compact() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.16.0}"
+    : "${VERSION:=1.25.0}"
+    : "${COMMON_LOGIN_HOOK_NAME:=dns-review-hooks}"
     : "${SUBMIT_ACTION:=add}"
     _kind=$(lpu_sudoers_normalize_kind "${SUDOER_REQUEST_KIND:-type-2-switch}")
     _action="${SUBMIT_ACTION}"
@@ -3775,7 +3808,7 @@ lpu_sudoers_json_text_compact() {
     _lpu=$(lpu_user)
     if [ "${_kind}" = "login-hook-elev" ]; then
         _user="${_lpu}"
-        _purpose="Allow ${_lpu} login hook to run ${APP_NAME}-hook interactive via sudo -n."
+        _purpose="Allow ${_lpu} login hook to run ${COMMON_LOGIN_HOOK_NAME} interactive via sudo -n."
         printf '%s\n' "{\"schema_version\":1,\"kind\":\"login-hook-elev\",\"purpose\":\"${_purpose}\",\"username\":\"${_user}\",\"service\":\"${APP_NAME}\",\"action\":\"${_action}\",\"submit_app\":\"${APP_NAME}\",\"submit_version\":\"${VERSION}\",\"commands\":[{\"runas\":\"root\",\"tags\":[\"NOPASSWD\"],\"path\":\"${_path}\",\"args\":[\"interactive\"]}]}"
         return 0
     fi
@@ -4096,6 +4129,7 @@ lpu_sudoers_verify_sibling_convert() {
     _txt=$(cat "${_outf}" 2>/dev/null || true)
     rm -f "${_outf}"
     if [ "${_kind}" = "login-hook-elev" ]; then
+        : "${COMMON_LOGIN_HOOK_NAME:=dns-review-hooks}"
         case "${_txt}" in
             *"(root)"*) ;;
             *) return 1 ;;
@@ -4104,12 +4138,16 @@ lpu_sudoers_verify_sibling_convert() {
             *interactive*) ;;
             *) return 1 ;;
         esac
-    else
         case "${_txt}" in
-            *"(dns-adm)"*) ;;
-            *) out_die_code request_invalid "sudoer-cli convert dropped runas dns-adm from ${_gf}. Do not submit this file." ;;
+            *"${COMMON_LOGIN_HOOK_NAME}"*) ;;
+            *) return 1 ;;
         esac
+        return 0
     fi
+    case "${_txt}" in
+        *"(dns-adm)"*) ;;
+        *) out_die_code request_invalid "sudoer-cli convert dropped runas dns-adm from ${_gf}. Do not submit this file." ;;
+    esac
     case "${_txt}" in
         *"${APP_NAME}"*) ;;
         *) out_die_code request_invalid "sudoer-cli convert dropped ${APP_NAME} from ${_gf}. Do not submit this file." ;;
@@ -4193,7 +4231,7 @@ lpu_generate_sudoer_request() {
     fi
     out_success "Wrote verified sudoer file to ${_out_path}"
     if [ "${SUDOER_REQUEST_KIND}" = "login-hook-elev" ]; then
-        out_info "Grant kind=login-hook-elev: $(lpu_user) may sudo -n ${APP_NAME}-hook interactive (action=${SUBMIT_ACTION})"
+        out_info "Grant kind=login-hook-elev: $(lpu_user) may sudo -n ${COMMON_LOGIN_HOOK_NAME} interactive (action=${SUBMIT_ACTION})"
         out_info "Type 0 submit-sudoer-request will refuse this file. Setup auto-queues it when sibling sudoer-cli exists."
     else
         out_info "Grant kind=type-2-switch: ${_user} may run ${APP_NAME} as $(lpu_user) (action=${SUBMIT_ACTION})"
@@ -4511,7 +4549,7 @@ lpu_setup() {
     esac
     case "${LOGIN_HOOK_SUDOER_STATUS}" in
         submitted)
-            out_info "Queued login-hook-elev sudoer request (dns-adm sudo -n ${APP_NAME}-hook interactive)"
+            out_info "Queued login-hook-elev sudoer request (dns-adm sudo -n ${COMMON_LOGIN_HOOK_NAME} interactive)"
             if [ -n "${LOGIN_HOOK_SUDOER_REQUEST_ID:-}" ]; then
                 out_info "login_hook request_id=${LOGIN_HOOK_SUDOER_REQUEST_ID}"
             fi
@@ -6561,7 +6599,7 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.24.0}"
+    : "${VERSION:=1.25.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
@@ -6881,7 +6919,7 @@ app_help() {
     out_empty_line
     out_info "Host account (Type 1 — password sudo or already root):"
     out_plain "  setup                Create Linux user dns-adm, vault dir, sudoers dest;"
-    out_plain "                       ensure /usr/local/bin/${APP_NAME}-hook when global binary exists;"
+    out_plain "                       ensure /usr/local/bin/${COMMON_LOGIN_HOOK_NAME} when global binary exists;"
     out_plain "                       write login-hook-elev into dest inbound (not dest Type 0 submit)"
     out_plain "  remove-lpu           Remove dns-adm (confirm or --force)"
     out_empty_line

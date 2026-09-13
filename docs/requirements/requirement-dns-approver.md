@@ -8,7 +8,7 @@
 
 This requirement is the **Single Source of Truth** for the **dns-cli approver identity**: **`dns-adm`**. Only that account dest-approves inbound DNS request JSON. There is **no** second approver account.
 
-**Anyone** may submit (`requirement-dns-actor-table`). Login-hook plant, rc heal, old-hook rewrite, and the soft link **`/usr/local/bin/${APP_NAME}-hook`** are **`requirement-login-interactive-hook`**. Dest review loop (keep-latest, take-ownership, fence, YAML, yes/no) stays on `requirement-dns-actor-table`. LPU F1–F7 stay on `requirement-least-privilege-user`.
+**Anyone** may submit (`requirement-dns-actor-table`). Login-hook plant, rc heal, old-hook rewrite, and the soft link **`/usr/local/bin/dns-review-hooks`** are **`requirement-login-interactive-hook`**. Dest review loop (keep-latest, take-ownership, fence, YAML, yes/no) stays on `requirement-dns-actor-table`. LPU F1–F7 stay on `requirement-least-privilege-user`.
 
 ### 1.1 Human-facing
 
@@ -23,7 +23,7 @@ This requirement is the **Single Source of Truth** for the **dns-cli approver id
 | Includes | Excludes |
 |----------|----------|
 | Approver identity `dns-adm` | Second approver account |
-| Pointer to the independent login-hook REQ | Owning `.bashrc` snippet, heal, or `/usr/local/bin/dns-cli-hook` |
+| Pointer to the independent login-hook REQ | Owning `.bashrc` snippet, heal, or `/usr/local/bin/dns-review-hooks` |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
@@ -46,7 +46,7 @@ This requirement is the **Single Source of Truth** for the **dns-cli approver id
 
 ### 2.2 Login-time review (pointer)
 
-**APR-M3.** After a **TTY login** as `dns-adm`, dest review **MUST** start through the independent login-hook REQ (`requirement-login-interactive-hook`): once-per-session `sudo -n /usr/local/bin/dns-cli-hook interactive`. Empty argv of `dns-cli` **MUST** remain help. Dest review after launch (keep-latest, take-ownership, fence, YAML, one-off yes/no) **MUST** follow `requirement-dns-actor-table` ACT-M4 / ACT-M6. This file **MUST NOT** own the snippet, the `-hook` soft link, or old-hook rewrite.
+**APR-M3.** After a **TTY login** as `dns-adm`, dest review **MUST** start through the independent login-hook REQ (`requirement-login-interactive-hook`): once-per-session `sudo -n /usr/local/bin/dns-review-hooks interactive`. Empty argv of `dns-cli` **MUST** remain help. Dest review after launch (keep-latest, take-ownership, fence, YAML, one-off yes/no) **MUST** follow `requirement-dns-actor-table` ACT-M4 / ACT-M6. This file **MUST NOT** own the snippet, the doorbell soft link, or old-hook rewrite.
 
 The hook’s `sudo -n` needs a live grant **`login-hook-elev`** (`requirement-sudoer-json-file`). Rc heal **MUST NOT** be treated as that grant.
 
@@ -54,7 +54,7 @@ The hook’s `sudo -n` needs a live grant **`login-hook-elev`** (`requirement-su
 
 ```sh
 dns-cli interactive
-sudo -n /usr/local/bin/dns-cli-hook interactive
+sudo -n /usr/local/bin/dns-review-hooks interactive
 ```
 
 `interactive` is Type 1 as `dns-adm`. Empty argv remains help. Hook plant + heal: `requirement-login-interactive-hook`. Dest loop: `requirement-dns-actor-table`.
@@ -66,7 +66,7 @@ sudo -n /usr/local/bin/dns-cli-hook interactive
 | **Product** | `dns-cli` |
 | **Approver** | `dns-adm` |
 | **Review verb** | `interactive` (**Implemented** 1.21.0 — YAML body display, keep-latest duplicate inbound, then fence, then yes/no) |
-| **Login-hook plant** | `requirement-login-interactive-hook` (snippet, heal, `/usr/local/bin/dns-cli-hook`) |
+| **Login-hook plant** | `requirement-login-interactive-hook` (snippet, heal, `/usr/local/bin/dns-review-hooks`) |
 | **Proof** | **TP-CF-APR-01..08** (hook REQ) · **TP-CF-REQ-19** · **TP-CF-REQ-20** |
 
 ### 2.4 Why This Requirement Exists (Direct CIAO Alignment)
