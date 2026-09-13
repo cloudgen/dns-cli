@@ -37,7 +37,7 @@
 # Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.21.0"
+# VERSION: hard-assign VERSION="1.24.0"
 #
 # =============================================================================
 
@@ -55,8 +55,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.23.0"
-: "${VERSION:=1.23.0}"
+VERSION="1.24.0"
+: "${VERSION:=1.24.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -6527,7 +6527,7 @@ cf_req_interactive() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_print_row() {
     : "${TTY:=0}"
@@ -6557,11 +6557,11 @@ app_default_print_row() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.18.0}"
+    : "${VERSION:=1.24.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
@@ -6589,7 +6589,7 @@ app_default_print_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_print_sudoers_menu() {
     : "${APP_NAME:=dns-cli}"
@@ -6616,7 +6616,7 @@ app_default_print_sudoers_menu() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_run_pick() {
     _pick="${1:-}"
@@ -6684,7 +6684,7 @@ app_default_run_pick() {
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_run_sudoers_pick() {
     _pick="${1:-}"
@@ -6715,12 +6715,13 @@ app_default_run_sudoers_pick() {
 #
 # GENERAL PURPOSE:
 # Show the grant/draft/LPU list. Back returns 1 (main list). Exit or a run
-# returns 0 (leave menu). Never hangs off-TTY (caller is TTY-only).
+# returns 0 (leave menu). Invalid pick warns and reprints this same list.
+# Never hangs off-TTY (caller is TTY-only).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default_sudoers_loop() {
     : "${APP_NAME:=dns-cli}"
@@ -6751,7 +6752,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 0
         fi
-        out_warn "Not a menu choice. Enter 1-4, 8 back, 9 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        out_warn "Not a menu choice. Next: enter 1-4, 8 back, 9 to leave, or a listed command name."
     done
 }
 
@@ -6762,14 +6763,15 @@ app_default_sudoers_loop() {
 # GENERAL PURPOSE:
 # TTY draws the numbered list (ignore --json on menu/main and on TTY
 # empty argv); off-TTY reuses app_help and follows --json. Choice is
-# read in this shell. Family sudoers opens the submenu.
+# read in this shell. Family sudoers opens the submenu. Invalid pick
+# warns and reprints this same list.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
 # - requirement-shell-cli-zero-arguments.md
 # - requirement-shell-interactive-vs-noninteractive.md
 #
-# Last updated: 2026-09-03
+# Last updated: 2026-09-13
 # =============================================================================
 app_default() {
     : "${TTY:=0}"
@@ -6832,7 +6834,7 @@ app_default() {
         JSON=0
         QUIET=0
         export JSON QUIET
-        out_warn "Not a menu choice. Enter 1-11, 99 to leave, or a listed command name. Next: ${APP_NAME} menu"
+        out_warn "Not a menu choice. Next: enter 1-11, 99 to leave, or a listed command name."
     done
 }
 

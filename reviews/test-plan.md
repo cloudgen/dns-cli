@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.23.0  
-**Last plan update:** 2026-09-06  
-**Last suite run:** PASS=799 FAIL=0 SKIP=1 (2026-09-06; **TP-CF-REQ-20** YAML review display have; **TP-FENCE-07** skip live sibling dest `kind`)
+**Product VERSION:** 1.24.0  
+**Last plan update:** 2026-09-13  
+**Last suite run:** PASS=818 FAIL=0 SKIP=2 (2026-09-13; **TP-CLI-21** invalid menu pick reprints the same layer have; **TP-FENCE-07** skip live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -64,6 +64,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + SGR 3;37 explain; family sudoers; TTY `--json menu` ignores json; TTY `main`; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-19 | TTY empty argv draws the same numbered main menu | test_cli | requirement-shell-cli-zero-arguments · default-interaction | **have** |
 | TP-CLI-20 | sudoers submenu Back 8 / Exit 9; `sudoers` is not a live command | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-21 | Invalid pick on every numbered menu layer reprints that same list; a later listed pick still runs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
 | TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |

@@ -3,7 +3,7 @@
 # =============================================================================
 # Primary REQs: requirement-shell-cli-interface, requirement-shell-cli-zero-arguments,
 # requirement-shell-output-requirements, requirement-shell-cli-storage
-# TP family: TP-CLI-* · TP-CF-ACTOR-* · TP-FENCE-01..04 · TP-FENCE-08..15 (incl. TP-CLI-14 dual mention, TP-CF-ACTOR-07)
+# TP family: TP-CLI-* · TP-CF-ACTOR-* · TP-FENCE-01..04 · TP-FENCE-08..15 (incl. TP-CLI-14 dual mention, TP-CLI-21 menu retry, TP-CF-ACTOR-07)
 # =============================================================================
 
 # shellcheck source=helpers.sh
@@ -270,6 +270,44 @@ run_test_cli() {
     _out=$(printf '12\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-20 invalid pick warns" "$_plain" "Not a menu choice"
+
+    # TP-CLI-21 invalid pick reprints the same numbered layer; a later listed pick still runs
+    _out=$(printf '12\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-21 main invalid then Exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    assert_eq "TP-CLI-21 main invalid reprints vault twice" 2 "$_nvault"
+    _out=$(printf '12\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-21 main invalid warns" "$_plain" "Not a menu choice"
+    assert_contains "TP-CLI-21 main invalid Next enter" "$_plain" "Next: enter 1-11"
+    _out=$(printf 'nope\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    assert_eq "TP-CLI-21 main garbage reprints vault twice" 2 "$_nvault"
+    _out=$(printf '\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    assert_eq "TP-CLI-21 main blank reprints vault twice" 2 "$_nvault"
+    _out=$(printf '11\n5\n8\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CLI-21 submenu invalid then back Exit 0" 0 "$_ec"
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    assert_eq "TP-CLI-21 submenu invalid reprints generate twice" 2 "$_ngen"
+    assert_eq "TP-CLI-21 submenu invalid main twice until back" 2 "$_nvault"
+    _out=$(printf '11\n5\n8\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    assert_contains "TP-CLI-21 submenu invalid warns" "$_plain" "Not a menu choice"
+    assert_contains "TP-CLI-21 submenu invalid Next enter" "$_plain" "Next: enter 1-4"
+    _out=$(printf '12\n11\n5\n8\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    assert_eq "TP-CLI-21 both layers invalid then back vault thrice" 3 "$_nvault"
+    assert_eq "TP-CLI-21 both layers invalid generate twice" 2 "$_ngen"
 
     # TP-CF-ACTOR-* — routed; help lists them; missing inbound/file fails closed (not unknown)
     _help=$(sh "${SCRIPT}" help 2>/dev/null)

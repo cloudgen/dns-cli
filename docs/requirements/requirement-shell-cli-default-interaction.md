@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.3.0) Implemented  
+**Status**: Active (Version 1.4.0) Implemented  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ dns-cli **claims** a default function: a **short numbered main menu** of daily *
 
 | Includes | Excludes |
 |----------|----------|
-| Daily DNS rows 1…10; family **sudoers** **11**; Exit **99**; header **dns-cli**(*version*) - short description; gray italic explain text; sudoers submenu Back **8** / Exit **9** | `help`, install, uninstall, where-is-me, version, about, setup, test-json-format, fence-test, `menu` itself; sudoer verbs on the **main** list; a live `sudoers` dispatcher token |
+| Daily DNS rows 1…10; family **sudoers** **11**; Exit **99**; header **dns-cli**(*version*) - short description; gray italic explain text; sudoers submenu Back **8** / Exit **9**; a wrong pick reprints **that same list** | `help`, install, uninstall, where-is-me, version, about, setup, test-json-format, fence-test, `menu` itself; sudoer verbs on the **main** list; a live `sudoers` dispatcher token; treating a wrong pick as Exit |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
@@ -34,6 +34,8 @@ dns-cli **claims** a default function: a **short numbered main menu** of daily *
 | Show public IPv4 | Second row | `dns-cli` then `2` |
 | Open grant/drafts | Family row **11**, then a number | `dns-cli` then `11` then `1` |
 | Leave the grant list | Back to the start list | `8` |
+| Type a number that is not on this list | The same list prints again; pick again | `12` then `2` |
+| Type a number that is not on the grant list | That grant list prints again | `11` then `5` then `8` |
 | Leave the menu | Exit | `99` (submenu **9** also leaves) |
 | Install the program | Not on this list | `dns-cli install` |
 | Run `menu` in a script | Help screen, no pick | `dns-cli menu </dev/null` |
@@ -59,7 +61,7 @@ Claimed **yes**. Specialized zero-argument requirement **exists**. Product is **
 
 Labels **MUST** be `command: what it does`. Look **MUST** be default CLI main menu style: header **`${APP_NAME}`**(*`${VERSION}`*) then ` - ${SHORT_DESC}`; numbered `{{explain}}` *italic* **and** light gray on a TTY via SGR **3** + **37** (`ESC[3;37m`) in `app_default_print_row`. Number and command name stay unstyled. Exit (no explain) stays unstyled. Off-TTY: the same words, no CSI.
 
-Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.23.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
+Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.24.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
 
 The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). **MUST NOT** capture a `read` helper with `$()` / backticks.
 
@@ -71,7 +73,8 @@ The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). 
 6. Accept a **number** or a **listed verb**. **99** / `exit` / `quit` returns 0.  
 7. **`sudoers` is not a live CLI command.** Choosing **11** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `dns-cli sudoers` **MUST** remain unknown.  
 8. Typing a submenu verb at the **main** pick prompt **MAY** run that handler (shortcut).  
-9. Extra operands: run the matching handler, or print `Next: dns-cli <verb> …` and return. **MUST NOT** hang off-TTY.
+9. Extra operands: run the matching handler, or print `Next: dns-cli <verb> …` and return. **MUST NOT** hang off-TTY.  
+10. **Invalid pick (mandatory, every numbered layer):** a blank line, unused number (main **12–98**), or token that is not a listed choice **MUST NOT** leave that layer, **MUST NOT** be treated as Exit, and **MUST NOT** jump to another list. **MUST** warn (operator-readable: what happened + next step), **MUST** reprint **that same numbered list**, and **MUST** read another choice. A later listed number or verb **MUST** still run. EOF on `read` **MAY** return 0 (closed stdin; no hang). Off-TTY **MUST NOT** reach this loop.
 
 Normative **main** order:
 
@@ -114,6 +117,7 @@ Submenu command rows **N = 4**. Exit **MUST** be **9**. **Back MUST** be **8**. 
 - **8** / `back` / `Back` returns to the main list (does not run a handler).  
 - **9** / `exit` / `quit` returns 0 from `menu` (same as main Exit). **99** **MAY** also leave.  
 - A listed number or verb runs that handler, then returns 0 from `menu` (one command, then done).  
+- **Invalid pick** on this layer follows §2.3 item 10: unused **5–7**, a blank line, or an unknown token **MUST** warn, reprint **this** grant list, and read again. **MUST NOT** Back, **MUST NOT** Exit, **MUST NOT** return to the main list.  
 - All four grouped verbs **MUST** appear here. **MUST NOT** put install/version/about/`help`/`setup`/test-purpose on this list. This product **MUST NOT** list `print-sudoers-install-script` or `remove-project-sudoers` (those tokens stay unknown).
 
 ### 2.3a Sample invocations (CI-M1a)
@@ -132,7 +136,7 @@ Class B return-via-stdout. Callers pass the result into `out_info`. Live code re
 ```sh
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.23.0}"
+    : "${VERSION:=1.24.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -154,11 +158,12 @@ util_app_ident() {
 | Family row | `sudoers` — menu-only; **not** dispatched |
 | Main Exit | **99** (N = 11) |
 | Submenu | Back **8**; Exit **9**; N = 4 |
+| Invalid pick | Warn + reprint **that same** numbered layer; a later listed pick still runs; EOF returns 0 |
 | Header | `util_app_ident` + ` - ${SHORT_DESC}` → **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` |
 | Submenu header | `util_app_ident` + ` - sudoers (grant and drafts)` |
 | Row explain | TTY SGR 3 + SGR 37 via `app_default_print_row` |
 | Handler | `app_default` (`menu` / `main` / TTY empty argv); submenu printer/loop under the same `app_default_*` family |
-| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 11**; submenu **N = 4**; Exit **99**; Back **8**. |
+| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 11**; submenu **N = 4**; Exit **99**; Back **8**. Invalid pick reprints the same layer (main and sudoers submenu). |
 
 Actor / role / subject / approver is already Active (`requirement-actor-role-subject-approver`). This menu is **not** dest yes/no review.
 
@@ -167,7 +172,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 - **Principle 2 – Intentional**: Daily DNS work is the start list; grant/draft commands are one extra pick.  
 - **Principle 16 – Interactive**: No hang off-TTY; TTY empty argv is this list.  
 - **Principle 5 – SSOT of output**: Header through `out_info`; nametag via class-B `util_app_ident`; row explain through `app_default_print_row`.  
-- **Over-protect**: `sudoers` is not a live dispatcher token; install / version / about / `help` / setup / testers stay off both lists; main Exit is **99**, not **12**.
+- **Over-protect**: `sudoers` is not a live dispatcher token; install / version / about / `help` / setup / testers stay off both lists; main Exit is **99**, not **12**; a wrong pick reprints the same layer instead of leaving.
 
 ---
 
@@ -194,7 +199,8 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 7. Print a bare `${APP_NAME}` (no parenthesized `${VERSION}`, unstyled on TTY) on the main-menu or APP_NAME-led submenu header, or omit ` - ${SHORT_DESC}` on the main header.  
 8. Capture the menu choice with `$()` of a function that contains `read`.  
 9. Print numbered-list describe text unstyled on a TTY (it **MUST** be italic and light gray).  
-10. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESC`.
+10. Print the generic board title “numbered list of live commands” instead of Config `SHORT_DESC`.  
+11. Leave the current numbered list because the operator typed a blank line, unused number, or unknown token — **MUST** warn, reprint **that same** layer, and read again. **MUST NOT** treat invalid as Exit, Back, or a jump to another list.
 
 **Violating this rule is a critical CLI-surface regression.**
 
@@ -222,6 +228,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | **TP-CLI-18** | `tests/test_cli.sh` | have (header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold name / italic version / SGR 3;37 explain; off-TTY menu = help; TTY `--json menu` ignores json; TTY `main`; family row; sudoer verbs not on main) |
 | **TP-CLI-19** | `tests/test_cli.sh` | have (TTY empty argv draws the same numbered list) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (sudoers submenu Back/Exit; `sudoers` not a live command) |
+| **TP-CLI-21** | `tests/test_cli.sh` | have (invalid pick on main and sudoers submenu reprints that same layer; a later listed pick still runs) |
 | **TP-CLI-14** | `tests/test_cli.sh` | have (`menu` / `main` dual mention) |
 | **TP-CLI-15** | `tests/test_cli.sh` | have (`dns-cli menu` sample) |
 
@@ -233,7 +240,8 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | 2026-09-03 | Active 1.1.0 | Header **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}`; numbered explain TTY light gray italic |
 | 2026-09-03 | Active 1.2.0 | TTY empty argv uses this list; explain SGR **3;37** (default CLI main menu style) |
 | 2026-09-03 | Active 1.3.0 | Daily DNS work on the main list; family **sudoers** + submenu (Back **8** / Exit **9**); `sudoers` not dispatched |
+| 2026-09-13 | Active 1.4.0 | Invalid pick on every numbered layer warns, reprints **that same** list, and reads again (**TP-CLI-21**) |
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-13  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

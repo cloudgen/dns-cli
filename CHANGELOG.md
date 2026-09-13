@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.24.0] - 2026-09-13
+
+### Changed
+
+- Every numbered **main-menu** layer (daily DNS list and the **sudoers** submenu) reprints **that same list** when the pick is blank, unused, or unknown, then reads again. Invalid is not Exit. Warn **Next:** is how to pick again. Law `requirement-shell-cli-default-interaction` **1.4.0**. Suite **TP-CLI-21**. Ship unit **`VERSION="1.24.0"`**.
+
 ## [1.23.0] - 2026-09-08
 
 ### Changed

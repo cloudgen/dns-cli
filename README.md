@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.23.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.24.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -26,7 +26,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 - **Self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
 - **No arguments**: at a keyboard, the numbered main menu; in a script, help (does not install, submit, or mutate DNS)
-- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); daily DNS work first, then family **sudoers**; header **dns-cli**(*version*) - short description; row explain text is light gray italics
+- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); daily DNS work first, then family **sudoers**; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
 - **Managed binary mode 0755**: global install stays readable and runnable
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
@@ -69,10 +69,10 @@ This product is **local-only** for its install channel (no default `SCRIPT_URL` 
 sudo dns-cli setup
 ```
 
-**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Off-TTY these commands print help. `sudoers` is not a typed CLI command.
+**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). A number that is not on the list prints **that same list** again. Off-TTY these commands print help. `sudoers` is not a typed CLI command.
 
 ```text
-[INFO] **dns-cli**(*1.23.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.24.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -396,6 +396,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-13 — version **1.24.0** (wrong menu pick reprints that same numbered list on every layer).
 2026-09-08 — version **1.23.0** (login-hook skip names `login-hook-elev` next; Type 1 `interactive` reviews `dns-adm` rc).
 2026-09-08 — version **1.22.0** (independent login-hook requirement; `/usr/local/bin/dns-cli-hook` soft link; heal rewrites old hook).
 2026-09-06 — version **1.21.0** (login-hook `interactive` shows the waiting body as YAML).

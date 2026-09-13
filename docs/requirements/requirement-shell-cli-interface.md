@@ -262,6 +262,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
 | **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family sudoers; off-TTY help |
 | **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers submenu Back/Exit; `sudoers` not dispatched |
+| **TP-CLI-21** | `tests/test_cli.sh` | have | invalid menu pick reprints the same numbered layer |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
