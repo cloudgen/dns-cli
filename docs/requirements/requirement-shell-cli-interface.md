@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.11.0) — `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.12.0) — `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -135,7 +135,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
 | `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
-| `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY (daily DNS + family `sudoers` submenu); off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented**. Token `sudoers` is **not** a command |
+| `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY (family `DNS Features` + family `sudoers` + family `self-management` submenus); off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented**. Family tokens are **not** commands |
 | `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-review-hooks` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
 | `remove-lpu` | Type 1 | `lpu_remove` | F7 teardown — **Implemented** (1.5.0) |
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
@@ -260,9 +260,12 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-01..13** | `tests/test_cli.sh` | have | includes stripped-verb fail-closed |
 | **TP-CLI-14** | `tests/test_cli.sh` | have | CI-M1 dual mention — each routed verb in ≥2 REQs |
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
-| **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family sudoers; off-TTY help |
+| **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family DNS Features + sudoers; off-TTY help |
 | **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers submenu Back/Exit; `sudoers` not dispatched |
 | **TP-CLI-21** | `tests/test_cli.sh` | have | invalid menu pick reprints the same numbered layer |
+| **TP-CLI-22** | `tests/test_cli.sh` | have | DNS Features submenu Back **98** / Exit **99**; `dns` not dispatched |
+| **TP-CLI-23** | `tests/test_cli.sh` | have | finished listed command returns to the top list |
+| **TP-CLI-24** | `tests/test_cli.sh` | have | self-management submenu Back **8** / Exit **9**; `self-management` not dispatched |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
@@ -273,6 +276,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-16 | Active 3.12.0 | `menu`/`main` family **DNS Features** + family **sudoers** (neither dispatched) |
 | 2026-09-08 | Active 3.11.0 | Dual mention: `interactive` also `requirement-login-interactive-hook` |
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
 | 2026-08-13 | Active 2.0.0 | cli-template Type 0 only |
@@ -291,6 +295,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-08  
+**Last Updated**: 2026-09-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

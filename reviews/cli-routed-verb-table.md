@@ -43,4 +43,4 @@ Inventory from `app_main` dispatcher. Help is not a route.
 
 None. Previous gap `menu`/`main` is now live.
 
-Honesty: dispatcher inventory; dates from handler comment `Last updated:` / `Last reviewed:`; `missing` is not invented. Menu family `sudoers` is **not** a live dispatcher token (TTY submenu only).
+Honesty: dispatcher inventory; dates from handler comment `Last updated:` / `Last reviewed:`; `missing` is not invented. Menu families `DNS Features`, `sudoers`, and `self-management` are **not** live dispatcher tokens (TTY submenu only).

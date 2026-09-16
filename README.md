@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.25.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.28.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -11,7 +11,7 @@
 |-----|--------------|----------|
 | Install the program, store a token, add or update an A record, drop a DNS request file | Dedicated account **dns-adm** reviews waiting files after `sudo dns-cli setup` | An online `curl\|sh` installer; IPv6; putting the token on the command line |
 
-At a keyboard, typing only `dns-cli` opens a numbered list of daily DNS jobs. In a script it prints help. Grant and draft work sits under **sudoers** on that list — `sudoers` is not a command you type after the program name. `install` places the program only; it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
+At a keyboard, typing only `dns-cli` opens a numbered list: **1 DNS Features** (vault, ip, add, …), **7 sudoers** (grant and drafts), and **8 self-management** (install, uninstall, where-is-me). In a script it prints help. Those family names are not commands you type after the program name. `install` places the program only; it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
 
 Install **location** is still **both**:
 
@@ -26,7 +26,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 - **Self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
 - **No arguments**: at a keyboard, the numbered main menu; in a script, help (does not install, submit, or mutate DNS)
-- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); daily DNS work first, then family **sudoers**; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
+- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); top list is **1 DNS Features**, **7 sudoers**, **8 self-management**; a finished command returns to that top list; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
 - **Managed binary mode 0755**: global install stays readable and runnable
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
@@ -69,10 +69,21 @@ This product is **local-only** for its install channel (no default `SCRIPT_URL` 
 sudo dns-cli setup
 ```
 
-**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `99` leaves). Pick **11** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). A number that is not on the list prints **that same list** again. Off-TTY these commands print help. `sudoers` is not a typed CLI command.
+**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `9` leaves). Pick **1** / **DNS Features** for daily DNS work (`98` back, `99` leaves that list). Pick **7** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Pick **8** / **self-management** to install, uninstall, or locate this program (`8` back, `9` leaves that list). After a listed command finishes you are back on this top list. A number that is not on the list prints **that same list** again. Off-TTY these commands print help. Family names are not typed CLI commands.
 
 ```text
-[INFO] **dns-cli**(*1.25.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.28.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+1. DNS Features: *Daily DNS work*
+7. sudoers: *Grant and drafts*
+8. self-management: *Install, uninstall, where-is-me*
+9. Exit
+Choice: 
+```
+
+Pick **1** — DNS Features (all daily DNS verbs):
+
+```text
+[INFO] **dns-cli**(*1.28.0*) - DNS Features (daily DNS work)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -83,8 +94,35 @@ sudo dns-cli setup
 8. approve: *Apply a waiting DNS request*
 9. reject: *Decline a waiting DNS request*
 10. interactive: *Review waiting DNS requests one by one*
-11. sudoers: *Grant and drafts*
+98. Back
 99. Exit
+Choice: 
+```
+
+Pick **7** — sudoers (all grant/draft/LPU verbs):
+
+```text
+[INFO] **dns-cli**(*1.28.0*) - sudoers (grant and drafts)
+1. generate-sudoer-request: *Write a local JSON grant you can review*
+2. submit-sudoer-request: *Queue a type-2-switch grant as this login*
+3. print-sudoers: *Print the sudoer file (does not install dest)*
+4. remove-lpu: *Remove Linux user dns-adm*
+8. Back
+9. Exit
+Choice: 
+```
+
+Pick **8** — self-management (local lifecycle; no online update channel):
+
+```text
+[INFO] **dns-cli**(*1.28.0*) - self-management (place, remove, locate)
+1. install: *Install dns-cli (root→global, user→~/.local/bin)*
+2. uninstall: *Remove managed binary (confirm or --force)*
+3. where-is-me: *Show running and install paths*
+4. version: *Show local version*
+5. about: *Show diagnostics (Type 0 + vault fields, no token)*
+8. Back
+9. Exit
 Choice: 
 ```
 
@@ -396,6 +434,9 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-16 — version **1.28.0** (main menu **8** is family **self-management**; **sudoers** moves to **7**).
+2026-09-16 — version **1.27.0** (a finished menu command returns to the top list).
+2026-09-16 — version **1.26.0** (main menu **1 DNS Features** / **8 sudoers**; daily DNS verbs on the second layer).
 2026-09-13 — version **1.25.0** (doorbell `/usr/local/bin/dns-review-hooks`; heal rewrites old `dns-cli`, `dns-cli-hook`, and `login-review-hook`).
 2026-09-13 — version **1.24.0** (wrong menu pick reprints that same numbered list on every layer).
 2026-09-08 — version **1.23.0** (login-hook skip names `login-hook-elev` next; Type 1 `interactive` reviews `dns-adm` rc).

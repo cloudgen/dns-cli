@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-modular-function-design.md  
-**Status**: Active (Version 2.5.0)  
+**Status**: Active (Version 2.7.0)  
 **Area**: shell  
 **Key**: `requirement-shell-modular-function-design`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -57,7 +57,7 @@ Ship unit remains a **single executable** at `src/dns-cli`.
 | `out_` | Output system | All user-facing and machine-readable output | `out_text`, `out_info`, `out_json`, `out_die` |
 | `inst_` | Installation lifecycle | Local install/uninstall detect and place/remove | `inst_local_install`, `inst_local_uninstall`, `inst_is_installed` |
 | `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper, identity nametag | `util_resolve_storage`, `util_resolve_running_path`, `util_get_install_bin_path`, `util_get_current_shell`, `util_json_escape`, `util_backup`, `util_app_ident` — **examples:** §2.2a |
-| `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me/menu | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me`, `app_default`, `app_default_print_menu`, `app_default_print_row`, `app_default_print_sudoers_menu`, `app_default_run_pick`, `app_default_run_sudoers_pick`, `app_default_sudoers_loop` |
+| `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me/menu | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me`, `app_default`, `app_default_print_menu`, `app_default_print_row`, `app_default_print_dns_menu`, `app_default_run_dns_pick`, `app_default_dns_loop`, `app_default_print_sudoers_menu`, `app_default_run_pick`, `app_default_run_sudoers_pick`, `app_default_sudoers_loop`, `app_default_print_selfmgmt_menu`, `app_default_run_selfmgmt_pick`, `app_default_selfmgmt_loop` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |
 | `prompt_` | Interactive prompts | TTY-safe confirmations and secrets — **bodies:** `requirement-shell-prompt` | `prompt_yes_no`, `prompt_ask`, `prompt_secret` |
 | `cf_` | Cloudflare domain | Vault, DNS, IP lookup, API, JSON extract | `cf_vault_*`, `cf_dns_*`, `cf_ip_*`, `cf_api_*`, `cf_json_*` |
@@ -224,6 +224,8 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup prefixes including `fb_*` |
 | 2026-08-13 | Active 2.0.0 | cli-template: no domain prefix |
+| 2026-09-16 | Active 2.7.0 | `app_default_*` self-management submenu helpers |
+| 2026-09-16 | Active 2.6.0 | `app_default_*` DNS Features submenu helpers |
 | 2026-09-03 | Active 2.5.0 | `app_default_*` sudoers submenu helpers |
 | 2026-08-18 | Active 2.3.0 | `util_*` example ownership; `util_backup` sample; AC-4 |
 | 2026-08-17 | Active 2.2.0 | Add `lpu_` for setup/remove-lpu/print-sudoers |
@@ -231,6 +233,6 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

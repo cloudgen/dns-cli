@@ -4,9 +4,9 @@
 **Class:** software-development · **B = hop 1** from **A = cli-template** · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-13  
-**Ship unit VERSION:** 1.25.0  
-**Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** have)
+**Last plan update:** 2026-09-16  
+**Ship unit VERSION:** 1.28.0  
+**Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24** have)
 
 ---
 
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.25.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.28.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -33,7 +33,8 @@
 | P17 | Keep-latest duplicate inbound | Dest `interactive` (login hook included) keeps the latest inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined (no dest-write, no extra yes/no). Not a dest Fence. **TP-CF-REQ-19**. |
 | P18 | YAML review display | Dest `interactive` (login hook included) shows a clear waiting body as YAML, not a JSON object dump. Inbound file stays JSON. **TP-CF-REQ-20**. |
 | P19 | Type 2 sudo F3 `.local` owner (INC-20260909-001) | `${SYSTEM_USER_HOME}/.local` and persistency `${HOME}/.local/dns-cli` are **`dns-adm:dns-adm`**. Type 2 sudo **MUST** `chown` created F3 paths to `dns-adm`. Do not leave them `root:root`. Do not cite **003** to skip. Do not `chown` inbound JSON. Do not treat persistency ERROR + menu as fail-closed. |
-| P20 | Invalid menu pick reprints the same layer | Every numbered main-menu layer (main + sudoers submenu) warns, reprints **that same** list, and reads again. Unused numbers / blank / garbage are not Exit. **TP-CLI-21**. |
+| P20 | Invalid menu pick reprints the same layer | Every numbered main-menu layer (main + DNS Features + sudoers) warns, reprints **that same** list, and reads again. Unused numbers / blank / garbage are not Exit. **TP-CLI-21**. |
+| P21 | Finished menu command returns to the top list | After a listed DNS Features, sudoers, self-management, or top-list shortcut command finishes, the operator sees **1 DNS Features** / **7 sudoers** / **8 self-management** / **9 Exit** again. Exit / Back / EOF still leave or go back as before. **TP-CLI-23** · **TP-CLI-24**. |
 
 ---
 
@@ -49,7 +50,7 @@
 | Three-layer | `requirement-three-layer-privilege-model.md` | Tables A/B/C + **§2.1a role table**; print sudoer file / generate+submit Implemented; Type 2 switch Implemented |
 | JSON sudoer file | `requirement-sudoer-json-file.md` | **§2.0 role table** (printer / submitter / `sudoer-adm`); generate dest + submit; `runas=dns-adm` |
 | Empty argv | `requirement-shell-cli-zero-arguments.md` | Off-TTY empty argv = help; TTY empty argv = main menu |
-| Default interaction | `requirement-shell-cli-default-interaction.md` | Daily DNS list + family **sudoers** submenu; Exit **99**; Back **8** / Exit **9**; `sudoers` not a command; invalid pick reprints the same layer |
+| Default interaction | `requirement-shell-cli-default-interaction.md` | Family **DNS Features** **1** + family **sudoers** **7** + family **self-management** **8**; Exit **9**; DNS Back **98** / Exit **99**; sudoers/self-management Back **8** / Exit **9**; finished command returns to the top list; family tokens not commands; invalid pick reprints the same layer |
 | Local self-management | `requirement-shell-local-self-management.md` | install/uninstall; mode 0755 |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*`; JSON errors |
 | Modular design | `requirement-shell-modular-function-design.md` | `cf_` domain prefix |

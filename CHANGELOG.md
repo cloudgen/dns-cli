@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.28.0] - 2026-09-16
+
+### Changed
+
+- TTY main menu **8** is family **self-management** (local `install` / `uninstall` / `where-is-me` / `version` / `about`). Family **sudoers** moves to **7**. Sibling **selfmanaged** is a read-only architecture reference for that family grouping; this product stays **local-only** (no `self-update` / `version-check` / `self-uninstall`). `self-management` is not a typed CLI command. Live origin stays `cli-template`. Law `requirement-shell-cli-default-interaction` **1.7.0**. Suite **TP-CLI-24**. Ship unit **`VERSION="1.28.0"`**.
+
+## [1.27.0] - 2026-09-16
+
+### Changed
+
+- After a listed main-menu command finishes, the TTY list returns to the **top** board (**1 DNS Features** / **8 sudoers** / **9 Exit**). It does **not** leave `menu`, and it does **not** stay on the DNS Features or sudoers submenu. Exit / Back / EOF still leave or go back as before. Law `requirement-shell-cli-default-interaction` **1.6.0**. Suite **TP-CLI-23**. Ship unit **`VERSION="1.27.0"`**.
+
+## [1.26.0] - 2026-09-16
+
+### Changed
+
+- TTY **main menu** top list is two family rows: **1 DNS Features** (daily DNS work) and **8 sudoers** (grant and drafts). Exit is **9**. Daily DNS verbs (`vault`, `ip`, `add`, `update`, `remove`, `status`, `submit`, `approve`, `reject`, `interactive`) sit on the DNS Features submenu (Back **98** / Exit **99**). The sudoers submenu still lists all four grant/draft/LPU verbs (Back **8** / Exit **9**). `DNS Features` and `sudoers` are not typed CLI commands. Unused top numbers **2–7** reprint the same list. Law `requirement-shell-cli-default-interaction` **1.5.0**. Suite **TP-CLI-18** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22**. Ship unit **`VERSION="1.26.0"`**.
+
 ## [1.25.0] - 2026-09-13
 
 ### Changed
