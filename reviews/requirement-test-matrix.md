@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
-**Updated:** 2026-09-16  
-**Product VERSION:** 1.28.0  
+**Updated:** 2026-09-17  
+**Product VERSION:** 1.30.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -18,7 +18,7 @@
 | requirement-shell-cli-interface | shell | TP-CLI-* (incl. **TP-CLI-14** · **TP-CLI-15** · **TP-CLI-16** · **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22**) · **TP-FENCE-09..15** | Commands, flags, dispatch; dual mention; test-purpose `fence-test`; `menu`/`main`; family `DNS Features` / `sudoers` not dispatched |
 | requirement-shell-cli-default-interaction | shell | **TP-CLI-18** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24** · TP-CLI-07 · TP-CLI-14 · TP-CLI-15 | Case 3 numbered menu; family DNS Features + sudoers + self-management submenus; finished command returns to the top list; invalid pick reprints the same layer; header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; gray-italic explain |
 | requirement-shell-cli-zero-arguments | shell | TP-CLI-07 · **TP-CLI-19** | Off-TTY empty argv = help; TTY empty argv = main menu |
-| requirement-shell-local-self-management | shell | TP-LC-* (incl. **09/10** mode) | install/uninstall/where-is-me; **0755** |
+| requirement-shell-local-self-management | shell | TP-LC-* (incl. **09/10/11** mode) · **TP-SI-01/04/08** | self-install/uninstall/where-is-me; local **0700** / global **0755** |
 | requirement-shell-output-requirements | shell | TP-CLI-03,05,08,09 | JSON / quiet / errors |
 | requirement-shell-modular-function-design | shell | (indirect) | no `fb_*`; `app_main` / `out_*` |
 | requirement-shell-idempotency | shell | TP-LC-03,07 | Re-install / uninstall absent |
@@ -29,7 +29,7 @@
 | requirement-dns-approver | architecture | TP-CF-APR-01..08 (peer) · **TP-CF-REQ-19** | **have** — identity `dns-adm`; hook plant moved to independent REQ |
 | requirement-login-interactive-hook | architecture | TP-CF-APR-01..09 · **TP-LPU-08** | **have** — `.bashrc` / missing `.profile` heal; `/usr/local/bin/dns-review-hooks`; old `dns-cli` / `dns-cli-hook` / `login-review-hook` rewrite; `interactive` reviews `dns-adm` rc; skip names `login-hook-elev` |
 | requirement-cloudflare-dns-mode | domain | TP-CF-MODE-01..08 have; 06/09/10 todo | stored mode + RR add/status + switch lock |
-| requirement-cloudflare-dns-request | domain | TP-CF-REQ-01..20 | **have** — inbound JSON types; dest-written `submit_by` after format check; hyphenated subject basename; DNS dest rejects sudoer `kind`; keep-latest duplicate inbound; YAML review display |
+| requirement-cloudflare-dns-request | domain | TP-CF-REQ-01..21 | **have** — inbound JSON types; dest-written `submit_by` after format check; hyphenated subject basename; DNS dest rejects sudoer `kind`; keep-latest duplicate inbound; YAML review display on `approve` / `reject` / `interactive` |
 | requirement-external-ipv4 | shell | TP-CF-IP-01..04, TP-CLI-04 | **have** — vault-free `ip`; IPv6 MUST NOT |
 | requirement-application-local-vault | shell | TP-AV-01..08 have | specify + LPU dest = local vaults / global vault from ordinary login |
 | requirement-cloudflare-vault | domain | TP-CF-VAULT-01..33 have | v2 zone-slot CRUD + list verify; default dest Implemented 1.8.0 |
@@ -37,4 +37,4 @@
 
 **Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, folder-archive backup/restore, sudoers-manager extras.
 
-**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..09, TP-LPU-01..08, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..20**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.28.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).
+**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu · **TP-SI-01/04/08** self-install copy), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..09, TP-LPU-01..08, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..21**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.30.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-dns-actor-table.md  
-**Status**: Active (Version 1.13.0) — login-hook plant is `requirement-login-interactive-hook`  
+**Status**: Active (Version 1.14.0) — dest human approve/reject show YAML  
 **Area**: architecture  
 **Key**: `requirement-dns-actor-table`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -125,7 +125,7 @@ Procedure:
 1. `dns-adm` logs in on a keyboard TTY (SSH/console).  
 2. Interactive rc (`.bashrc` only unless `.profile` exists and does **not** source `.bashrc`) runs the snippet owned by `requirement-login-interactive-hook`.  
 3. Guards pass → `sudo -n /usr/local/bin/dns-review-hooks interactive` (**login-hook-symlink**; Type 1 `setup` creates it → `/usr/local/bin/dns-cli` when missing). The live grant is **`login-hook-elev`** (sibling dest after approve), **not** the Type 0 `type-2-switch` JSON and **not** F6 `%sudo ALL=(dns-adm)`. Topic-owner of the symlink, snippet, and heal: `requirement-login-interactive-hook`.  
-4. **Duplicate inbound (early, login hook included):** **before** taking ownership, fencing, and yes/no, dest **MUST** group remaining inbound files by dest identity (JSON `domain_id` + `subdomain` — one live Cloudflare FQDN / vault slot). For each group with more than one file: **keep the latest**; move every older file inbound → declined. Latest = newer inbound mtime; equal mtime → later allocated basename. Files with no dest identity stay ungrouped. Different dest identities stay. **MUST NOT** dest-write Cloudflare. **MUST NOT** stamp `submit_by` on older copies. **MUST NOT** ask the approval question on them. **MUST NOT** treat this as a dest Fence. **MUST** print `superseded {old} (kept {new})`. **MUST NOT** say “skipped”. Standalone `approve` / `reject` of a remaining id stay **non-interactive**.  
+4. **Duplicate inbound (early, login hook included):** **before** taking ownership, fencing, and yes/no, dest **MUST** group remaining inbound files by dest identity (JSON `domain_id` + `subdomain` — one live Cloudflare FQDN / vault slot). For each group with more than one file: **keep the latest**; move every older file inbound → declined. Latest = newer inbound mtime; equal mtime → later allocated basename. Files with no dest identity stay ungrouped. Different dest identities stay. **MUST NOT** dest-write Cloudflare. **MUST NOT** stamp `submit_by` on older copies. **MUST NOT** ask the approval question on them. **MUST NOT** treat this as a dest Fence. **MUST** print `superseded {old} (kept {new})`. **MUST NOT** say “skipped”. Standalone `approve` / `reject` of a remaining id stay **non-interactive** (no yes/no). Human (not `--json`) dest **`approve`** / **`reject`** **MUST** display the waiting body as **YAML** then apply/move. **MUST NOT** dump the waiting file as a JSON object.  
 5. **At the beginning** of remaining review, dest **MUST** take file-ownership of inbound JSON as **`dns-adm`**. **Before** that `chown`, dest **MUST** read the original Unix file-ownership. Then dest **MUST** take ownership as `dns-adm`. Then dest **MUST** review JSON format. If the JSON is correct, dest **MUST** add `submit_by` (human: submit by) whose value is that original file-ownership. Dest **MUST NOT** add `submit_by` when format fails. Fail closed if that `chown` fails (CI stub `CF_TEST_LPU=1` **MAY** skip live `chown`). Type 0 `submit` **MUST NOT** include `submit_by`.  
 6. Then `interactive` lists inbound JSON, one file at a time. Dest **MUST** handle **fencing first** (this file-based JSON system **MUST** include incorrect JSON format). Dest **MUST NOT** treat dest-written `submit_by` as an unknown key.  
 7. If a fence **matches**: display the match in human-facing words (what happened / what it means / next). **MUST NOT** ask the approval question for that file. Continue to the next file.  
@@ -214,7 +214,7 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 15. Drop incorrect JSON format from this file-based JSON dest fence table.  
 16. Run the login hook as `/usr/local/bin/dns-cli interactive`, leftover `/usr/local/bin/dns-cli-hook interactive`, or sibling `/usr/local/bin/login-review-hook interactive` instead of `/usr/local/bin/dns-review-hooks interactive`.  
 17. In `interactive` (login hook included), keep every inbound copy of the same dest (`domain_id` + `subdomain`) and ask yes/no on older duplicates. **MUST** keep the latest and move older duplicates to declined without dest-write and without yes/no. **MUST NOT** add “duplicate” as a dest Fence.  
-18. Dump the waiting file as a JSON object during login-hook review. **MUST** show the body as YAML. Inbound file stays JSON.
+18. Dump the waiting file as a JSON object during dest human `approve` / `reject` / `interactive`. **MUST** show the body as YAML. Inbound file stays JSON. `--json` stays machine JSON.
 
 **Violating this rule is a critical privilege / stay-honest regression.**
 
@@ -236,7 +236,7 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 | AC-ACT12 | Approval question is one-off yes/no: yes=approve, no=reject; no skip/quit (ACT-M4) |
 | AC-ACT13 | Dest review fences first; match is human-facing; question only if clear (ACT-M4 / approval-system) |
 | AC-ACT14 | Login-hook `interactive` keeps the latest inbound file per dest (`domain_id`+`subdomain`); older superseded → declined (ACT-M4) |
-| AC-ACT15 | Login-hook `interactive` shows a clear waiting body as YAML, not as a JSON object dump (ACT-M4) |
+| AC-ACT15 | Dest human `approve` / `reject` / `interactive` show a clear waiting body as YAML, not as a JSON object dump (ACT-M4) |
 | AC-ACT9 | Dest MUST NOT fence on file-ownership; JSON `subject` ≠ Unix owner (ACT-M7) |
 | AC-ACT10 | Dest approval fencing conditions closed: dest inbound fence is incorrect JSON format only (ACT-M8) |
 
@@ -279,6 +279,7 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 | **TP-CF-REQ-15** | `tests/test_cf_request.sh` | have | interactive records original owner; dest-writes `submit_by` if format is clear |
 | **TP-CF-REQ-19** | `tests/test_cf_request.sh` | have | Duplicate inbound same dest: keep latest; older superseded → declined; no dest write; no extra yes/no |
 | **TP-CF-REQ-20** | `tests/test_cf_request.sh` | have | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump |
+| **TP-CF-REQ-21** | `tests/test_cf_request.sh` | have | Human dest `approve` / `reject` show YAML; `--json` stays JSON |
 | **TP-CF-ACTOR-08** | `tests/test_cli.sh` | have | ACT-M7 dest MUST NOT fence on file-ownership |
 | **TP-CF-ACTOR-09** | `tests/test_cli.sh` | have | ACT-M8 dest inbound fence is incorrect JSON format only |
 
@@ -291,6 +292,7 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 | Date | Status | Note |
 |------|--------|------|
 | 2026-09-08 | Active 1.13.0 | Login-hook snippet / heal / `-hook` soft link moved to `requirement-login-interactive-hook`. Dest review loop stays here. |
+| 2026-09-16 | Active 1.14.0 | Dest human `approve` / `reject` show YAML (file stays JSON; `--json` stays JSON). **TP-CF-REQ-21**. |
 | 2026-09-06 | Active 1.12.0 | Login-hook `interactive` shows a clear waiting body as **YAML** (inbound file stays JSON). **TP-CF-REQ-20**. |
 | 2026-09-06 | Active 1.11.0 | Interactive / login-hook review keeps the **latest** inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined. Protection rule 17; **TP-CF-REQ-19**. |
 | 2026-09-03 | Active 1.10.0 | Login hook / snippet uses the login-hook-symlink `/usr/local/bin/dns-cli-hook` |
@@ -310,6 +312,6 @@ The **normative** snippet, markers, session guard, `-hook` soft link, and old-ho
 
 ---
 
-**Last Updated**: 2026-09-08  
+**Last Updated**: 2026-09-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

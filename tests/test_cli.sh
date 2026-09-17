@@ -39,6 +39,7 @@ run_test_cli() {
     _ec=$?
     assert_eq "TP-CLI-04 help exit 0" 0 "$_ec"
     assert_contains "TP-CLI-04 help install" "$_out" "install"
+    assert_contains "TP-CLI-04 help self-install" "$_out" "self-install"
     assert_contains "TP-CLI-04 help install does not create dns-adm" "$_out" "does not create Linux user dns-adm"
     assert_contains "TP-CLI-04 help setup" "$_out" "setup"
     assert_contains "TP-CLI-04 help remove-lpu" "$_out" "remove-lpu"
@@ -192,7 +193,7 @@ run_test_cli() {
     assert_contains "TP-CLI-18 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
     assert_contains "TP-CLI-18 DNS Features first" "$_plain" "1. DNS Features: Daily DNS work"
     assert_contains "TP-CLI-18 family sudoers" "$_plain" "7. sudoers: Grant and drafts"
-    assert_contains "TP-CLI-18 family self-management" "$_plain" "8. self-management: Install, uninstall, where-is-me"
+    assert_contains "TP-CLI-18 family self-management" "$_plain" "8. self-management: Self-install, uninstall, where-is-me"
     assert_contains "TP-CLI-18 Exit 9" "$_plain" "9. Exit"
     assert_not_contains "TP-CLI-18 no vault on main" "$_plain" "vault:"
     assert_not_contains "TP-CLI-18 no ip on main" "$_plain" "2. ip:"
@@ -232,7 +233,7 @@ run_test_cli() {
     assert_contains "TP-CLI-19 header APP_NAME(APP_VERSION) - SHORT_DESC" "$_plain" "${APP_NAME}(${APP_VERSION}) - ${_short_desc}"
     assert_contains "TP-CLI-19 DNS Features first" "$_plain" "1. DNS Features: Daily DNS work"
     assert_contains "TP-CLI-19 family sudoers" "$_plain" "7. sudoers: Grant and drafts"
-    assert_contains "TP-CLI-19 family self-management" "$_plain" "8. self-management: Install, uninstall, where-is-me"
+    assert_contains "TP-CLI-19 family self-management" "$_plain" "8. self-management: Self-install, uninstall, where-is-me"
     assert_contains "TP-CLI-19 Exit 9" "$_plain" "9. Exit"
     assert_contains "TP-CLI-19 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
     assert_not_contains "TP-CLI-19 TTY empty argv is not help dump" "$_plain" "Usage:"
@@ -345,7 +346,7 @@ run_test_cli() {
     assert_eq "TP-CLI-24 TTY selfmgmt back exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-24 submenu title" "$_plain" "self-management (place, remove, locate)"
-    assert_contains "TP-CLI-24 install row" "$_plain" "1. install:"
+    assert_contains "TP-CLI-24 self-install row" "$_plain" "1. self-install:"
     assert_contains "TP-CLI-24 uninstall row" "$_plain" "2. uninstall:"
     assert_contains "TP-CLI-24 where-is-me row" "$_plain" "3. where-is-me:"
     assert_contains "TP-CLI-24 version row" "$_plain" "4. version:"
@@ -357,7 +358,7 @@ run_test_cli() {
     assert_not_contains "TP-CLI-24 no self-uninstall" "$_plain" "self-uninstall:"
     assert_not_contains "TP-CLI-24 no setup" "$_plain" "setup:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. install:')
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
     assert_eq "TP-CLI-24 back reprints main DNS Features twice" 2 "$_nfeat"
     assert_eq "TP-CLI-24 back showed submenu once" 1 "$_ninst"
     _out=$(printf '8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
@@ -365,12 +366,12 @@ run_test_cli() {
     assert_eq "TP-CLI-24 TTY selfmgmt Exit 9 leaves" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. install:')
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
     assert_eq "TP-CLI-24 Exit 9 main once" 1 "$_nfeat"
     assert_eq "TP-CLI-24 Exit 9 showed submenu" 1 "$_ninst"
     _out=$(printf 'self-management\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
-    assert_contains "TP-CLI-24 pick self-management opens submenu" "$_plain" "1. install:"
+    assert_contains "TP-CLI-24 pick self-management opens submenu" "$_plain" "1. self-install:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-24 pick self-management then back reprints main" 2 "$_nfeat"
     _err=$(sh "${SCRIPT}" self-management 2>&1 >/dev/null)
@@ -382,7 +383,7 @@ run_test_cli() {
     assert_eq "TP-CLI-24 version then Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. install:')
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
     assert_eq "TP-CLI-24 version reprints top twice" 2 "$_nfeat"
     assert_eq "TP-CLI-24 version showed submenu once" 1 "$_ninst"
     _out=$(printf '8\n6\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
@@ -598,7 +599,7 @@ run_test_cli() {
     else
         t_pass "TP-CLI-14 language CLI-interface present ($(basename "${_cli_iface}"))"
         # Routed top-level COMMAND values from app_main, plus CI-M1 Gap verbs law still names.
-        for _verb in install uninstall where-is-me version about help menu main setup remove-lpu \
+        for _verb in install self-install uninstall where-is-me version about help menu main setup remove-lpu \
             print-sudoers generate-sudoer-request submit-sudoer-request \
             vault ip add update remove status show \
             submit approve reject interactive test-json-format fence-test; do
@@ -632,7 +633,7 @@ run_test_cli() {
         _other=$(printf '%s\n' "${_hits}" | grep -v 'requirement-shell-cli-interface.md' | sed '/^$/d' | wc -l | tr -d ' ')
         [ "${_other}" -ge 1 ]
     }
-    for _verb in install uninstall where-is-me version about help menu main setup remove-lpu \
+    for _verb in install self-install uninstall where-is-me version about help menu main setup remove-lpu \
         print-sudoers generate-sudoer-request submit-sudoer-request \
         vault ip add update remove status show \
         submit approve reject interactive test-json-format fence-test; do

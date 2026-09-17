@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-cloudflare-dns-request.md  
-**Status**: Active (Version 1.8.0) — login-hook `interactive` shows the waiting body as YAML  
+**Status**: Active (Version 1.9.0) — dest human `approve` / `reject` / `interactive` show YAML  
 **Area**: domain  
 **Key**: `requirement-cloudflare-dns-request`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -72,7 +72,7 @@ Terms: [`cloudflare-dns-request`](../terminologies/cloudflare-dns-request.md) ·
 
 **MUST NOT** include `token`, `CF_API_TOKEN`, `user_id` secrets, or any AAAA / IPv6 field. Unknown keys → `request_invalid`. Token stays in the vault.
 
-**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Type 0 `submit` **MUST** overwrite `submit_app` / `submit_version` from live Config `APP_NAME` / `VERSION`. Dest **MUST NOT** dest-write those keys. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` and Type 0 `submit_app` / `submit_version` as allowed keys, not unknown. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. After format is clear, dest **MUST** display `queued by {submit_app} {submit_version}` and the waiting body as **YAML** (inbound file stays JSON; **MUST NOT** dump the file as a JSON object) before the approval question.
+**REQ-M3a.** Type 0 `submit` **MUST NOT** include `submit_by`. Type 0 `submit` **MUST** overwrite `submit_app` / `submit_version` from live Config `APP_NAME` / `VERSION`. Dest **MUST NOT** dest-write those keys. Dest login-hook `interactive`, while taking file-ownership, **MUST** read original Unix file-ownership, take ownership as `dns-adm`, review JSON format, and if the JSON is correct **MUST** add `submit_by` (human: submit by) set to that original owner. Dest **MUST NOT** add `submit_by` when format fails. Dest verify **MUST** treat dest-written `submit_by` and Type 0 `submit_app` / `submit_version` as allowed keys, not unknown. Dest **MUST NOT** fence because `submit_app` ≠ dest product or `submit_version` ≠ dest version. After format is clear, dest **MUST** display `queued by {submit_app} {submit_version}` and the waiting body as **YAML** (inbound file stays JSON; **MUST NOT** dump the file as a JSON object) before the approval question. Dest human **`approve`** / **`reject`** **MUST** display that same YAML of the waiting body (inbound file stays JSON; **MUST NOT** dump a JSON object). `--json` on those verbs stays machine JSON.
 
 **REQ-M4.** IPv4 fields (`ipv4`, `from_ipv4`) **MUST** be dotted-quad public IPv4 per `requirement-external-ipv4` IP-M4. IPv6 literal → `ip_lookup_failed` / `request_invalid`.
 
@@ -291,7 +291,7 @@ Basename: `20260817-alice-mode-2.json`
 9. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON `subject` ≠ `dns-adm`).  
 10. Start login-hook `interactive` review **without** first taking inbound file-ownership as `dns-adm`.  
 11. In `interactive` (login hook included), keep every inbound copy of the same dest (`domain_id` + `subdomain`) and ask yes/no on older duplicates. **MUST** keep the latest and move older copies to declined without dest-write. **MUST NOT** add “duplicate” as a dest Fence.  
-12. Dump the waiting file as a JSON object during login-hook review. **MUST** show the body as YAML. Inbound file stays JSON.
+12. Dump the waiting file as a JSON object during dest human `approve` / `reject` / `interactive`. **MUST** show the body as YAML. Inbound file stays JSON. `--json` on those verbs stays machine JSON.
 
 **Violating this rule is a critical request-schema regression.**
 
@@ -352,6 +352,7 @@ Basename: `20260817-alice-mode-2.json`
 | **TP-CF-REQ-18** | `tests/test_cf_request.sh` | have | hyphenated subject in basename (`YYYYMMDD-ci-runner-add-1.json`); parse date left, action+n right |
 | **TP-CF-REQ-19** | `tests/test_cf_request.sh` | have | Duplicate inbound same dest: keep latest; older superseded → declined; no dest write; no extra yes/no |
 | **TP-CF-REQ-20** | `tests/test_cf_request.sh` | have | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump |
+| **TP-CF-REQ-21** | `tests/test_cf_request.sh` | have | Human dest `approve` / `reject` show the waiting body as YAML; `--json` stays JSON |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -362,6 +363,7 @@ Basename: `20260817-alice-mode-2.json`
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-16 | Active 1.9.0 | Dest human `approve` / `reject` show the waiting body as **YAML** (file stays JSON; `--json` stays JSON). **TP-CF-REQ-21**. |
 | 2026-09-06 | Active 1.8.0 | Login-hook `interactive` shows a clear waiting body as **YAML** (inbound file stays JSON). **TP-CF-REQ-20**. |
 | 2026-09-06 | Active 1.7.0 | Login-hook `interactive` keeps the **latest** inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined. **TP-CF-REQ-19**. |
 | 2026-09-06 | Active 1.6.0 | REQ-M6 subject MAY contain hyphens; parse date left, action+n right (**TP-CF-REQ-18**) |
@@ -375,6 +377,6 @@ Basename: `20260817-alice-mode-2.json`
 
 ---
 
-**Last Updated**: 2026-09-06  
+**Last Updated**: 2026-09-16  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

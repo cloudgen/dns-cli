@@ -18,7 +18,7 @@ Exit **0** when all assertions pass; **1** on failure; **2** if ship unit missin
 | `helpers.sh` | Asserts + isolated HOME | — |
 | `test_cli.sh` | CLI surface, Type N empty argv, offline reject, trimmed-verb reject, **dual mention**, actor-table split, dest fence catalog, **fence-test**, dest-owned `submit_app`, **cache + persistency folder**, **main-menu header + gray-italic rows**, **TTY empty argv menu**, **DNS Features + sudoers + self-management family submenus**, **invalid menu pick reprints same layer**, **finished command returns to top list** | **TP-CLI-*** (incl. **TP-CLI-17** · **TP-CLI-18** · **TP-CLI-19** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24**) · **TP-CF-ACTOR-*** · **TP-FENCE-01..04** · **TP-FENCE-08..17** |
 | `fixtures/fence-test/` | Local corpus for Type 0 `fence-test` (`pass/` / `match/`) | **TP-FENCE-09..14** |
-| `test_local_lifecycle.sh` | install / uninstall / where-is-me | **TP-LC-*** |
+| `test_local_lifecycle.sh` | self-install / uninstall / where-is-me; dest 0700/0755 | **TP-LC-*** · **TP-SI-*** |
 | `test_cf_vault.sh` | Vault 0700/0600, HOME fail-closed, last-label, redaction, **`--vault-dir` specify** | **TP-CF-VAULT-*** · **TP-AV-*** |
 | `test_cf_dns.sh` | Single A, add-implies-update, `--force`, stubbed curl | **TP-CF-DNS-*** · **TP-CF-MODE-*** |
 | `test_cf_ip.sh` | Vault-free public IPv4 display | **TP-CF-IP-*** |

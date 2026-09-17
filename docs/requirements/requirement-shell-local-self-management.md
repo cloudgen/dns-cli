@@ -1,38 +1,41 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.7.0)  
+**Status**: Active (Version 1.8.0)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the dns-cli POSIX shell CLI: **`install`**, **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
+This requirement is the **project Single Source of Truth** for **local self-managed lifecycle** of the dns-cli POSIX shell CLI: **`self-install`** (alias **`install`**), **`uninstall`**, and **`where-is-me`**, plus the local diagnostics package contract for **`version`**, **`about`**, and **`help`** (wiring owned with CLI interface).
 
-**Install mode:** **local-only**. Online channel install, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent).
+**Install mode:** **local-only**. Online channel download, remote version-check, self-update, and self-uninstall are **out of scope** (intentionally absent). The place verb is **`self-install`**: when `$0` is this script, copy that file (no download).
 
 ### 1.1 Human-facing
 
-**In one sentence:** You **copy** dns-cli onto your PATH with `install`, **remove** that copy with `uninstall`, and **ask where it is** with `where-is-me`. There is no internet update channel.
+**In one sentence:** You **copy this file** onto your PATH with `self-install`, **remove** that copy with `uninstall`, and **ask where it is** with `where-is-me`. There is no internet update channel.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
-| You | Place or remove the local binary | `dns-cli install` |
+| You | Place or remove the local binary | `dns-cli self-install` · `sudo src/dns-cli self-install --force` |
 | This file | Those three verbs + local diagnostics | `version` / `about` / `help` wiring |
 | Not this | Create `dns-adm` or write sudoers | `sudo dns-cli setup` |
 
 | Includes | Excludes |
 |----------|----------|
-| `install` / `uninstall` / `where-is-me` | `self-update` / `self-uninstall` / `curl\|sh` |
-| Local `~/.local/bin/dns-cli` | Remote version-check |
+| `self-install` (alias `install`) / `uninstall` / `where-is-me` | `self-update` / `self-uninstall` / `curl\|sh` download |
+| Copy when `$0` is this script | Download when `$0` is `sh` / `/bin/sh` |
+| Local `~/.local/bin/dns-cli` mode **0700** | Remote version-check |
+| Global `/usr/local/bin/dns-cli` mode **0755** | Type O empty-argv place |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
-| `~/.local/bin/dns-cli` | Installed copy | After install |
+| `~/.local/bin/dns-cli` | Installed copy | After self-install |
 | `dns-cli where-is-me` | Command | Path truth |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Put the program on your PATH | Copies `src/dns-cli` to user bin | `dns-cli install` |
+| Put the program on your PATH | Copies this file to user bin (mode 0700) | `sh src/dns-cli self-install` |
+| Put it in the hall bin | Copies this file to `/usr/local/bin` (mode 0755) | `sudo src/dns-cli self-install --force` |
 | Take it off PATH | Deletes that copy; does not delete `dns-adm` | `dns-cli uninstall --force` |
 
 ---
@@ -43,12 +46,12 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 
 | Feature | Command | Meaning |
 |---------|---------|---------|
-| Local install | **`install`** | Copy **running** ship unit → privilege-correct bin; **no** network |
+| CLI place | **`self-install`** | Copy **this** ship unit → privilege-correct bin; **no** network. Alias **`install`**. |
 | Local uninstall | **`uninstall`** | Remove **managed** binary only; confirm / `--force` |
-| Local refresh | **`install --force`** | Replace managed binary from **this** running ship unit |
+| Local refresh | **`self-install --force`** | Replace managed binary from **this** running ship unit |
 | Where-is-me | **`where-is-me`** | Report running path + managed install path + installed flag |
 
-**Forbidden primary verbs for this product:** `self-install`, `self-uninstall`, `self-update`, `version-check`.
+**Forbidden primary verbs for this product:** `self-uninstall`, `self-update`, `version-check`. **`self-install` is the place verb** (local copy; no download).
 
 ### 2.2 Local diagnostics (required companions)
 
@@ -60,31 +63,37 @@ This requirement is the **project Single Source of Truth** for **local self-mana
 
 ### 2.3 Local install rules
 
-1. Source **MUST** be the currently executing ship unit when resolvable — **not** a URL.  
-2. Target **MUST** be root → `${GLOBAL_BIN}/${APP_NAME}`; non-root → `${USER_BIN}/${APP_NAME}` unless **`--global`** / `FORCE_GLOBAL=1` is set.  
-3. Defaults: `GLOBAL_BIN=/usr/local/bin`; `USER_BIN=${HOME}/.local/bin`.  
-4. Create target bin dir when missing; fail loud if not writable.  
-5. Atomic place: stage → set mode → `mv` onto final path (or equivalent `install -m`).  
-6. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the required mode when the installer can write the target (see §2.3.1).  
-7. **MUST NOT** require network for install.  
-8. **`install --global`** (or `FORCE_GLOBAL=1`): target **`${GLOBAL_BIN}/${APP_NAME}`**; if not writable, fail with clear root/sudo guidance.  
-9. Global install **SHOULD** be used on multi-user hosts when a shared CLI is desired. Local install remains correct for Type 0 day-to-day use.
+1. Source **MUST** be the currently executing ship unit when `$0` is a readable script — **not** a URL. Interactive and non-interactive **`self-install`** use the same copy path.  
+2. When `$0` is a shell interpreter (`sh`, `bash`, `dash`, `ash`, `zsh`, `ksh`, `mksh`, `yash`, `posh`, `csh`, `tcsh`, `fish`, `busybox`, including paths like `/bin/sh`), **MUST NOT** download. Fail closed: this product is local-only.  
+3. Target **MUST** be root → `${GLOBAL_BIN}/${APP_NAME}`; non-root → `${USER_BIN}/${APP_NAME}` unless **`--global`** / `FORCE_GLOBAL=1` is set.  
+4. Defaults: `GLOBAL_BIN=/usr/local/bin`; `USER_BIN=${HOME}/.local/bin`.  
+5. Create target bin dir when missing; fail loud if not writable.  
+6. Atomic place: stage → set dest mode → `mv` onto final path.  
+7. Idempotent: already installed + force off → success no-op **for content**; mode **MUST** still be healed to the dest mode when the installer can write the target (see §2.3.1).  
+8. **MUST NOT** require network for install. **MUST NOT** fetch `SCRIPT_URL`.  
+9. **`self-install --global`** (or `FORCE_GLOBAL=1`): target **`${GLOBAL_BIN}/${APP_NAME}`**; if not writable, fail with clear root/sudo guidance.  
+10. Global install **SHOULD** be used on multi-user hosts when a shared CLI is desired. Local install remains correct for Type 0 day-to-day use.  
+11. Human mode **MUST** say it is installing from the local script (no download) when `$0` is this file.
 
-### 2.3.1 Installed binary mode (multi-user runnable) — mandatory
+### 2.3.1 Installed binary mode — mandatory
 
-This product ships as a **POSIX shell script** (interpreted). Execution by any non-owner requires the **read** bit for that class, not execute alone.
+This product ships as a **POSIX shell script** (interpreted). Global dest needs group/other **read** so non-owners can run it. Local dest is this-login only.
+
+| Invoker / dest | Path | Mode |
+|----------------|------|------|
+| root or `--global` | `${GLOBAL_BIN}/${APP_NAME}` | **0755** (`rwxr-xr-x`) |
+| non-root (user bin) | `${USER_BIN}/${APP_NAME}` | **0700** (`rwx------`) |
 
 | Rule | Requirement |
 |------|-------------|
-| **Final mode** | Managed install **MUST** set absolute mode **`0755`** (`rwxr-xr-x`) on the installed binary |
-| **Forbidden weak form** | **MUST NOT** rely on `chmod +x` alone after `mktemp`/`cp` — `0600 \| 0111 = 0711` yields `rwx--x--x`, which **breaks** non-owner runs of shell scripts |
-| **Global multi-user** | After root/global install to `${GLOBAL_BIN}`, **any** host user (including root and unprivileged accounts) **MUST** be able to execute `${GLOBAL_BIN}/${APP_NAME}` (subject only to path/exec mount policy) |
-| **User-bin** | Local install **MUST** also use **`0755`** so the owner always has a normal runnable script (and heal survives umask / prior bad modes) |
+| **Forbidden weak form** | **MUST NOT** rely on `chmod +x` alone after `mktemp`/`cp` — `0600 \| 0111 = 0711` yields `rwx--x--x` |
+| **Global multi-user** | After root/global install to `${GLOBAL_BIN}`, **any** host user **MUST** be able to execute `${GLOBAL_BIN}/${APP_NAME}` (subject only to path/exec mount policy) |
+| **User-bin** | Local install **MUST** use **`0700`** (this-login only). Heal of a prior `0755`/`0711` local dest **MUST** set **0700** when writable |
 | **Not world-writable** | Mode **MUST NOT** grant group/other write (`o+w` / `g+w` forbidden for the managed binary) |
-| **Mode heal** | If the managed path already exists and force is off, install **MUST** still attempt `chmod 0755` on that path when permitted (fix broken `0700`/`0711` installs without requiring `--force`) |
+| **Mode heal** | If the managed path already exists and force is off, install **MUST** still attempt dest-mode chmod on that path when permitted |
 | **Verify** | After place (and after heal), the installer **SHOULD** confirm the path is readable and executable by the installing process; fail loud if place left a non-executable file |
 
-**Rationale (CIAO):** Global install is the production trust path for elevation. A root-owned `0711` ship unit looks “installed” (`-x`) but denies normal users — anti-fragile install must leave a **usable multi-user CLI**, not merely an owner-only script.
+**Rationale (CIAO):** Global install is the production trust path for elevation. A root-owned `0711` ship unit looks “installed” (`-x`) but denies normal users. Local dest **0700** keeps this-login copy private.
 
 ### 2.4 Local uninstall rules
 
@@ -119,9 +128,10 @@ This product ships as a **POSIX shell script** (interpreted). Execution by any n
 Each lifecycle / diagnostics verb this file owns **MUST** keep a complete sample here.
 
 ```sh
+dns-cli self-install
+dns-cli self-install --force
+sudo dns-cli self-install --global
 dns-cli install
-dns-cli install --force
-sudo dns-cli install --global
 dns-cli uninstall
 dns-cli uninstall --force
 dns-cli --json uninstall
@@ -134,7 +144,7 @@ dns-cli --json about
 dns-cli help
 ```
 
-`install` copies the running ship unit only. It does **not** create `dns-adm`. `uninstall` does **not** delete the vault or `dns-adm`.
+`self-install` copies this file only (no download). It does **not** create `dns-adm`. `install` is an alias of `self-install`. `uninstall` does **not** delete the vault or `dns-adm`.
 
 ### 2.7a Example path `util_*` (this product)
 
@@ -218,9 +228,10 @@ util_get_install_bin_path() {
 | **Ship unit (live)** | `src/dns-cli` |
 | **Primary install path story** | Type 0 day-to-day: `${HOME}/.local/bin/dns-cli`; multi-user: `/usr/local/bin/dns-cli` |
 | **Uninstall vs vault / LPU** | Uninstall **MUST NOT** delete vault files or `dns-adm` |
-| **Handlers** | `inst_local_install`, `inst_local_uninstall`, `app_where_is_me`, `app_version` |
-| **Detect** | `inst_is_installed` / privilege-correct path helpers |
-| **Online package** | **Absent by design** (bootstrap trim) |
+| **Handlers** | `inst_self_install`, `inst_local_install` (alias), `inst_local_uninstall`, `app_where_is_me`, `app_version` |
+| **Detect** | `inst_argv0_is_shell_interpreter` · `inst_resolve_self_script` · `inst_cli_dest_mode` · `inst_is_installed` |
+| **Copy** | `inst_self_install_copy_from_script` |
+| **Online package** | **Absent by design** (bootstrap trim). Interpreter `$0` **MUST NOT** download. |
 
 ### 2.9 Why This Requirement Exists (CIAO)
 
@@ -234,7 +245,7 @@ util_get_install_bin_path() {
 ## 3. Design Principles (CIAO / CIAO-Lite)
 
 - **Caution**: No network in install path.  
-- **Intentional**: Local verbs only (`install`/`uninstall`).  
+- **Intentional**: Local place verb is `self-install` (alias `install`); remove is `uninstall`.  
 - **Anti-fragile**: Idempotent place/remove.  
 - **Over-protect**: Do not reintroduce online lifecycle under new names.
 
@@ -245,11 +256,12 @@ util_get_install_bin_path() {
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
 1. Replace local `uninstall` with online `self-uninstall` as the primary remove verb.  
-2. Require `SCRIPT_URL` for install.  
+2. Require `SCRIPT_URL` for install, or download when `$0` is this script.  
 3. Make empty argv install-ensure while this product remains local-only (Type N owns empty argv).  
 4. Delete user data, unrelated paths, the Cloudflare vault, or `dns-adm` during uninstall.  
 5. Fetch remote version inside `version`.  
-6. Install the managed binary with execute-only group/other bits (`0711` / `chmod +x` after `0600` stage) — **must** keep absolute **`0755`** so global install remains multi-user runnable for a shell ship unit.
+6. Leave local dest **0711**/**0755** or global dest **0700**/**0711** — **must** keep **0700** local and **0755** global. **MUST NOT** `chmod +x` alone after a `0600` stage.  
+7. Drop `self-install` from help or dispatcher, or treat `install` as a different payload.
 
 **Violating this rule is a critical install-mode regression.**
 
@@ -259,15 +271,16 @@ util_get_install_bin_path() {
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | `install` copies ship unit to user or global bin without network |
+| AC-1 | `self-install` copies this ship unit to user or global bin without network when `$0` is the script |
 | AC-2 | `uninstall` removes managed binary only with confirm/`--force` contract |
 | AC-3 | `where-is-me` reports paths + installed flag |
 | AC-4 | `version` is local-only |
-| AC-5 | No Active online self-management requirement required for lifecycle |
-| AC-6 | Installed managed binary mode is **`0755`** (not `0711` / owner-only) after install |
+| AC-5 | No Active online self-management requirement required for lifecycle; interpreter `$0` does not download |
+| AC-6 | Local dest mode is **`0700`**; global dest mode is **`0755`** (not `0711`) |
 | AC-7 | Global install is executable by a non-owner account (shell script remains readable) |
-| AC-8 | Re-running `install` without `--force` heals a broken mode (`0700`/`0711` → `0755`) when writable |
+| AC-8 | Re-running `self-install` without `--force` heals a broken local mode (`0711`/`0755` → `0700`) when writable |
 | AC-9 | `util_resolve_running_path` and `util_get_install_bin_path` have fenced examples on this file (§2.7a) |
+| AC-10 | Help lists `self-install`; `install` remains an alias |
 
 ---
 
@@ -291,8 +304,13 @@ util_get_install_bin_path() {
 | TP family / ID | Suite | Status |
 |----------------|-------|--------|
 | **TP-LC-01..08** | `tests/test_local_lifecycle.sh` | have |
-| **TP-LC-09** mode `0755` after install | `tests/test_local_lifecycle.sh` | have |
-| **TP-LC-10** mode heal without `--force` | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-09** local dest **0700** | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-10** mode heal without `--force` to **0700** | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-11** global dest **0755** | `tests/test_local_lifecycle.sh` | have |
+| **TP-LC-12** `install` alias | `tests/test_local_lifecycle.sh` | have |
+| **TP-SI-01** script `$0` copy, no network | `tests/test_local_lifecycle.sh` | have |
+| **TP-SI-04** interpreter `$0` fail closed | `tests/test_local_lifecycle.sh` | have |
+| **TP-SI-08** TTY `self-install` still copies | `tests/test_local_lifecycle.sh` | have |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -303,6 +321,7 @@ util_get_install_bin_path() {
 |------|--------|------|
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
+| 2026-09-17 | Active 1.8.0 | Place verb **`self-install`** (alias `install`); copy when `$0` is this script; dest **0700** local / **0755** global; no download |
 | 2026-08-18 | Active 1.7.0 | Path `util_*` examples (§2.7a); AC-9 |
 | 2026-08-18 | Active 1.6.0 | CI-M1a sample invocations for install / uninstall / where-is-me / version / about / help |
 | 2026-08-17 | Active 1.5.0 | Uninstall must not remove `dns-adm` |
@@ -310,6 +329,6 @@ util_get_install_bin_path() {
 
 ---
 
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

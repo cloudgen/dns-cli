@@ -4,8 +4,8 @@
 **Class:** software-development · **B = hop 1** from **A = cli-template** · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-16  
-**Ship unit VERSION:** 1.28.0  
+**Last plan update:** 2026-09-17  
+**Ship unit VERSION:** 1.30.0  
 **Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24** have)
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.28.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.30.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -31,7 +31,7 @@
 | P15 | Type 0 **test-purpose** `fence-test` (FC-M6) | Local test folder; `--file` xor `--dir`; no sudo except wrap chmod/chown of that folder; no queue. Help lists testers apart from operational. **TP-FENCE-09..15**. Per-row `test-json-format` remains. |
 | P16 | F5 trio directory owner (INC-20260823-001) | `/var/dns-cli/dns-request` · `dns-accepted` · `dns-declined` are **`dns-adm:dns-adm`** (inbound `3773`, archives `0700`). F4 symlink present ≠ listable. Do not `chown -R` inbound files. Do not cite **003** to skip directory `chown`. |
 | P17 | Keep-latest duplicate inbound | Dest `interactive` (login hook included) keeps the latest inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined (no dest-write, no extra yes/no). Not a dest Fence. **TP-CF-REQ-19**. |
-| P18 | YAML review display | Dest `interactive` (login hook included) shows a clear waiting body as YAML, not a JSON object dump. Inbound file stays JSON. **TP-CF-REQ-20**. |
+| P18 | YAML review display | Dest `interactive` (login hook included) and human `approve` / `reject` show a clear waiting body as YAML, not a JSON object dump. Inbound file stays JSON. `--json` stays JSON. **TP-CF-REQ-20** · **TP-CF-REQ-21**. |
 | P19 | Type 2 sudo F3 `.local` owner (INC-20260909-001) | `${SYSTEM_USER_HOME}/.local` and persistency `${HOME}/.local/dns-cli` are **`dns-adm:dns-adm`**. Type 2 sudo **MUST** `chown` created F3 paths to `dns-adm`. Do not leave them `root:root`. Do not cite **003** to skip. Do not `chown` inbound JSON. Do not treat persistency ERROR + menu as fail-closed. |
 | P20 | Invalid menu pick reprints the same layer | Every numbered main-menu layer (main + DNS Features + sudoers) warns, reprints **that same** list, and reads again. Unused numbers / blank / garbage are not Exit. **TP-CLI-21**. |
 | P21 | Finished menu command returns to the top list | After a listed DNS Features, sudoers, self-management, or top-list shortcut command finishes, the operator sees **1 DNS Features** / **7 sudoers** / **8 self-management** / **9 Exit** again. Exit / Back / EOF still leave or go back as before. **TP-CLI-23** · **TP-CLI-24**. |
@@ -51,7 +51,7 @@
 | JSON sudoer file | `requirement-sudoer-json-file.md` | **§2.0 role table** (printer / submitter / `sudoer-adm`); generate dest + submit; `runas=dns-adm` |
 | Empty argv | `requirement-shell-cli-zero-arguments.md` | Off-TTY empty argv = help; TTY empty argv = main menu |
 | Default interaction | `requirement-shell-cli-default-interaction.md` | Family **DNS Features** **1** + family **sudoers** **7** + family **self-management** **8**; Exit **9**; DNS Back **98** / Exit **99**; sudoers/self-management Back **8** / Exit **9**; finished command returns to the top list; family tokens not commands; invalid pick reprints the same layer |
-| Local self-management | `requirement-shell-local-self-management.md` | install/uninstall; mode 0755 |
+| Local self-management | `requirement-shell-local-self-management.md` | self-install/uninstall; dest 0700 local / 0755 global |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*`; JSON errors |
 | Modular design | `requirement-shell-modular-function-design.md` | `cf_` domain prefix |
 | Application local vault | `requirement-application-local-vault.md` | default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`; `--vault-dir` / `CF_VAULT_DIR` |

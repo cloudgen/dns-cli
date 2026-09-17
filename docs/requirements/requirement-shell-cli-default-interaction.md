@@ -1,12 +1,12 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.7.0) Implemented  
+**Status**: Active (Version 1.8.0) Implemented  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
 
 ## 1. Purpose
 
-dns-cli **claims** a default function: a **short numbered main menu** of three **family** rows — **DNS Features** (daily DNS work), **sudoers** (grant/draft and LPU teardown), and **self-management** (local install/uninstall/where-is-me, specialized from sibling **selfmanaged** onto this local-only product). `requirement-shell-cli-zero-arguments` exists and the product is **not** online-installable (**case 3** owner of empty argv). That zero-argument file **MUST** send **interactive** empty argv (`TTY=1`) to this same numbered list. Off-TTY empty argv stays help. Routed-verb **`menu`** (alias **`main`**) **MUST** also draw the list. Family rows **MUST NOT** be live dispatcher commands.
+dns-cli **claims** a default function: a **short numbered main menu** of three **family** rows — **DNS Features** (daily DNS work), **sudoers** (grant/draft and LPU teardown), and **self-management** (local self-install/uninstall/where-is-me, specialized from sibling **selfmanaged** onto this local-only product). `requirement-shell-cli-zero-arguments` exists and the product is **not** online-installable (**case 3** owner of empty argv). That zero-argument file **MUST** send **interactive** empty argv (`TTY=1`) to this same numbered list. Off-TTY empty argv stays help. Routed-verb **`menu`** (alias **`main`**) **MUST** also draw the list. Family rows **MUST NOT** be live dispatcher commands.
 
 ### 1.1 Human-facing
 
@@ -42,7 +42,7 @@ dns-cli **claims** a default function: a **short numbered main menu** of three *
 | Type a number that is not on the DNS list | That DNS list prints again | `1` then `11` then `98` |
 | Type a number that is not on the grant list | That grant list prints again | `8` then `5` then `8` |
 | Leave the menu | Exit | **9** (DNS layer **99**; sudoers **9**; **99** MAY also leave the top list) |
-| Install the program | Not on this list | `dns-cli install` |
+| Install the program | Not on this list | `dns-cli self-install` |
 | Run `menu` in a script | Help screen, no pick | `dns-cli menu </dev/null` |
 
 ---
@@ -89,12 +89,12 @@ Normative **main** order:
 |---|-------|-------|
 | 1 | family `DNS Features` | `DNS Features: Daily DNS work` |
 | 7 | family `sudoers` | `sudoers: Grant and drafts` |
-| 8 | family `self-management` | `self-management: Install, uninstall, where-is-me` |
+| 8 | family `self-management` | `self-management: Self-install, uninstall, where-is-me` |
 | **9** | **Exit** | leave the menu |
 
 Accept number or family token (`dns` / `DNS Features` / `dns-features` **MUST** open §2.3c; `sudoers` **MUST** open §2.4; `self-management` / `self-managed` / `selfmanaged` **MUST** open §2.4b). `show` **MAY** run `status` as a shortcut.
 
-**MUST NOT** list install, uninstall, where-is-me, setup, version, about, help, test-json-format, fence-test, or `menu`/`main` itself.
+**MUST NOT** list self-install, install, uninstall, where-is-me, setup, version, about, help, test-json-format, fence-test, or `menu`/`main` itself.
 
 Handler: `app_default` / `app_default_print_menu` / `app_default_print_row` / `app_default_run_pick` / `app_default_print_dns_menu` / `app_default_run_dns_pick` / `app_default_dns_loop` / `app_default_print_sudoers_menu` / `app_default_run_sudoers_pick` / `app_default_sudoers_loop` / `app_default_print_selfmgmt_menu` / `app_default_run_selfmgmt_pick` / `app_default_selfmgmt_loop` / `util_app_ident`.
 
@@ -152,7 +152,7 @@ Choosing main **8** / `self-management` **MUST** print a second numbered list of
 
 | # | Command | Label |
 |---|---------|-------|
-| 1 | `install` | `install: Install dns-cli (root→global, user→~/.local/bin)` |
+| 1 | `self-install` | `self-install: Place this CLI (copy this file; no download)` |
 | 2 | `uninstall` | `uninstall: Remove managed binary (confirm or --force)` |
 | 3 | `where-is-me` | `where-is-me: Show running and install paths` |
 | 4 | `version` | `version: Show local version` |
@@ -166,7 +166,7 @@ Self-management command rows **N = 5**. Exit **MUST** be **9**. **Back MUST** be
 - **9** / `exit` / `quit` returns 0 from `menu` (same as main Exit). **99** **MAY** also leave.  
 - A listed number or verb runs that handler, then **MUST** return to the **top** list (same as Back). **MUST NOT** leave `menu`. **MUST NOT** stay on this self-management list.  
 - **Invalid pick** on this layer follows §2.3 item 10: unused **6–7**, a blank line, or an unknown token **MUST** warn, reprint **this** list, and read again. **MUST NOT** Back, **MUST NOT** Exit, **MUST NOT** return to the main list.  
-- All five local lifecycle/diagnostics verbs **MUST** appear here. **MUST NOT** list `help`, `setup`, `menu`/`main`, test-purpose, or **online** verbs (`self-install`, `self-update`, `self-uninstall`, `version-check`). Topic-owner for the verbs: `requirement-shell-local-self-management`.
+- All five local lifecycle/diagnostics verbs **MUST** appear here (`self-install` is the place verb; `install` **MAY** also run as a typed alias). **MUST NOT** list `help`, `setup`, `menu`/`main`, test-purpose, or **online** verbs (`self-update`, `self-uninstall`, `version-check`). Topic-owner for the verbs: `requirement-shell-local-self-management`.
 
 ### 2.3a Sample invocations (CI-M1a)
 
@@ -207,7 +207,7 @@ util_app_ident() {
 | Main Exit | **9** (N = 3; sudoers **7**; self-management **8**) |
 | DNS submenu | Back **98**; Exit **99**; N = 10 |
 | Sudoers submenu | Back **8**; Exit **9**; N = 4 (all four grant/draft/LPU verbs) |
-| Self-management submenu | Back **8**; Exit **9**; N = 5 (local install/uninstall/where-is-me/version/about; no online verbs) |
+| Self-management submenu | Back **8**; Exit **9**; N = 5 (local self-install/uninstall/where-is-me/version/about; no online update verbs) |
 | Invalid pick | Warn + reprint **that same** numbered layer; a later listed pick still runs; EOF returns 0 |
 | Header | `util_app_ident` + ` - ${SHORT_DESC}` → **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` |
 | DNS submenu header | `util_app_ident` + ` - DNS Features (daily DNS work)` |
@@ -246,7 +246,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 2. Put the ten daily DNS verbs, the four sudoers-family verbs, or the five local self-management verbs on the **main** list.  
 3. Drop a grouped DNS verb from the DNS Features submenu, a grouped sudoers verb from the sudoers submenu, or a grouped self-management verb from the self-management submenu.  
 4. Number main Exit as **10** instead of **9**; number DNS Features Exit as **11** instead of **99**, or DNS Back as anything other than **98**; number sudoers or self-management Exit as **5** (those Exit **MUST** be **9**; Back **MUST** be **8**). Number family **self-management** as anything other than **8**, or family **sudoers** as anything other than **7**.  
-5. Wire `sudoers`, `dns` / `DNS Features`, or `self-management` as a live `app_main` command. Put online `self-update` / `version-check` / `self-uninstall` on this product’s lists.  
+5. Wire `sudoers`, `dns` / `DNS Features`, or `self-management` as a live `app_main` command. Put online `self-update` / `version-check` / `self-uninstall` on this product’s lists. Do not drop `self-install` from the self-management submenu.  
 6. Hang CI on `dns-cli` / `dns-cli menu` off-TTY, or steal TTY empty argv from this numbered list.  
 7. Print a bare `${APP_NAME}` (no parenthesized `${VERSION}`, unstyled on TTY) on the main-menu or APP_NAME-led submenu header, or omit ` - ${SHORT_DESC}` on the main header.  
 8. Capture the menu choice with `$()` of a function that contains `read`.  
@@ -285,7 +285,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | **TP-CLI-21** | `tests/test_cli.sh` | have (invalid pick on main, DNS Features, and sudoers reprints that same layer; a later listed pick still runs) |
 | **TP-CLI-22** | `tests/test_cli.sh` | have (DNS Features submenu Back **98** / Exit **99**; `dns` not a live command; all ten daily DNS verbs) |
 | **TP-CLI-23** | `tests/test_cli.sh` | have (a finished listed command returns to the top list: DNS `ip`, sudoers `print-sudoers`, top-list shortcut) |
-| **TP-CLI-24** | `tests/test_cli.sh` | have (self-management submenu Back **8** / Exit **9**; `self-management` not a live command; local five verbs; no online verbs; finished `version` returns to top) |
+| **TP-CLI-24** | `tests/test_cli.sh` | have (self-management submenu Back **8** / Exit **9**; `self-management` not a live command; local five verbs including `self-install`; no online update verbs; finished `version` returns to top) |
 | **TP-CLI-14** | `tests/test_cli.sh` | have (`menu` / `main` dual mention) |
 | **TP-CLI-15** | `tests/test_cli.sh` | have (`dns-cli menu` sample) |
 
@@ -300,8 +300,9 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | 2026-09-13 | Active 1.4.0 | Invalid pick on every numbered layer warns, reprints **that same** list, and reads again (**TP-CLI-21**) |
 | 2026-09-16 | Active 1.5.0 | Top list is family **DNS Features** **1** + family **sudoers** **8**; Exit **9**; DNS submenu Back **98** / Exit **99**; sudoers submenu unchanged (**TP-CLI-22**) |
 | 2026-09-16 | Active 1.6.0 | A finished listed command returns to the **top** list (**TP-CLI-23**) |
+| 2026-09-17 | Active 1.8.0 | Self-management row **1** is **`self-install`** (copy this file; no download); `install` remains a typed alias (**TP-CLI-24**) |
 | 2026-09-16 | Active 1.7.0 | Family **self-management** is main **8** (local install/uninstall/where-is-me/version/about); family **sudoers** moves to **7**; sibling **selfmanaged** is a read-only architecture reference (**TP-CLI-24**) |
 
-**Last Updated**: 2026-09-16  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.28.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.30.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -9,9 +9,9 @@
 
 | You | Another role | Not this |
 |-----|--------------|----------|
-| Install the program, store a token, add or update an A record, drop a DNS request file | Dedicated account **dns-adm** reviews waiting files after `sudo dns-cli setup` | An online `curl\|sh` installer; IPv6; putting the token on the command line |
+| Install the program, store a token, add or update an A record, drop a DNS request file | Dedicated account **dns-adm** reviews waiting files after `sudo dns-cli setup` | An online `curl\|sh` download; IPv6; putting the token on the command line |
 
-At a keyboard, typing only `dns-cli` opens a numbered list: **1 DNS Features** (vault, ip, add, …), **7 sudoers** (grant and drafts), and **8 self-management** (install, uninstall, where-is-me). In a script it prints help. Those family names are not commands you type after the program name. `install` places the program only; it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
+At a keyboard, typing only `dns-cli` opens a numbered list: **1 DNS Features** (vault, ip, add, …), **7 sudoers** (grant and drafts), and **8 self-management** (self-install, uninstall, where-is-me). In a script it prints help. Those family names are not commands you type after the program name. `self-install` copies **this file** (no download); it does **not** create Linux user `dns-adm`. Next: `sudo dns-cli setup`.
 
 Install **location** is still **both**:
 
@@ -24,10 +24,10 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 ## Features
 
-- **Self-management**: `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`
+- **Self-management**: `self-install` (alias `install`), `uninstall`, `where-is-me`, `version`, `about`, `help`
 - **No arguments**: at a keyboard, the numbered main menu; in a script, help (does not install, submit, or mutate DNS)
 - **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); top list is **1 DNS Features**, **7 sudoers**, **8 self-management**; a finished command returns to that top list; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
-- **Managed binary mode 0755**: global install stays readable and runnable
+- **Managed binary dest mode**: local **0700** (this login); global **0755** (every user can run the shell ship unit)
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
 - **Specify local vault**: `--vault-dir PATH` or `CF_VAULT_DIR` (absolute; not `/tmp` or `/dev/shm`)
@@ -45,9 +45,9 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 ```sh
 # From this repository checkout
-sh src/dns-cli install
+sh src/dns-cli self-install
 # or force refresh after updates
-sh src/dns-cli install --force
+sh src/dns-cli self-install --force
 
 # Ensure ~/.local/bin is on PATH, then:
 dns-cli version
@@ -56,14 +56,15 @@ dns-cli version
 **Global (multi-user hosts):**
 
 ```sh
-sudo sh src/dns-cli install
-# or: dns-cli install --global   # needs write access to /usr/local/bin
-# Managed binary mode is always 0755 so every user can run the shell ship unit.
+sudo src/dns-cli self-install --force
+# or: sudo sh src/dns-cli self-install
+# Managed binary mode is 0755 so every user can run the shell ship unit.
+# Local (this-login) dest mode is 0700.
 ```
 
-This product is **local-only** for its install channel (no default `SCRIPT_URL` online install). Global vs local here means install *location*, not an online channel.
+This product is **local-only** for its install channel (no default `SCRIPT_URL` download). When `$0` is this script, `self-install` **copies that file**. Global vs local here means install *location*, not an online channel.
 
-`sudo dns-cli install` does **not** create Linux user **`dns-adm`**. After a global install:
+`sudo dns-cli self-install` does **not** create Linux user **`dns-adm`**. After a global install:
 
 ```sh
 sudo dns-cli setup
@@ -72,10 +73,10 @@ sudo dns-cli setup
 **Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `9` leaves). Pick **1** / **DNS Features** for daily DNS work (`98` back, `99` leaves that list). Pick **7** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Pick **8** / **self-management** to install, uninstall, or locate this program (`8` back, `9` leaves that list). After a listed command finishes you are back on this top list. A number that is not on the list prints **that same list** again. Off-TTY these commands print help. Family names are not typed CLI commands.
 
 ```text
-[INFO] **dns-cli**(*1.28.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.30.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. DNS Features: *Daily DNS work*
 7. sudoers: *Grant and drafts*
-8. self-management: *Install, uninstall, where-is-me*
+8. self-management: *Self-install, uninstall, where-is-me*
 9. Exit
 Choice: 
 ```
@@ -83,7 +84,7 @@ Choice:
 Pick **1** — DNS Features (all daily DNS verbs):
 
 ```text
-[INFO] **dns-cli**(*1.28.0*) - DNS Features (daily DNS work)
+[INFO] **dns-cli**(*1.30.0*) - DNS Features (daily DNS work)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -102,7 +103,7 @@ Choice:
 Pick **7** — sudoers (all grant/draft/LPU verbs):
 
 ```text
-[INFO] **dns-cli**(*1.28.0*) - sudoers (grant and drafts)
+[INFO] **dns-cli**(*1.30.0*) - sudoers (grant and drafts)
 1. generate-sudoer-request: *Write a local JSON grant you can review*
 2. submit-sudoer-request: *Queue a type-2-switch grant as this login*
 3. print-sudoers: *Print the sudoer file (does not install dest)*
@@ -115,8 +116,8 @@ Choice:
 Pick **8** — self-management (local lifecycle; no online update channel):
 
 ```text
-[INFO] **dns-cli**(*1.28.0*) - self-management (place, remove, locate)
-1. install: *Install dns-cli (root→global, user→~/.local/bin)*
+[INFO] **dns-cli**(*1.30.0*) - self-management (place, remove, locate)
+1. self-install: *Place this CLI (copy this file; no download)*
 2. uninstall: *Remove managed binary (confirm or --force)*
 3. where-is-me: *Show running and install paths*
 4. version: *Show local version*
@@ -137,7 +138,7 @@ dns-cli menu
 dns-cli about
 dns-cli --json about
 
-dns-cli install
+dns-cli self-install
 dns-cli --vault-dir /path/to/vault vault account add example.com \
   --user-id 0123456789abcdef0123456789abcdef \
   --zone-id 0123456789abcdef0123456789abcdef \
@@ -265,7 +266,7 @@ Do not put the token in the JSON, `.bashrc`, `.profile`, or this README.
 
 ```sh
 # Local install (user bin)
-sh src/dns-cli install
+sh src/dns-cli self-install
 
 # Diagnostics (no token)
 dns-cli about
@@ -434,6 +435,8 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-17 — version **1.30.0** (`self-install` copies this file; dest 0700 local / 0755 global; no download).
+2026-09-16 — version **1.29.0** (dest human `approve` / `reject` show the waiting body as YAML).
 2026-09-16 — version **1.28.0** (main menu **8** is family **self-management**; **sudoers** moves to **7**).
 2026-09-16 — version **1.27.0** (a finished menu command returns to the top list).
 2026-09-16 — version **1.26.0** (main menu **1 DNS Features** / **8 sudoers**; daily DNS verbs on the second layer).

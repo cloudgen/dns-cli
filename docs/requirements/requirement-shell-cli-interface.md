@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.12.0) — `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.0) — `self-install` place verb; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -44,7 +44,7 @@ Every command **MUST** map to exactly one privilege type. Unclassified commands 
 
 | Category | Privilege | Meaning |
 |----------|-----------|---------|
-| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | **Operational:** `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`/`main`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request`. **Test-purpose:** `test-json-format`, `fence-test` (unit test; local test folder) |
+| **Type 0 – CLI lifecycle + diagnostics** | Invoking user | **Operational:** `self-install` (alias `install`), `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`/`main`, `ip`, `print-sudoers`, `generate-sudoer-request`, `submit-sudoer-request`. **Test-purpose:** `test-json-format`, `fence-test` (unit test; local test folder) |
 | **Type 0 – Specify-vault domain** | Invoking user | `vault` / `add` / `update` / `remove` / `status`/`show` **when** `--vault-dir` / `CF_VAULT_DIR` is set — **catalog SSOT:** `requirement-domain-cloudflare-dns` |
 | **Type 1 – LPU bootstrap** | Password `sudo` / already-root | `setup`, `remove-lpu` — **SSOT:** `requirement-three-layer-privilege-model` |
 | **Type 2 – Default-vault domain** | `dns-adm` | `vault` / `add` / `update` / `remove` / `status`/`show` on the default LPU vault |
@@ -76,7 +76,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 
 | Verb / family | Topic-owner (second mention) |
 |---------------|------------------------------|
-| `install` / `uninstall` / `where-is-me` / `version` / `about` / `help` | `requirement-shell-local-self-management` (`help` also `requirement-shell-cli-zero-arguments`) |
+| `self-install` / `install` / `uninstall` / `where-is-me` / `version` / `about` / `help` | `requirement-shell-local-self-management` (`help` also `requirement-shell-cli-zero-arguments`) |
 | `menu` / `main` | `requirement-shell-cli-default-interaction` |
 | `setup` / `remove-lpu` / `print-sudoers` | `requirement-three-layer-privilege-model` (`print-sudoers` also `requirement-sudoer-json-file` §2.0) |
 | `generate-sudoer-request` / `submit-sudoer-request` | `requirement-sudoer-json-file` **and** `requirement-three-layer-privilege-model` |
@@ -129,7 +129,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | Command | Type | Handler family | Required behavior |
 |---------|------|----------------|-------------------|
 | *(no args — empty argv)* | Type 0 | `app_main` → `app_default` (TTY) / `app_help` (off-TTY) | **Type N** — TTY numbered list; off-TTY help; not install |
-| `install` | Type 0 | `inst_local_install` | Copy running ship unit to privilege-correct bin; idempotent unless `--force` |
+| `self-install` | Type 0 | `inst_self_install` | Place **this CLI** (copy when `$0` is this script; fail closed when `$0` is a shell). Dest **0700** local / **0755** global. Alias `install`. Dual mention: `requirement-shell-local-self-management`. Sample: `dns-cli self-install` |
+| `install` | Type 0 | `inst_self_install` | Alias of `self-install` (same copy; no payload). Sample: `dns-cli install` |
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
@@ -151,7 +152,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 1. Global flags **MAY** appear before or after the verb.  
 2. Value flags **MUST** consume the next argv token; missing value → fail closed.  
-3. Type 0 lifecycle verbs (`install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`, `main`) **MUST** reject unexpected operands.  
+3. Type 0 lifecycle verbs (`self-install`, `install`, `uninstall`, `where-is-me`, `version`, `about`, `help`, `menu`, `main`) **MUST** reject unexpected operands.  
 4. `vault` subcommand grammar: `vault set|init|show|clear` or `vault account|zone add|list|modify|remove|default|show [<domain-id>]` or `vault subdomain add|list|modify|remove|mode [<label>]`. `zone` is an alias of `account`.  
 5. Domain operands (`--domain` / `--domain-id`, `--subdomain`, `--mode`, `--from`, optional positional host-label) are defined in the domain SSOT / `requirement-cloudflare-dns-mode`.
 
@@ -174,7 +175,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 #### Explicitly out of scope
 
-- Online: `version-check`, `self-update`, `self-uninstall`, channel `install` via URL  
+- Online: `version-check`, `self-update`, `self-uninstall`, channel download via URL (`self-install` is local copy)  
 - Parent domain: `backup`, `restore` (not Cloudflare verbs)  
 - Sudoers-manager extras: `print-sudoers-install-script`, `remove-project-sudoers`  
 
@@ -223,7 +224,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Help lists install / uninstall / where-is-me / version / about / help plus **routed** domain verbs only |
+| AC-1 | Help lists self-install / install / uninstall / where-is-me / version / about / help plus **routed** domain verbs only |
 | AC-2 | Help and about omit backup / restore / print-sudoers-install-script |
 | AC-3 | Unknown and trimmed verbs exit non-zero |
 | AC-4 | Empty argv is help |
@@ -237,7 +238,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | Key | Relationship |
 |-----|--------------|
 | `requirement-shell-cli-zero-arguments` | Empty argv |
-| `requirement-shell-local-self-management` | install / uninstall / where-is-me |
+| `requirement-shell-local-self-management` | self-install / install / uninstall / where-is-me |
 | `requirement-shell-output-requirements` | `out_*` |
 | `requirement-bootstrap-chain` | Trimmed surfaces |
 | `requirement-domain-cloudflare-dns` | Domain catalog owner |
@@ -276,6 +277,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 3.13.0 | Place verb **`self-install`** (alias `install`); copy `$0`; dest 0700/0755 |
 | 2026-09-16 | Active 3.12.0 | `menu`/`main` family **DNS Features** + family **sudoers** (neither dispatched) |
 | 2026-09-08 | Active 3.11.0 | Dual mention: `interactive` also `requirement-login-interactive-hook` |
 | 2026-08-03 | Active 1.0.0 | folder-backup Type 0 + domain verbs |
@@ -295,6 +297,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-16  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.28.0  
-**Last plan update:** 2026-09-16  
-**Last suite run:** PASS=902 FAIL=0 SKIP=2 (2026-09-16; **TP-CLI-24** self-management submenu have; **TP-FENCE-07** skip live sibling dest `kind`)
+**Product VERSION:** 1.30.0  
+**Last plan update:** 2026-09-17  
+**Last suite run:** PASS=930 FAIL=0 SKIP=2 (2026-09-17; **TP-LC-09..12** dest 0700/0755; **TP-SI-01/04/08** self-install copy; **TP-FENCE-07** skip live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -22,7 +22,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | Storage isolation | have | TP-CLI-12 |
 | No online verbs / no SCRIPT_URL UX | have | TP-CLI-04, TP-CLI-10 |
 | Trimmed parent verbs fail closed | have | TP-CLI-13 |
-| Local install / idempotent / uninstall / mode 0755 | have | TP-LC-01..10 |
+| Local self-install / idempotent / uninstall / dest 0700 local · 0755 global | have | TP-LC-01..12 · TP-SI-01/04/08 |
 | Backup / restore / sudoers-manager extras | n/a | Absent by design |
 | LPU `dns-adm` / Type 1 setup | have | TP-LPU-* / TP-PRIV-01..04 |
 | JSON sudoer generate / submit | have | TP-SUDOER-JSON-* / TP-PRIV-05..09 |
@@ -282,6 +282,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-REQ-18 | hyphenated subject in basename (`YYYYMMDD-ci-runner-add-1.json`); parse date left, action+n right | test_cf_request | requirement-cloudflare-dns-request REQ-M6 | **have** |
 | TP-CF-REQ-19 | Duplicate inbound same dest: keep latest; older superseded → declined; other dest stays | test_cf_request | requirement-dns-actor-table ACT-M4 | **have** |
 | TP-CF-REQ-20 | Login-hook `interactive` shows the waiting body as YAML, not a JSON object dump | test_cf_request | requirement-dns-actor-table ACT-M4 | **have** |
+| TP-CF-REQ-21 | Human dest `approve` / `reject` show the waiting body as YAML; `--json` stays JSON | test_cf_request | requirement-dns-actor-table ACT-M4 · requirement-cloudflare-dns-request REQ-M3a | **have** |
 | TP-ARSA-01 | software-dev class MUST consider actor / role / subject / approver even if no dest approver | test_cli | requirement-class-software-dev | **have** |
 | TP-ARSA-02 | catalog prints Actor / Role / Subject / Submitter / Approver; anyone or the actor itself | test_cli | requirement-actor-role-subject-approver | **have** |
 | TP-FENCE-01 | software-dev class MUST review dest fences; each Fence is an independent REQ or residual none | test_cli | requirement-class-software-dev §2.9 · AC-9 · AC-10 | **have** |

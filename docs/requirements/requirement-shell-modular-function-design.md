@@ -55,7 +55,7 @@ Ship unit remains a **single executable** at `src/dns-cli`.
 | Prefix | Category | Purpose | Example functions |
 |--------|----------|---------|-------------------|
 | `out_` | Output system | All user-facing and machine-readable output | `out_text`, `out_info`, `out_json`, `out_die` |
-| `inst_` | Installation lifecycle | Local install/uninstall detect and place/remove | `inst_local_install`, `inst_local_uninstall`, `inst_is_installed` |
+| `inst_` | Installation lifecycle | Local self-install/uninstall detect and place/remove | `inst_self_install`, `inst_self_install_copy_from_script`, `inst_argv0_is_shell_interpreter`, `inst_resolve_self_script`, `inst_cli_dest_mode`, `inst_local_install`, `inst_local_uninstall`, `inst_is_installed` |
 | `util_` | General utilities | Path resolve, storage, CIAO pre-change `.bak` helper, identity nametag | `util_resolve_storage`, `util_resolve_running_path`, `util_get_install_bin_path`, `util_get_current_shell`, `util_json_escape`, `util_backup`, `util_app_ident` — **examples:** §2.2a |
 | `app_` | Cross-cutting CLI surface | Entry, dispatch, about/help/version/where-is-me/menu | `app_main`, `app_about`, `app_help`, `app_version`, `app_where_is_me`, `app_default`, `app_default_print_menu`, `app_default_print_row`, `app_default_print_dns_menu`, `app_default_run_dns_pick`, `app_default_dns_loop`, `app_default_print_sudoers_menu`, `app_default_run_pick`, `app_default_run_sudoers_pick`, `app_default_sudoers_loop`, `app_default_print_selfmgmt_menu`, `app_default_run_selfmgmt_pick`, `app_default_selfmgmt_loop` |
 | `path_` | Shell PATH & environment | Optional PATH ensure after user install | `path_add_shell` |

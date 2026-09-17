@@ -53,7 +53,7 @@ This file is **not** a dest fence table and **not** a second domain SSOT.
 
 | Actor | Role | Subject | Submitter | Approver |
 |-------|------|---------|-----------|----------|
-| Any ordinary login (`id -un`) | Day-to-day user | **None** | **None** | **None** — `help` / `version` / `about` / `install` / `uninstall` / `where-is-me` / `ip` / `print-sudoers` do not dest-review |
+| Any ordinary login (`id -un`) | Day-to-day user | **None** | **None** | **None** — `help` / `version` / `about` / `self-install` / `install` / `uninstall` / `where-is-me` / `ip` / `print-sudoers` do not dest-review |
 | Any ordinary login | DNS request submitter | Cloudflare DNS request JSON `subject` (self) | **the actor itself** | `dns-adm` |
 | Any ordinary login | Sudoer-grant submitter | Sudoer JSON `username` (self) | **the actor itself** | `sudoer-adm` (sibling dest — this product **MUST NOT** dest-approve or write `/etc/sudoers.d`) |
 | `dns-adm` | DNS dest approver and default-vault operator | Same DNS request JSON `subject` | **anyone** | `dns-adm` (`approve` / `reject` / `interactive`) |

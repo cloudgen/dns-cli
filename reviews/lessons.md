@@ -7,7 +7,7 @@ Durable failure modes. **Always re-check on product review.**
 | L-TYPE-N-01 | Empty argv becomes install-ensure (parent Type O leak) | `requirement-shell-cli-zero-arguments` Type N; TP-CLI-07 | open watch |
 | L-ONLINE-01 | Online verbs reintroduced (self-update / SCRIPT_URL UX) | bootstrap-trim + TP-CLI-04/10 | open watch |
 | L-UNIN-01 | Non-interactive uninstall succeeds without force | TP-LC-05 confirm fail-closed | open watch |
-| L-INST-MODE-01 | Install leaves `0711`/`0700` (chmod +x after mktemp) so non-owners cannot run shell ship unit | absolute `chmod 0755` + heal on reinstall; TP-LC-09/10; local-self-management §2.3.1 | open watch |
+| L-INST-MODE-01 | Install leaves `0711` (chmod +x after mktemp) so non-owners cannot run a global shell ship unit | dest **0755** global / **0700** local (not `chmod +x` alone); heal on reinstall; TP-LC-09/10/11; local-self-management §2.3.1 | open watch |
 | L-TRIM-01 | Backup / restore / sudoers-manager extras reintroduced as if still product law | bootstrap-chain (absent extras); TP-CLI-04/13. Generate/submit JSON sudoer are **not** extras | open watch |
 | L-SUDOER-SUBMIT-01 | File-based JSON sudoer submit missing because hop-1 trim + reviews treated all sudoers emit as folder-backup; DNS inbound specialized instead; three-layer mold stopped at 2.6.0 | Specialize `requirement-sudoer-json-file`; mold 2.9.0 fork dest vs submitter; role tables; TP-SUDOER-JSON-* · TP-PRIV-05..09; **CL-FILE-BASED-JSON-APPROVAL** §6 | open watch |
 | L-DUAL-MENTION-01 | Verb lives only on the CLI-interface REQ (or help code counted as mention 2); not portable to Python/Node | **CI-M1** / **`LM-CLI-INTERFACE`** §4.1; **CL-CLI-DUAL-MENTION**; **TP-CLI-14**; sufficient-check Step 3h | open watch |

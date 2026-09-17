@@ -76,7 +76,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Global flags | `--quiet` / `--json` / `--debug` / `--force` / `--global` |
 | Integrity companion | **Absent** (no product channel digest law) |
 | Online lifecycle | **Absent** (`version-check`, `self-update`, `self-uninstall`, Type O, `SCRIPT_URL` UX) |
-| Local lifecycle | **Present** — `install` / `uninstall` / `where-is-me` |
+| Local lifecycle | **Present** — `self-install` (alias `install`) / `uninstall` / `where-is-me` |
 | Empty argv | **Type N** help (not Type O install-ensure) |
 | Backup / restore | **Absent** — never this product’s domain |
 | Sudoers-manager extras | **Absent** (`print-sudoers-install-script`, `remove-project-sudoers`) |
@@ -97,7 +97,7 @@ These are **this product’s** structural contracts. Descendants inherit them. T
 | Sudoers-manager extras (install-script / remove-draft) | **Absent** | Not this product’s domain |
 | Type 0 `print-sudoers` + Type 1 `setup` / `remove-lpu` | **Add on B** | LPU `dns-adm` — Implemented 1.5.0 |
 | Type 0 `generate-sudoer-request` / `submit-sudoer-request` | **Add on B** | JSON sudoer submitter — Implemented 1.6.0 |
-| Local `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package |
+| Local `self-install` / `install` / `uninstall` / `where-is-me` | **Keep** | Local self-managed package (copy `$0`; no download) |
 | Cloudflare vault + DNS | **Add on B** | Multi-account vault + DNS — v2 zone-slot **Implemented** on 1.4.0; LPU default dest Gap |
 | Domain / out Protection Zones | **Keep spirit** | Do not simplify `out_*` |
 

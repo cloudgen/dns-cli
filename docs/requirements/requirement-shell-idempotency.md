@@ -16,7 +16,7 @@ This requirement is the **project Single Source of Truth** for **idempotency (re
 
 | Box | Meaning | Example |
 |-----|---------|---------|
-| You | Re-run `install` or `add` | Second `install` says already installed |
+| You | Re-run `self-install` or `add` | Second `self-install` says already installed |
 | This file | Re-run safety | `f(f(x)) ≈ f(x)` |
 | Not this | One-shot destroy without confirm | `remove-lpu` still needs `--force` |
 
@@ -27,12 +27,12 @@ This requirement is the **project Single Source of Truth** for **idempotency (re
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
-| `dns-cli install` | Command | Second run is a no-op |
+| `dns-cli self-install` | Command | Second run is a no-op |
 | `dns-cli add` | Command | Same IP → already |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Install again | Should succeed without a second copy | `dns-cli install` |
+| Install again | Should succeed without a second copy | `dns-cli self-install` |
 
 ---
 
@@ -66,7 +66,7 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 
 | Command / path | Desired state | Re-run when already good | Force / special |
 |----------------|---------------|--------------------------|-----------------|
-| `install` | Managed binary present at privilege-correct path | Success no-op (mode heal still runs) | `--force` replaces from running ship unit |
+| `self-install` / `install` | Managed binary present at privilege-correct path | Success no-op (mode heal still runs) | `--force` replaces from this ship unit |
 | `uninstall` | Managed binary absent | Success no-op | `--force` skips confirm |
 | `where-is-me` / `version` / `about` / `help` | Read-only | Always safe | N/A |
 | `vault set` | Selected domain-id files complete and valid | Success; fill missing only (vault wins) | Explicit rewrite of named fields |

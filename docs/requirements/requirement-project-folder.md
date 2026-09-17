@@ -26,7 +26,7 @@ Define **project folder structure** and path ownership for the dns-cli CLI: sour
 | Surface | What you open | What for |
 |---------|---------------|----------|
 | `src/dns-cli` | Ship unit | Source |
-| `~/.local/bin/dns-cli` | Install dest | After `install` |
+| `~/.local/bin/dns-cli` | Local install dest (mode **0700**) | After `self-install` |
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
@@ -63,7 +63,7 @@ Rules:
 2. Root **install** **MAY** target global bin.  
 3. **Primary product story:** **user bin** (`~/.local/bin`) for Type 0 day-to-day; **global bin** for multi-user hosts.  
 4. Uninstall **MUST** remove only the managed binary path for the install mode used.  
-5. Managed binary mode **MUST** be **`0755`** after install (see `requirement-shell-local-self-management` §2.3.1).
+5. Managed binary dest mode **MUST** be **`0700`** local and **`0755`** global after `self-install` (see `requirement-shell-local-self-management` §2.3.1).
 
 ### 2.3 Scratch / cache / persistency (CLI own storage)
 
@@ -161,6 +161,6 @@ Rules:
 
 ---
 
-**Last Updated**: 2026-08-30  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

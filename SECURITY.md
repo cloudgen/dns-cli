@@ -4,7 +4,9 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.28.0 (current) | Yes |
+| 1.30.0 (current) | Yes |
+| 1.29.0 | Yes |
+| 1.28.0 | Yes |
 | 1.27.0 | Yes |
 | 1.26.0 | Yes |
 | 1.25.0 | Yes |
@@ -41,7 +43,7 @@ This project follows **[CIAO](https://github.com/cloudgen/ciao)** / **[CIAO-Lite
 |--------|-----------|----------------------|
 | **C** | **Caution** | Unknown commands fail closed; install fails loud if the target is not writable. |
 | **I** | **Intentional** | Type 0 lifecycle + Type 1 `setup`/`remove-lpu`; Type 0 JSON sudoer `type-2-switch` generate/submit; `setup` auto-queue of `login-hook-elev` (no `/etc/sudoers.d` write). |
-| **A** | **Anti-fragile** | Isolated scratch (`APP_NAME` + `USERNAME`); atomic install place with mode **0755**. |
+| **A** | **Anti-fragile** | Isolated scratch (`APP_NAME` + `USERNAME`); atomic self-install place with dest mode **0700** local / **0755** global. |
 | **O** | **Over-protect** | Protection Zones on `out_*` and install; no online channel UX. |
 
 Full principles: [CIAO](https://github.com/cloudgen/ciao) · [CIAO-Lite](https://github.com/cloudgen/ciao-lite).

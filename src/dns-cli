@@ -34,10 +34,11 @@
 # Present: Type 0 generate-sudoer-request / submit-sudoer-request (sibling dest).
 #
 # Philosophy: CIAO (Caution • Intentional • Anti-fragile • Over-engineered)
-# Single-file ship unit under src/; install to ~/.local/bin (user) or /usr/local/bin (root/--global).
+# Single-file ship unit under src/; self-install to ~/.local/bin (user, mode 0700)
+# or /usr/local/bin (root/--global, mode 0755). Script $0 copies itself (no download).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.28.0"
+# VERSION: hard-assign VERSION="1.30.0"
 #
 # =============================================================================
 
@@ -55,10 +56,10 @@ APP_NAME="dns-cli"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.28.0"
-: "${VERSION:=1.28.0}"
+VERSION="1.30.0"
+: "${VERSION:=1.30.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -457,7 +458,7 @@ out_double_line() { out_text plain "============================================
 # =============================================================================
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.28.0}"
+    : "${VERSION:=1.30.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -3339,7 +3340,7 @@ lpu_type2_die_required() {
     _who=$(id -un 2>/dev/null || echo "unknown")
     _gbin="${GLOBAL_BIN}/${APP_NAME}"
     if [ ! -x "${_gbin}" ]; then
-        out_die_code lpu_required "Default vault work must run as ${_lpu}. You are ${_who}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} install"
+        out_die_code lpu_required "Default vault work must run as ${_lpu}. You are ${_who}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} self-install"
     fi
     out_die_code lpu_required "Default vault work must run as ${_lpu}. You are ${_who}. sudo -n -u ${_lpu} ${_gbin} is not available. Next: ${APP_NAME} generate-sudoer-request then ${APP_NAME} submit-sudoer-request  (or --vault-dir for QA)"
 }
@@ -3595,7 +3596,7 @@ lpu_install_sudoers() {
     _gbin="${GLOBAL_BIN}/${APP_NAME}"
     if [ ! -x "${_gbin}" ]; then
         if [ "${FORCE}" -ne 1 ]; then
-            out_die_code lpu_required "setup writes sudoers only when the global CLI exists at ${_gbin}. This host has no global install. Next: sudo ${APP_NAME} install   or: sudo ${APP_NAME} setup --force"
+            out_die_code lpu_required "setup writes sudoers only when the global CLI exists at ${_gbin}. This host has no global install. Next: sudo ${APP_NAME} self-install   or: sudo ${APP_NAME} setup --force"
         fi
         out_warn "TEST MODE: no global ${_gbin}; installing sudoers dest anyway (--force)."
     fi
@@ -3839,7 +3840,7 @@ lpu_sudoers_require_emit_trust() {
     _tier=$(lpu_sudoers_trust_tier)
     if [ "${_tier}" != "production" ]; then
         if [ "${ALLOW_TEST_LOCAL_SUDOERS}" -ne 1 ]; then
-            out_die_code sudoer_required "${_cmd} trust tier is ${_tier} (not production). Prefer: sudo ${APP_NAME} install  (global ${GLOBAL_BIN}/${APP_NAME}). To emit a test file: ${APP_NAME} ${_cmd} --allow-test-local"
+            out_die_code sudoer_required "${_cmd} trust tier is ${_tier} (not production). Prefer: sudo ${APP_NAME} self-install  (global ${GLOBAL_BIN}/${APP_NAME}). To emit a test file: ${APP_NAME} ${_cmd} --allow-test-local"
         fi
     fi
 }
@@ -5012,7 +5013,7 @@ util_get_current_shell() {
 # ALIGNMENT:
 # - requirement-shell-local-self-management.md
 #
-# Last reviewed: 2026-08-03
+# Last reviewed: 2026-09-17
 # =============================================================================
 util_resolve_running_path() {
     : "${0:=}"
@@ -5058,23 +5059,11 @@ util_resolve_running_path() {
     printf '%s' ""
 }
 
-# =============================================================================
-# inst_local_install() - Local copy install (no network)
-# =============================================================================
-#
-# GENERAL PURPOSE:
-# Copy the running ship unit to the privilege-correct bin path.
-# Root → GLOBAL_BIN; non-root → USER_BIN. Idempotent unless FORCE/FORCE_REINSTALL.
-#
-# ALIGNMENT:
-# - requirement-shell-local-self-management.md
-# - requirement-shell-idempotency.md
-#
-# Mode SSOT for managed binary (shell ship unit needs world-read for non-owners).
-# Do NOT use chmod +x alone after mktemp (0600|0111 → 0711 breaks multi-user exec).
+# Dest mode SSOT: global 0755 (multi-user runnable shell script), local 0700
+# (this-login only). Do NOT use chmod +x alone after mktemp (0600|0111 → 0711).
 INST_MANAGED_MODE="0755"
 
-# Last reviewed: 2026-08-18 — stay-honest: install does not create dns-adm (INC-20260818-001)
+# Last reviewed: 2026-09-17 — self-install copies $0; dest 0755 global / 0700 local
 # =============================================================================
 inst_note_install_does_not_create_lpu() {
     : "${JSON:=0}"
@@ -5084,8 +5073,161 @@ inst_note_install_does_not_create_lpu() {
     fi
 }
 
-inst_local_install() {
+# =============================================================================
+# inst_argv0_is_shell_interpreter() - $0 is sh/bash/… (pipe), not this script
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Return 0 when process $0 is a shell interpreter (curl | sh). Return 1 when
+# $0 is the running script (./app self-install, sh /path/to/app).
+#
+# ALIGNMENT: requirement-shell-local-self-management.md
+#
+# Last updated: 2026-09-17
+# =============================================================================
+inst_argv0_is_shell_interpreter() {
+    _a0="${1:-}"
+    _base="${_a0##*/}"
+    case "${_base}" in
+        -*) _base="${_base#-}" ;;
+    esac
+    case "${_base}" in
+        sh|bash|dash|ash|zsh|ksh|mksh|yash|posh|csh|tcsh|fish|busybox)
+            return 0
+            ;;
+    esac
+    return 1
+}
+
+# =============================================================================
+# inst_resolve_self_script() - Absolute path of the running script, or empty
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# If $0 is a readable regular file (not an interpreter), print its absolute
+# path. Basename-only invocations use command -v.
+#
+# PRINTF EXCEPTION (class B – function return-via-stdout): path or nothing.
+#
+# ALIGNMENT: requirement-shell-local-self-management.md
+#
+# Last updated: 2026-09-17
+# =============================================================================
+inst_resolve_self_script() {
+    _a0="${1:-}"
+    _dir=""
+    _found=""
+    if [ -z "${_a0}" ]; then
+        return 1
+    fi
+    if inst_argv0_is_shell_interpreter "${_a0}"; then
+        return 1
+    fi
+    if [ -f "${_a0}" ] && [ -r "${_a0}" ]; then
+        _dir=$(CDPATH= cd -- "$(dirname -- "${_a0}")" && pwd) || return 1
+        printf '%s\n' "${_dir}/${_a0##*/}"
+        return 0
+    fi
+    case "${_a0}" in
+        */*) return 1 ;;
+    esac
+    _found=$(command -v "${_a0}" 2>/dev/null) || return 1
+    if [ -f "${_found}" ] && [ -r "${_found}" ]; then
+        printf '%s\n' "${_found}"
+        return 0
+    fi
+    return 1
+}
+
+# =============================================================================
+# inst_cli_dest_mode() - 0755 global / 0700 local for self-install dest
+# =============================================================================
+#
+# ALIGNMENT: requirement-shell-local-self-management.md
+#
+# Last updated: 2026-09-17
+# =============================================================================
+inst_cli_dest_mode() {
+    _dir="${1:-}"
+    : "${GLOBAL_BIN:=/usr/local/bin}"
+    : "${FORCE_GLOBAL:=0}"
+    if [ -n "${_dir}" ]; then
+        if [ "${_dir}" = "${GLOBAL_BIN}" ]; then
+            printf '%s\n' "0755"
+            return 0
+        fi
+        printf '%s\n' "0700"
+        return 0
+    fi
+    if [ "${FORCE_GLOBAL}" -eq 1 ] || [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
+        printf '%s\n' "0755"
+    else
+        printf '%s\n' "0700"
+    fi
+}
+
+# =============================================================================
+# inst_self_install_copy_from_script() - Copy $0 to dest without download
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Stage under isolated TMPDIR/cache, chmod dest mode on stage, atomic mv,
+# re-assert dest mode. MUST NOT chmod +x alone. MUST NOT download.
+#
+# ALIGNMENT: requirement-shell-local-self-management.md
+#
+# Last updated: 2026-09-17
+# =============================================================================
+inst_self_install_copy_from_script() {
+    _src="$1"
+    _mode="$2"
     : "${APP_NAME:=dns-cli}"
+    : "${INSTALL_PATH:=}"
+
+    _stage=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}-XXXXXX" 2>/dev/null || mktemp)
+    if [ -z "${_stage}" ]; then
+        out_die "Failed to create temporary file"
+    fi
+    if ! cp "${_src}" "${_stage}"; then
+        rm -f "${_stage}" 2>/dev/null || true
+        out_die "Failed to copy ${_src}"
+    fi
+    if ! chmod "${_mode}" "${_stage}"; then
+        rm -f "${_stage}" 2>/dev/null || true
+        out_die "Failed to chmod ${_mode} staged ship unit"
+    fi
+    if ! mv -f "${_stage}" "${INSTALL_PATH}"; then
+        rm -f "${_stage}" 2>/dev/null || true
+        out_die "Failed to install to ${INSTALL_PATH}"
+    fi
+    if ! chmod "${_mode}" "${INSTALL_PATH}"; then
+        out_die "Installed ${INSTALL_PATH} but failed to set mode ${_mode}"
+    fi
+    if [ ! -r "${INSTALL_PATH}" ] || [ ! -x "${INSTALL_PATH}" ]; then
+        out_die "Installed ${INSTALL_PATH} is not readable+executable (mode heal failed)"
+    fi
+    return 0
+}
+
+# =============================================================================
+# inst_self_install() - Place the CLI from this script (no download)
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# CLI place/ensure. Verb self-install (alias install). Script $0 → copy
+# without download in both interactive and non-interactive mode. Interpreter
+# $0 (pipe) → fail closed (this product is local-only; SCRIPT_URL empty).
+# Dest mode 0755 global / 0700 local.
+#
+# ALIGNMENT:
+# - requirement-shell-local-self-management.md
+# - requirement-shell-idempotency.md
+#
+# Last updated: 2026-09-17
+# =============================================================================
+inst_self_install() {
+    : "${APP_NAME:=dns-cli}"
+    : "${VERSION:=1.30.0}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -5094,7 +5236,7 @@ inst_local_install() {
     : "${FORCE_GLOBAL:=0}"
     : "${JSON:=0}"
     : "${QUIET:=0}"
-    : "${INST_MANAGED_MODE:=0755}"
+    : "${COMMAND:=self-install}"
 
     if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
         IS_ROOT=1
@@ -5111,36 +5253,44 @@ inst_local_install() {
     fi
     _target="${_target_dir}/${APP_NAME}"
     INSTALL_PATH="${_target}"
+    _mode=$(inst_cli_dest_mode "${_target_dir}")
+    INST_MANAGED_MODE="${_mode}"
+    _cmd="${COMMAND:-self-install}"
+
+    if [ "${JSON}" -eq 0 ]; then
+        out_info "Starting self-install of ${APP_NAME} ${VERSION}..."
+    fi
+
+    path_add_shell 2>/dev/null || true
 
     if [ -x "${_target}" ] || [ -f "${_target}" ]; then
         if [ "${FORCE}" -eq 0 ] && [ "${FORCE_REINSTALL}" -eq 0 ]; then
-            # Mode heal: prior chmod +x after mktemp left 0711/0700; keep multi-user runnable.
-            chmod "${INST_MANAGED_MODE}" "${_target}" 2>/dev/null || true
+            chmod "${_mode}" "${_target}" 2>/dev/null || true
             out_success "${APP_NAME} already installed at ${_target}"
             inst_note_install_does_not_create_lpu
             if [ "${_target_dir}" = "${USER_BIN}" ] && [ "${JSON}" -eq 0 ]; then
-                out_info "Local install is user-rewritable. Global install: sudo ${APP_NAME} install  (${GLOBAL_BIN})"
+                out_info "Local install is user-rewritable. Global install: sudo ${APP_NAME} self-install  (${GLOBAL_BIN})"
             fi
             if [ "${JSON}" -eq 1 ]; then
-                out_json "install" "already installed" \
+                out_json "${_cmd}" "already installed" \
                     "app" "${APP_NAME}" \
                     "path" "${_target}" \
                     "status" "already_installed" \
-                    "mode" "${INST_MANAGED_MODE}"
+                    "mode" "${_mode}"
             fi
             return 0
         fi
     fi
 
-    _src=$(util_resolve_running_path)
+    _src=$(inst_resolve_self_script "$0") || _src=""
     if [ -z "${_src}" ] || [ ! -f "${_src}" ]; then
-        out_die "Cannot resolve running ship unit path for local install (not a file path)."
+        out_die "Cannot self-install from a pipe or shell interpreter (\$0=${0:-}). This product is local-only (no download). Run: sh src/${APP_NAME} self-install"
     fi
 
     if [ ! -d "${_target_dir}" ]; then
         if ! mkdir -p "${_target_dir}" 2>/dev/null; then
             if [ "${_target_dir}" = "${GLOBAL_BIN}" ]; then
-                out_die "Cannot create ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} install   or: sudo sh <ship-unit> install"
+                out_die "Cannot create ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} self-install   or: sudo sh <ship-unit> self-install"
             fi
             out_die "Cannot create install directory ${_target_dir}"
         fi
@@ -5148,51 +5298,34 @@ inst_local_install() {
 
     if [ ! -w "${_target_dir}" ] 2>/dev/null; then
         if [ "${_target_dir}" = "${GLOBAL_BIN}" ]; then
-            out_die "Cannot write ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} install   or: sudo sh <ship-unit> install --global"
+            out_die "Cannot write ${GLOBAL_BIN} (need root). Run: sudo ${APP_NAME} self-install   or: sudo sh <ship-unit> self-install --global"
         fi
         out_die "Install directory not writable: ${_target_dir}"
     fi
 
-    _stage=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}.install.XXXXXX" 2>/dev/null || mktemp)
-    if ! cp "${_src}" "${_stage}"; then
-        rm -f "${_stage}" 2>/dev/null || true
-        out_die "Failed to stage ship unit for install"
+    if [ "${JSON}" -eq 0 ]; then
+        out_info "Installing from local script ${_src} (no download)."
     fi
-    # Absolute 0755 required: shell scripts need group/other *read* for non-owner exec.
-    # chmod +x on a mktemp file (often 0600) yields 0711 — look executable, fail for others.
-    if ! chmod "${INST_MANAGED_MODE}" "${_stage}"; then
-        rm -f "${_stage}" 2>/dev/null || true
-        out_die "Failed to chmod ${INST_MANAGED_MODE} staged ship unit"
-    fi
-    if ! mv -f "${_stage}" "${_target}"; then
-        rm -f "${_stage}" 2>/dev/null || true
-        out_die "Failed to install to ${_target}"
-    fi
-    # Re-assert mode after mv (some filesystems / policies may alter bits).
-    if ! chmod "${INST_MANAGED_MODE}" "${_target}"; then
-        out_die "Installed ${_target} but failed to set mode ${INST_MANAGED_MODE}"
-    fi
-    if [ ! -r "${_target}" ] || [ ! -x "${_target}" ]; then
-        out_die "Installed ${_target} is not readable+executable (mode heal failed)"
-    fi
+    inst_self_install_copy_from_script "${_src}" "${_mode}"
 
-    out_success "Installed ${APP_NAME} to ${_target}"
+    out_success "${APP_NAME} ${VERSION} successfully installed to ${_target}"
     inst_note_install_does_not_create_lpu
-    if [ "${_target_dir}" = "${USER_BIN}" ]; then
-        # Best-effort PATH integration for user bin (function, not external)
-        path_add_shell 2>/dev/null || true
-        if [ "${JSON}" -eq 0 ]; then
-            out_info "Local install is user-rewritable. Multi-user hosts may prefer: sudo ${APP_NAME} install"
-        fi
+    if [ "${_target_dir}" = "${USER_BIN}" ] && [ "${JSON}" -eq 0 ]; then
+        out_info "Local install is user-rewritable. Multi-user hosts may prefer: sudo ${APP_NAME} self-install"
     fi
     if [ "${JSON}" -eq 1 ]; then
-        out_json "install" "installed" \
+        out_json "${_cmd}" "installed" \
             "app" "${APP_NAME}" \
             "path" "${_target}" \
             "status" "installed" \
-            "mode" "${INST_MANAGED_MODE}"
+            "mode" "${_mode}"
     fi
     return 0
+}
+
+# Alias: historical local place verb routes to self-install (no payload).
+inst_local_install() {
+    inst_self_install
 }
 
 # =============================================================================
@@ -5439,7 +5572,7 @@ app_about() {
         out_success "${APP_NAME} is properly installed."
     else
         out_warn "${APP_NAME} is NOT installed in a managed bin path."
-        out_info "   Recommended: ${APP_NAME} install   (local copy → ${USER_BIN}/${APP_NAME})"
+        out_info "   Recommended: ${APP_NAME} self-install   (local copy → ${USER_BIN}/${APP_NAME})"
     fi
     out_empty_line
     out_info "Global install  (${GLOBAL_BIN}/${APP_NAME}):   ${_global_ver}"
@@ -6093,7 +6226,7 @@ cf_req_apply() {
     _gbin="${GLOBAL_BIN}/${APP_NAME}"
     _lpu=$(lpu_user)
     if [ ! -x "${_gbin}" ]; then
-        out_die_code lpu_required "Approve apply must run as ${_lpu}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} install"
+        out_die_code lpu_required "Approve apply must run as ${_lpu}. Global CLI is missing at ${_gbin}. Next: sudo ${APP_NAME} self-install"
     fi
     set -- --json
     if [ -n "${CF_OPT_VAULT_DIR:-}" ]; then
@@ -6332,6 +6465,7 @@ cf_req_approve() {
     fi
     _src=$(cf_req_pick "${_in}" "${1:-}")
     cf_req_verify "${_src}"
+    cf_req_print_human_yaml "${_src}"
     cf_req_apply
     _moved=$(cf_req_move "${_src}" "accepted")
     if [ "${JSON}" -eq 1 ]; then
@@ -6354,6 +6488,7 @@ cf_req_reject() {
     fi
     _src=$(cf_req_pick "${_in}" "${1:-}")
     cf_req_verify "${_src}"
+    cf_req_print_human_yaml "${_src}"
     _moved=$(cf_req_move "${_src}" "declined")
     if [ "${JSON}" -eq 1 ]; then
         out_json "reject" "declined" \
@@ -6461,8 +6596,9 @@ cf_req_collapse_duplicate_inbound() {
     rm -f "${_pairs}" "${_keys}"
 }
 
-# Human-facing YAML of one inbound JSON object (login-hook review).
+# Human-facing YAML of one inbound JSON object (dest review / approve / reject).
 # Inbound file stays JSON. No PyYAML: python3 stdlib only.
+# Nested dict/list emit indented YAML, not a JSON object dump.
 # ALIGNMENT: requirement-dns-actor-table.md ACT-M4
 cf_req_json_to_yaml() {
     _jf="$1"
@@ -6496,12 +6632,43 @@ def scalar(v):
         return str(v)
     return ystr(v)
 
+def emit(k, v, indent=0):
+    pad = "  " * indent
+    if isinstance(v, dict):
+        print("%s%s:" % (pad, k))
+        for kk, vv in v.items():
+            emit(kk, vv, indent + 1)
+        return
+    if isinstance(v, list):
+        print("%s%s:" % (pad, k))
+        ipad = "  " * (indent + 1)
+        for item in v:
+            if isinstance(item, dict):
+                print("%s-" % ipad)
+                for kk, vv in item.items():
+                    emit(kk, vv, indent + 2)
+            elif isinstance(item, list):
+                print("%s- %s" % (ipad, json.dumps(item, ensure_ascii=False)))
+            else:
+                print("%s- %s" % (ipad, scalar(item)))
+        return
+    print("%s%s: %s" % (pad, k, scalar(v)))
+
 for k, v in data.items():
-    if isinstance(v, (dict, list)):
-        print("%s: %s" % (k, json.dumps(v, ensure_ascii=False)))
-    else:
-        print("%s: %s" % (k, scalar(v)))
+    emit(k, v, 0)
 ' "${_jf}"
+}
+
+# Human dest display: YAML of the waiting file. No-op under --json.
+# ALIGNMENT: requirement-dns-actor-table.md ACT-M4 · requirement-cloudflare-dns-request.md REQ-M3a
+cf_req_print_human_yaml() {
+    : "${JSON:=0}"
+    _yf="$1"
+    [ "${JSON}" -eq 1 ] && return 0
+    [ -n "${_yf}" ] && [ -f "${_yf}" ] || return 1
+    _yml=$(cf_req_json_to_yaml "${_yf}") || \
+        out_die_code vault_insecure "cannot render request as YAML: ${_yf}"
+    out_plain "${_yml}"
 }
 
 cf_req_interactive() {
@@ -6536,9 +6703,7 @@ cf_req_interactive() {
         if [ -n "${CF_REQ_SUBMIT_APP}" ] || [ -n "${CF_REQ_SUBMIT_VERSION}" ]; then
             out_plain "queued by ${CF_REQ_SUBMIT_APP} ${CF_REQ_SUBMIT_VERSION}"
         fi
-        _yml=$(cf_req_json_to_yaml "${_f}") || \
-            out_die_code vault_insecure "cannot render request as YAML: ${_f}"
-        out_plain "${_yml}"
+        cf_req_print_human_yaml "${_f}"
         # One-off approval question: yes = approve, no = reject (no skip/quit).
         if prompt_yes_no "Approve this request"; then
             cf_req_apply
@@ -6600,13 +6765,13 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.28.0}"
+    : "${VERSION:=1.30.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
     app_default_print_row 1 "DNS Features" "Daily DNS work"
     app_default_print_row 7 "sudoers" "Grant and drafts"
-    app_default_print_row 8 "self-management" "Install, uninstall, where-is-me"
+    app_default_print_row 8 "self-management" "Self-install, uninstall, where-is-me"
     app_default_print_row 9 "Exit"
 }
 
@@ -6618,6 +6783,7 @@ app_default_print_menu() {
 # Second layer for local lifecycle (specialized from sibling selfmanaged
 # onto this local-only product). Token self-management is menu-only.
 # Online verbs (self-update / version-check / self-uninstall) stay absent.
+# self-install is the local place verb (copy this file; no download).
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -6631,7 +6797,7 @@ app_default_print_selfmgmt_menu() {
     : "${QUIET:=0}"
 
     out_info "$(util_app_ident) - self-management (place, remove, locate)"
-    app_default_print_row 1 "install" "Install dns-cli (root→global, user→~/.local/bin)"
+    app_default_print_row 1 "self-install" "Place this CLI (copy this file; no download)"
     app_default_print_row 2 "uninstall" "Remove managed binary (confirm or --force)"
     app_default_print_row 3 "where-is-me" "Show running and install paths"
     app_default_print_row 4 "version" "Show local version"
@@ -6759,8 +6925,8 @@ app_default_run_pick() {
         remove-lpu)
             lpu_remove
             ;;
-        install)
-            inst_local_install
+        install|self-install)
+            inst_self_install
             ;;
         uninstall)
             inst_local_uninstall
@@ -6939,8 +7105,8 @@ app_default_run_selfmgmt_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        1|install)
-            inst_local_install
+        1|self-install|install)
+            inst_self_install
             ;;
         2|uninstall)
             inst_local_uninstall
@@ -7177,12 +7343,12 @@ app_default() {
 # =============================================================================
 app_help() {
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Local self-managed POSIX /bin/sh CLI (Type 0 lifecycle)}}"
-    : "${DESCRIPTION:=POSIX /bin/sh local CLI: install, uninstall, where-is-me, version, about, help.}"
+    : "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, uninstall, where-is-me, version, about, help.}"
 
     if [ "${JSON}" -eq 1 ]; then
         out_json "success" "Help text available in human-readable mode. Run without --json." \
             "command" "help" \
-            "note" "Use --json with version, about, install, uninstall, where-is-me."
+            "note" "Use --json with version, about, self-install, install, uninstall, where-is-me."
         return 0
     fi
     if [ "${QUIET}" -eq 1 ]; then
@@ -7196,8 +7362,9 @@ app_help() {
     out_plain "  ${APP_NAME} [command] [options]"
     out_empty_line
     out_info "Lifecycle (Type 0 — local self-managed):"
-    out_plain "  install              Install ${APP_NAME} (root→global, user→~/.local/bin)"
-    out_plain "  install --global     Force global path (${GLOBAL_BIN}; needs write/root)"
+    out_plain "  self-install         Place this CLI (copy this file when run as a script; no download)"
+    out_plain "  self-install --global  Force global path (${GLOBAL_BIN}; needs write/root)"
+    out_plain "  install              Alias of self-install"
     out_plain "  uninstall            Remove managed binary (confirm or --force)"
     out_plain "  where-is-me          Show running and install paths"
     out_plain "  version              Show local version"
@@ -7223,7 +7390,8 @@ app_help() {
     out_info "Submit vs setup (do not confuse):"
     out_plain "  submit-sudoer-request  Type 0 — you (id -un). Self-scope. type-2-switch only. No sudo."
     out_plain "  setup                  Type 1 — host admin. Password sudo / already root."
-    out_plain "  Dest approval reviews the JSON. Dest Type 0 self-scope MUST NOT apply to setup."
+    out_plain "  Dest approval shows the waiting body as YAML (file stays JSON)."
+    out_plain "  Dest Type 0 self-scope MUST NOT apply to setup."
     out_empty_line
     out_info "Cloudflare DNS (Type 0 domain):"
     out_plain "  vault input                 Interactive TTY wizard (zone, account, domain, subdomain, token)"
@@ -7239,9 +7407,9 @@ app_help() {
     out_empty_line
     out_info "DNS inbound (anyone submits; dns-adm approves — operational):"
     out_plain "  submit FILE          Type 0 — queue self-scoped DNS JSON (not submit-sudoer-request)"
-    out_plain "  approve [ID]         Type 1 as dns-adm — re-check, apply dest, move to accepted"
-    out_plain "  reject [ID]          Type 1 as dns-adm — re-check, move to declined"
-    out_plain "  interactive          Type 1 TTY review loop (login hook target)"
+    out_plain "  approve [ID]         Type 1 as dns-adm — show YAML, apply dest, move to accepted"
+    out_plain "  reject [ID]          Type 1 as dns-adm — show YAML, move to declined"
+    out_plain "  interactive          Type 1 TTY review loop (YAML body, then yes/no)"
     out_empty_line
     out_info "Unit test (local test folder; Type 0 — test-purpose):"
     out_plain "  test-json-format [--file PATH]  Per-row dest JSON-format fence (stdin xor --file; no queue)"
@@ -7284,7 +7452,7 @@ app_help() {
     out_info "Examples:"
     out_plain "  ${APP_NAME}"
     out_plain "  ${APP_NAME} menu"
-    out_plain "  ${APP_NAME} install"
+    out_plain "  ${APP_NAME} self-install"
     out_plain "  sudo ${APP_NAME} setup"
     out_plain "  ${APP_NAME} generate-sudoer-request"
     out_plain "  ${APP_NAME} generate-sudoer-request --kind login-hook-elev"
@@ -7302,7 +7470,7 @@ app_help() {
     out_plain "  ${APP_NAME} fence-test --dir tests/fixtures/fence-test/match --expect-match"
     out_empty_line
     out_info "Empty argv shows help (Type N — local-only; no curl|sh; no Cloudflare call)."
-    out_info "install copies the program only; it does not create Linux user dns-adm."
+    out_info "self-install copies this file only; it does not create Linux user dns-adm."
     out_info "Create dns-adm with: sudo ${APP_NAME} setup"
     out_info "submit-sudoer-request is Type 0 (you). setup is Type 1 (sudo). Do not confuse them."
     out_info "No backup, restore, or sudoers-manager extras."
@@ -7483,7 +7651,7 @@ app_main() {
     fi
 
     case "${COMMAND}" in
-        install|uninstall|where-is-me|version|about|help|menu|main|setup|remove-lpu)
+        install|self-install|uninstall|where-is-me|version|about|help|menu|main|setup|remove-lpu)
             if [ "${CF_POSN}" -gt 1 ]; then
                 out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
             fi
@@ -7546,7 +7714,7 @@ app_main() {
     case "${COMMAND}" in
         version)      app_version ;;
         about)        app_about ;;
-        install)      inst_local_install ;;
+        install|self-install) inst_self_install ;;
         uninstall)    inst_local_uninstall ;;
         where-is-me)  app_where_is_me ;;
         setup)        lpu_setup ;;

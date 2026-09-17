@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.30.0] - 2026-09-17
+
+### Changed
+
+- Place verb is **`self-install`** (alias **`install`**). When `$0` is this script (not `sh`/`bash`/`zsh`), copy that file into bin — no download — in both interactive and non-interactive mode. Dest mode **0700** local / **0755** global. Interpreter `$0` (pipe) fails closed (local-only; no `SCRIPT_URL` fetch). TTY self-management **1**. Tests **TP-LC-09..12** · **TP-SI-01** · **TP-SI-04** · **TP-SI-08**. Law: `requirement-shell-local-self-management` **1.8.0**. Ship unit **`VERSION="1.30.0"`**.
+
+## [1.29.0] - 2026-09-16
+
+### Changed
+
+- Dest human **`approve`** and **`reject`** print the waiting body as **YAML** (`key: value` lines) before apply/move. Nested objects use indented YAML, not a JSON dump. The inbound file stays JSON. `--json` on those verbs stays machine JSON. `interactive` already showed YAML; it now uses the same printer. Law `requirement-dns-actor-table` **1.14.0** · `requirement-cloudflare-dns-request` **1.9.0**. Suite **TP-CF-REQ-21**. Ship unit **`VERSION="1.29.0"`**.
+
 ## [1.28.0] - 2026-09-16
 
 ### Changed

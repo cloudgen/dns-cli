@@ -25,7 +25,7 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
 |-----|---------|---------|
 | You (TTY) | Type the program name alone | `dns-cli` → numbered list |
 | Script / pipe | Same command, no keyboard | `dns-cli` → help |
-| Not this | First-time copy of the binary | `dns-cli install` |
+| Not this | First-time copy of the binary | `dns-cli self-install` |
 
 | Includes | Excludes |
 |----------|----------|
@@ -55,7 +55,7 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
    - **Non-interactive** (`TTY=0`): the dispatcher **MUST** route to **`help`** / usage (`app_help`). **MUST NOT** prompt.
 2. Empty argv **MUST NOT** perform install or any state-changing ensure.  
 3. Explicit `dns-cli help` remains a valid full-usage path (same content family as off-TTY empty argv).  
-4. Explicit `dns-cli install` remains the only first-time local install path (plus documented force refresh).  
+4. Explicit `dns-cli self-install` (alias `install`) remains the only first-time local install path (plus documented force refresh). Copy `$0` when it is this script; **MUST NOT** download.  
 5. Script entry **MUST** always call `app_main "$@"` (no basename product-name gate that blocks dispatch).  
 6. Empty argv **MUST NOT** call Cloudflare, ipinfo, or mutate the vault. Drawing the numbered list **MUST NOT** network.
 
@@ -66,7 +66,7 @@ Type O (online-install empty-argv = install-ensure) does **not** apply.
 | `dns-cli` (no args, `TTY=1`) | Numbered main menu; exit 0 after Exit / a pick |
 | `dns-cli` (no args, `TTY=0`) | Show help; exit 0; **MUST NOT** hang |
 | `dns-cli help` | Show help; exit 0 |
-| `dns-cli install` | Local install ensure |
+| `dns-cli self-install` | Local place (copy this file; no download). Alias `install`. |
 | Flags only (e.g. `--json` with no command) | **MUST** still resolve to help (or fail with clear usage if product chooses fail-closed) — default: **help** after flag parse with no command token |
 
 ### 2.2a Sample invocations (CI-M1a)
@@ -125,7 +125,7 @@ Off-TTY empty argv **MUST** match `help` (Type N). TTY empty argv **MUST** match
 |----|-----------|
 | AC-1 | Off-TTY empty argv shows help and does not install; TTY empty argv shows the numbered main menu and does not install |
 | AC-2 | Type N is the declared empty-argv type |
-| AC-3 | `install` remains an explicit command |
+| AC-3 | `self-install` (alias `install`) remains an explicit command |
 
 ---
 
@@ -161,6 +161,6 @@ Off-TTY empty argv **MUST** match `help` (Type N). TTY empty argv **MUST** match
 
 ---
 
-**Last Updated**: 2026-09-03  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

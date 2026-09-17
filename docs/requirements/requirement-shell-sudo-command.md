@@ -32,7 +32,7 @@ This requirement is the **project Single Source of Truth** for **in-tool sudo**:
 
 | You do… | What it means | What you type |
 |---------|---------------|---------------|
-| Install as yourself | chmod of your copy does not sudo. | `sh src/dns-cli install` |
+| Install as yourself | chmod of your copy does not sudo. | `sh src/dns-cli self-install` |
 
 ---
 

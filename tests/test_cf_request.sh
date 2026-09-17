@@ -463,11 +463,11 @@ run_test_cf_request() {
     assert_contains "TP-CF-REQ-12 one-off prompt_yes_no" "${_hook}" "prompt_yes_no"
     assert_contains "TP-CF-REQ-12 Approve this request" "${_hook}" "Approve this request"
     assert_contains "TP-CF-REQ-17 interactive queued by" "${_hook}" "queued by"
-    assert_contains "TP-CF-REQ-20 interactive prints YAML" "${_hook}" "cf_req_json_to_yaml"
+    assert_contains "TP-CF-REQ-20 interactive prints YAML" "${_hook}" "cf_req_print_human_yaml"
     assert_not_contains "TP-CF-REQ-20 interactive no field dump purpose line" "${_hook}" 'out_plain "purpose:'
     _ymlfn=$(sed -n '/^cf_req_json_to_yaml()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-20 yaml helper python3" "${_ymlfn}" "python3"
-    assert_contains "TP-CF-REQ-20 yaml helper key colon value" "${_ymlfn}" 'print("%s: %s"'
+    assert_contains "TP-CF-REQ-20 yaml helper key colon value" "${_ymlfn}" 'print("%s%s: %s"'
     assert_not_contains "TP-CF-REQ-20 yaml helper no PyYAML" "${_ymlfn}" "import yaml"
     _ysrc="${CI_HOME}/yml-src.json"
     _cf_req_write "${_ysrc}" "{
@@ -490,6 +490,64 @@ run_test_cf_request() {
     assert_contains "TP-CF-REQ-20 yaml helper purpose" "${_yrender}" "purpose: YAML display sample"
     assert_contains "TP-CF-REQ-20 yaml helper ipv4" "${_yrender}" "ipv4: 203.0.113.10"
     assert_not_contains "TP-CF-REQ-20 yaml helper not JSON dump" "${_yrender}" '"schema_version":'
+    _aprfn=$(sed -n '/^cf_req_approve()/,/^}/p' "${SCRIPT}")
+    _rejfn=$(sed -n '/^cf_req_reject()/,/^}/p' "${SCRIPT}")
+    assert_contains "TP-CF-REQ-21 approve prints YAML" "${_aprfn}" "cf_req_print_human_yaml"
+    assert_contains "TP-CF-REQ-21 reject prints YAML" "${_rejfn}" "cf_req_print_human_yaml"
+    _ymladd="${CI_HOME}/yml-approve.json"
+    _cf_req_write "${_ymladd}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"Human approve YAML\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.11\",
+  \"ttl\": 300,
+  \"proxied\": false
+}"
+    _out=$(HOME="${CI_HOME}" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        sh "${SCRIPT}" --json submit "${_ymladd}" 2>/dev/null)
+    _yrid=$(printf '%s\n' "${_out}" | sed -n 's/.*"request_id":"\([^"]*\)".*/\1/p')
+    _hout=$(HOME="${CI_HOME}" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        CF_VAULT_DIR="${CF_VAULT_DIR}" CF_CURL="${CF_CURL}" \
+        sh "${SCRIPT}" --vault-dir "${CF_VAULT_DIR}" approve "${_yrid}" 2>/dev/null)
+    _hec=$?
+    assert_eq "TP-CF-REQ-21 human approve exit 0" 0 "${_hec}"
+    assert_contains "TP-CF-REQ-21 human approve YAML schema" "${_hout}" "schema_version: 1"
+    assert_contains "TP-CF-REQ-21 human approve YAML action" "${_hout}" "action: add"
+    assert_contains "TP-CF-REQ-21 human approve YAML ipv4" "${_hout}" "ipv4: 203.0.113.11"
+    assert_not_contains "TP-CF-REQ-21 human approve no JSON dump" "${_hout}" '"schema_version":'
+    _ymlrej="${CI_HOME}/yml-reject.json"
+    _cf_req_write "${_ymlrej}" "{
+  \"schema_version\": 1,
+  \"purpose\": \"Human reject YAML\",
+  \"subject\": \"${_user}\",
+  \"action\": \"add\",
+  \"domain_id\": \"example.test\",
+  \"subdomain\": \"home\",
+  \"ipv4\": \"203.0.113.12\",
+  \"ttl\": 300,
+  \"proxied\": false
+}"
+    _out=$(HOME="${CI_HOME}" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        sh "${SCRIPT}" --json submit "${_ymlrej}" 2>/dev/null)
+    _rrid=$(printf '%s\n' "${_out}" | sed -n 's/.*"request_id":"\([^"]*\)".*/\1/p')
+    _rout=$(HOME="${CI_HOME}" \
+        CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \
+        DNS_QUEUE_INBOUND="${_in}" \
+        CF_VAULT_DIR="${CF_VAULT_DIR}" CF_CURL="${CF_CURL}" \
+        sh "${SCRIPT}" --vault-dir "${CF_VAULT_DIR}" reject "${_rrid}" 2>/dev/null)
+    _rec=$?
+    assert_eq "TP-CF-REQ-21 human reject exit 0" 0 "${_rec}"
+    assert_contains "TP-CF-REQ-21 human reject YAML schema" "${_rout}" "schema_version: 1"
+    assert_not_contains "TP-CF-REQ-21 human reject no JSON dump" "${_rout}" '"schema_version":'
     assert_not_contains "TP-CF-REQ-12 no skip/quit menu" "${_hook}" "skip / quit"
     _fence=$(sed -n '/^cf_req_dest_fence()/,/^}/p' "${SCRIPT}")
     assert_contains "TP-CF-REQ-13 dest fence helper" "${_fence}" "incorrect_json_format"

@@ -2,7 +2,7 @@
 
 **Product:** dns-cli  
 **Ship unit:** `src/dns-cli`  
-**Scan date:** 2026-09-03  
+**Scan date:** 2026-09-17  
 **Mode:** full  
 **Copied:** 0 · **Re-checked:** all live tokens  
 
@@ -12,7 +12,8 @@ Inventory from `app_main` dispatcher. Help is not a route.
 
 | verb | handler | privilege | last modified date | human-readable |
 |------|---------|-----------|--------------------|----------------|
-| install | `inst_local_install` | you | missing | `install: Install dns-cli (root→global, user→~/.local/bin)` |
+| self-install | `inst_self_install` | you | 2026-09-17 | `self-install: Place this CLI (copy this file; no download)` |
+| install | `inst_self_install` | you | 2026-09-17 | `install: Alias of self-install` |
 | uninstall | `inst_local_uninstall` | you | missing | `uninstall: Remove managed binary (confirm or --force)` |
 | where-is-me | `app_where_is_me` | you | missing | `where-is-me: Show running and install paths` |
 | version | `app_version` | you | missing | `version: Show local version` |
