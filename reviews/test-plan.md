@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.30.0  
+**Product VERSION:** 1.31.0  
 **Last plan update:** 2026-09-17  
-**Last suite run:** PASS=930 FAIL=0 SKIP=2 (2026-09-17; **TP-LC-09..12** dest 0700/0755; **TP-SI-01/04/08** self-install copy; **TP-FENCE-07** skip live sibling dest `kind`)
+**Last suite run:** PASS=934 FAIL=0 SKIP=2 (2026-09-17; origin A = selfmanaged; **TP-LC-09..12** dest 0700/0755; **TP-SI-01/04/07/08** self-install copy + dest-mode; **TP-FENCE-07** skip live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 

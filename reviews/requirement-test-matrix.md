@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
 **Updated:** 2026-09-17  
-**Product VERSION:** 1.30.0  
+**Product VERSION:** 1.31.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -37,4 +37,4 @@
 
 **Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, folder-archive backup/restore, sudoers-manager extras.
 
-**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu · **TP-SI-01/04/08** self-install copy), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..09, TP-LPU-01..08, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..21**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.30.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).
+**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu · **TP-SI-01/04/07/08** self-install copy + dest-mode), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..09, TP-LPU-01..08, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..21**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.31.0**. **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.31.0] - 2026-09-17
+
+### Changed
+
+- Bootstrap origin **A** is **`selfmanaged`** (hop 0) again. This product **B** stays hop 1. Direction **A → B only** (never reverse-copy onto selfmanaged). Inherit dest **0700** local / **0755** global and copy-from-`$0` `self-install`. **Trim** A’s Type O empty argv, `SCRIPT_URL` download, `self-update` / `version-check` / `self-uninstall`. Empty argv stays Type N (TTY menu / off-TTY help). Domain + LPU stay on B. `cli-template` / `folder-backup` are not live origin. Law `requirement-bootstrap-chain` **6.0.0**. Suite **TP-SI-07**. Ship unit **`VERSION="1.31.0"`**.
+
 ## [1.30.0] - 2026-09-17
 
 ### Changed

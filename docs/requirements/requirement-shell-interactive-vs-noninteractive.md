@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.4.0)  
+**Status**: Active (Version 1.5.0)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -68,7 +68,7 @@ Rules:
 | Action | Interactive | Non-interactive |
 |--------|-------------|-----------------|
 | `uninstall` | Confirm unless `--force` | **Fail closed** without `--force` (`confirm_required`) |
-| `install` | May inform; no required confirm for first install | Proceed without hang |
+| `self-install` / `install` | May inform; no required confirm for first place | Proceed without hang |
 | `vault input` (and bare `vault`) | Full TTY wizard (domain-id then fields; Enter keeps current; token via `prompt_secret`) | Fail `confirm_required` |
 | `vault set` / `init` / `account modify` / `zone modify` | `prompt_*` / `prompt_secret` **only empty fields** after vault+flags+env | Fail `vault_incomplete` unless flags/env complete remaining fields |
 | `vault account remove` / `vault zone remove` / `vault clear` | Confirm unless `--force` | Fail `confirm_required` unless `--force` |
@@ -144,6 +144,7 @@ Rules:
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.5.0 | Place row is **`self-install`** / `install` |
 | 2026-08-18 | Active 1.3.1 | `TTY` measured in `app_main`; `prompt_*` consume `TTY` |
 | 2026-08-03 | Active | Interactive vs non-interactive for folder-backup |
 | 2026-08-17 | Active 1.3.0 | `account`/`zone` modify collect; `zone remove` confirm |
@@ -152,6 +153,6 @@ Rules:
 
 ---
 
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

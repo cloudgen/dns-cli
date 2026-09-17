@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.13.0) — `self-install` place verb; `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.2) — `self-install` place verb; Version SSOT `1.31.0`; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -114,7 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
-| **Version SSOT** | `VERSION="1.0.0"` until DNS ships; then `1.1.0` |
+| **Version SSOT** | `VERSION="1.31.0"` hard-assign in `src/dns-cli` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
@@ -277,6 +277,8 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 3.13.2 | Implementation Notes Version SSOT `1.31.0` (re-specialize from selfmanaged) |
+| 2026-09-17 | Active 3.13.1 | Implementation Notes Version SSOT `1.30.0` (was stale `1.0.0`) |
 | 2026-09-17 | Active 3.13.0 | Place verb **`self-install`** (alias `install`); copy `$0`; dest 0700/0755 |
 | 2026-09-16 | Active 3.12.0 | `menu`/`main` family **DNS Features** + family **sudoers** (neither dispatched) |
 | 2026-09-08 | Active 3.11.0 | Dual mention: `interactive` also `requirement-login-interactive-hook` |

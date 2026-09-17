@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-local-self-management.md  
-**Status**: Active (Version 1.8.0)  
+**Status**: Active (Version 1.8.2)  
 **Area**: shell  
 **Key**: `requirement-shell-local-self-management`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -116,7 +116,7 @@ This product ships as a **POSIX shell script** (interpreted). Global dest needs 
 | Variable | Role | Default / note |
 |----------|------|----------------|
 | `APP_NAME` | Binary basename SSOT | hard-assign `dns-cli` (Implemented) |
-| `VERSION` | Local version SSOT | hard-assign `1.1.0` |
+| `VERSION` | Local version SSOT | hard-assign `1.31.0` |
 | `GLOBAL_BIN` | System-wide bin | `/usr/local/bin` |
 | `USER_BIN` | Per-user bin | `${HOME}/.local/bin` |
 | `FORCE` | Replace / skip confirm | `0` |
@@ -321,6 +321,8 @@ util_get_install_bin_path() {
 |------|--------|------|
 | 2026-08-03 | Active | Local-only lifecycle for folder-backup |
 | 2026-08-09 | Active 1.2.0 | §2.3.1 mode **0755** multi-user; ban `chmod +x`→`0711` trap; AC-6..8; TP-LC-09/10 |
+| 2026-09-17 | Active 1.8.2 | Config `VERSION` SSOT `1.31.0`; origin A = selfmanaged (copy-from-`$0` kept; download trimmed) |
+| 2026-09-17 | Active 1.8.1 | Config `VERSION` SSOT `1.30.0` |
 | 2026-09-17 | Active 1.8.0 | Place verb **`self-install`** (alias `install`); copy when `$0` is this script; dest **0700** local / **0755** global; no download |
 | 2026-08-18 | Active 1.7.0 | Path `util_*` examples (§2.7a); AC-9 |
 | 2026-08-18 | Active 1.6.0 | CI-M1a sample invocations for install / uninstall / where-is-me / version / about / help |

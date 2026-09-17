@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.11.0) — residual points at independent login-hook REQ  
+**Status**: Active (Version 1.13.0) — residual points at independent login-hook REQ; origin A = selfmanaged; version SSOT `1.31.0`  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -142,8 +142,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
 | **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
-| **Product version SSOT** | `VERSION="1.9.7"` hard-assign in `src/dns-cli` |
-| **Bootstrap origin** | **A = `cli-template`** (hop 0, sibling origin). **This product is B = `dns-cli` (hop 1).** |
+| **Product version SSOT** | `VERSION="1.31.0"` hard-assign in `src/dns-cli` |
+| **Bootstrap origin** | **A = `selfmanaged`** (hop 0). **This product is B = `dns-cli` (hop 1).** Online/Type O trimmed. |
 
 **Residual ownership table:**
 
@@ -152,11 +152,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Project class membership | **this file** | Fixed |
 | Primary language + toolchain policy | **this file** | posix-sh, unconstrained |
 | Package/build tool + lockfile | **this file** | none / not used |
-| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | this product is hop 1; origin A = cli-template |
+| Bootstrap lineage / keep-trim | `requirement-bootstrap-chain` | this product is hop 1; origin A = selfmanaged (trim online) |
 | Project layout / ship path | `requirement-project-folder` | `src/` + bin targets; vault pointer only |
 | Type 0 CLI surface / flags / dispatch | `requirement-shell-cli-interface` | Do not duplicate |
 | Empty argv Type N help | `requirement-shell-cli-zero-arguments` | Local-only |
-| Local self-managed lifecycle | `requirement-shell-local-self-management` | install / uninstall / where-is-me |
+| Local self-managed lifecycle | `requirement-shell-local-self-management` | `self-install` (alias `install`) / uninstall / where-is-me; copy `$0`; dest **0700** local / **0755** global |
 | Output SSOT (`out_*`) | `requirement-shell-output-requirements` | Do not duplicate |
 | Cache folder + persistency folder resolve | `requirement-shell-cli-storage` | Do not duplicate |
 | Idempotency / re-run safety | `requirement-shell-idempotency` | Do not duplicate |
@@ -171,7 +171,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | Scratch leaves | `requirement-shell-temp-file-system` | `mktemp`; no `$$` names; storage root stays storage REQ |
 | What is blocked vs must stay open | `requirement-privilege-prevention-set` | Closed prevention catalog; do not invent walls; Type 2 remains open |
 | Privilege / LPU / Type 0/1/2 | `requirement-least-privilege-user` + `requirement-three-layer-privilege-model` | `dns-adm`; dest `/etc/dns-adm/sudoers`; backups **MUST** use `/etc/sudoer-backup/` and **MUST NOT** land under `/etc/sudoers.d/` |
-| Login-interactive review hook | `requirement-login-interactive-hook` | Snippet + rc heal + `/usr/local/bin/${APP_NAME}-hook`; dest review loop stays on `requirement-dns-actor-table` |
+| Login-interactive review hook | `requirement-login-interactive-hook` | Snippet + rc heal + `/usr/local/bin/dns-review-hooks`; dest review loop stays on `requirement-dns-actor-table` |
 | JSON sudoer file / Type 0 generate+submit | `requirement-sudoer-json-file` | Two kinds: `type-2-switch` (Type 0 submit) and `login-hook-elev` (setup auto-queue); `print-sudoers` is three-layer + this file’s peer; this product **MUST NOT** write `/etc/sudoers.d` |
 | Sudoers-manager extras (`print-sudoers-install-script`, `remove-project-sudoers`) | **intentionally absent** | Not this product’s domain. Generate/submit are **not** extras. |
 | Folder archive backup / restore / retention | **intentionally absent** | Not this product’s domain (sibling folder-backup) |
@@ -251,7 +251,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Key | Relationship |
 |-----|--------------|
-| `requirement-bootstrap-chain` | This product is hop 1; origin A = cli-template |
+| `requirement-bootstrap-chain` | This product is hop 1; origin A = selfmanaged |
 | `requirement-domain-cloudflare-dns` | Domain SSOT |
 | `requirement-cloudflare-vault` | Vault law |
 | `requirement-cloudflare-api` | HTTPS API capability |
@@ -274,7 +274,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | `requirement-shell-idempotency` | Re-run safety |
 | `requirement-shell-interactive-vs-noninteractive` | Mode policy |
 | `requirement-shell-modular-function-design` | Prefixes / single-file modularity |
-| `requirement-login-interactive-hook` | Login-hook plant / `/usr/local/bin/${APP_NAME}-hook` |
+| `requirement-login-interactive-hook` | Login-hook plant / `/usr/local/bin/dns-review-hooks` |
 | `docs/requirements/index.md` | Registry SSOT |
 
 ---
@@ -283,6 +283,8 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.13.0 | Origin A = `selfmanaged`; Version SSOT `1.31.0` |
+| 2026-09-17 | Active 1.12.0 | Version SSOT `1.30.0`; residual place verb `self-install`; login-hook residual `dns-review-hooks` |
 | 2026-09-08 | Active 1.11.0 | Residual login-interactive review hook → `requirement-login-interactive-hook` |
 | 2026-08-03 | Active | Specialized class law for folder-backup (left genesis; bootstrap trim from selfmanaged) |
 | 2026-08-13 | Active 1.1.0 | Retarget to cli-template; drop domain/privilege residual owners |

@@ -2,7 +2,7 @@
 
 Authoritative specialized product law for **dns-cli** lives here.
 
-**Current state (2026-08-20):** Specialized **software-development** product. **B = `dns-cli` (hop 1)** from **A = `cli-template` (hop 0)**. Registry is populated — see `index.md`. Coding-style + in-tool sudo + prompt + temp + prevention-set Active. Type 0 `test-json-format`.
+**Current state (2026-09-17):** Specialized **software-development** product. **B = `dns-cli` (hop 1)** from **A = `selfmanaged` (hop 0)** — online/Type O trimmed. Registry is populated — see `index.md`. Place verb **`self-install`** (alias **`install`**); dest **0700** local / **0755** global; empty argv **Type N**. Coding-style + in-tool sudo + prompt + temp + prevention-set Active. Type 0 `test-json-format`.
 
 ## Product identity (summary)
 
@@ -10,10 +10,10 @@ Authoritative specialized product law for **dns-cli** lives here.
 |-------|--------|
 | Product / `APP_NAME` (law) | `dns-cli` |
 | Live Config | `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| Version SSOT | `1.11.0` |
+| Version SSOT | `1.31.0` |
 | Ship unit (live) | `src/dns-cli` |
-| Default install | `~/.local/bin/dns-cli` |
-| Install mode | **Local-only** |
+| Default install | `~/.local/bin/dns-cli` (mode **0700**) |
+| Install mode | **Local-only** — place verb **`self-install`** (alias `install`); copy `$0`; no download |
 | LPU | `dns-adm` — `requirement-least-privilege-user` — **Implemented** |
 | Type map / elev | `requirement-three-layer-privilege-model` — **Implemented** |
 | Domain SSOT | `requirement-domain-cloudflare-dns` — v2 Implemented |
@@ -21,12 +21,12 @@ Authoritative specialized product law for **dns-cli** lives here.
 | Dest fence catalog | `requirement-approval-fencing-condition` — closed dest refuse list |
 | Dest Fence | `requirement-incorrect-json-format` — dest-owned JSON allowlist; sudoer `kind` known; Type 0 `test-json-format` |
 | Coding-style | `requirement-shell-script-coding` — specialize-in home |
-| In-tool sudo | `requirement-shell-sudo-command` — wrappers (Gap until wired) |
+| In-tool sudo | `requirement-shell-sudo-command` — wrappers (`util_sudo` / `util_chmod`) |
 | Prompt bodies | `requirement-shell-prompt` — Implemented |
 | Scratch leaves | `requirement-shell-temp-file-system` |
 | Prevention catalog | `requirement-privilege-prevention-set` — Type 2 remains; DNS dest is `dns-adm` |
 | DNS request JSON | `requirement-cloudflare-dns-request` — four types + examples; inbound **Implemented** (1.9.0); queue-move `chown` (1.9.1); login-hook take-ownership-at-beginning (1.9.2) |
-| Login-interactive hook | `requirement-login-interactive-hook` — `/usr/local/bin/${APP_NAME}-hook` soft link; heal of `dns-adm` rewrites old hook |
+| Login-interactive hook | `requirement-login-interactive-hook` — `/usr/local/bin/dns-review-hooks`; heal of `dns-adm` rewrites old `dns-cli` / `dns-cli-hook` / `login-review-hook` |
 | External IPv4 | `requirement-external-ipv4` — Implemented (IPv6 MUST NOT) |
 | Application local vault (path + specify) | `requirement-application-local-vault` — specify + default `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` **Implemented** (1.8.0) |
 | Vault law (schema / verbs) | `requirement-cloudflare-vault` 2.4.0 — zone-slot add/list/modify/remove; `{label, mode}`; v2 **Implemented** (1.2.0) |

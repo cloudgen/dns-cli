@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.8.0) Implemented  
+**Status**: Active (Version 1.8.1) Implemented  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -215,7 +215,7 @@ util_app_ident() {
 | Row explain | TTY SGR 3 + SGR 37 via `app_default_print_row` |
 | Handler | `app_default` (`menu` / `main` / TTY empty argv); submenu printer/loop under the same `app_default_*` family |
 | Finished command | Returns to the **top** list (DNS Features, sudoers, and top-list shortcuts). Exit / EOF still leave. |
-| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 3**; DNS submenu **N = 10**; sudoers submenu **N = 4**; self-management submenu **N = 5**; Exit **9**; DNS Back **98**; sudoers/self-management Back **8**. A finished listed command returns to the top list. Invalid pick reprints the same layer (main, DNS Features, sudoers, and self-management). Sibling **selfmanaged** is a read-only architecture reference for this family grouping; this product’s live origin stays `cli-template`. |
+| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 3**; DNS submenu **N = 10**; sudoers submenu **N = 4**; self-management submenu **N = 5**; Exit **9**; DNS Back **98**; sudoers/self-management Back **8**. A finished listed command returns to the top list. Invalid pick reprints the same layer (main, DNS Features, sudoers, and self-management). Live origin **A = selfmanaged** (online trimmed). Self-management family grouping is inherited from A’s lifecycle package. |
 
 Actor / role / subject / approver is already Active (`requirement-actor-role-subject-approver`). This menu is **not** dest yes/no review.
 
@@ -300,6 +300,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | 2026-09-13 | Active 1.4.0 | Invalid pick on every numbered layer warns, reprints **that same** list, and reads again (**TP-CLI-21**) |
 | 2026-09-16 | Active 1.5.0 | Top list is family **DNS Features** **1** + family **sudoers** **8**; Exit **9**; DNS submenu Back **98** / Exit **99**; sudoers submenu unchanged (**TP-CLI-22**) |
 | 2026-09-16 | Active 1.6.0 | A finished listed command returns to the **top** list (**TP-CLI-23**) |
+| 2026-09-17 | Active 1.8.1 | Honesty: live origin **A = selfmanaged** (online trimmed); family grouping inherited |
 | 2026-09-17 | Active 1.8.0 | Self-management row **1** is **`self-install`** (copy this file; no download); `install` remains a typed alias (**TP-CLI-24**) |
 | 2026-09-16 | Active 1.7.0 | Family **self-management** is main **8** (local install/uninstall/where-is-me/version/about); family **sudoers** moves to **7**; sibling **selfmanaged** is a read-only architecture reference (**TP-CLI-24**) |
 

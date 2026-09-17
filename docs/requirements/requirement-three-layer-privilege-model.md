@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-three-layer-privilege-model.md  
-**Status**: Active (Version 1.16.0) — ELEV-CF-02 login hook is `/usr/local/bin/dns-review-hooks`  
+**Status**: Active (Version 1.17.0) — Type 0 place verb `self-install`; ELEV-CF-02 login hook is `/usr/local/bin/dns-review-hooks`  
 **Area**: architecture  
 **Key**: `requirement-three-layer-privilege-model`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -46,7 +46,7 @@ This product is **not** a sudoers-manager. **Absent:** `print-sudoers-install-sc
 
 | Layer | Privilege | Actor | Responsibilities |
 |-------|-----------|-------|------------------|
-| **Type 0** | Invoking user | Any login | **Operational:** `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), `generate-sudoer-request`, `submit-sudoer-request`, vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified. **Test-purpose (unit test; local test folder):** `test-json-format` / `fence-test`. Type 0 does **not** mean “unit test.” Testers **MUST NOT** queue or dest-write. |
+| **Type 0** | Invoking user | Any login | **Operational:** `help`, `version`, `about`, `self-install` (alias `install`), `uninstall`, `where-is-me`, `ip`, `print-sudoers` (stdout/draft only), `generate-sudoer-request`, `submit-sudoer-request`, vault/DNS **when** `--vault-dir` / `CF_VAULT_DIR` is specified. **Test-purpose (unit test; local test folder):** `test-json-format` / `fence-test`. Type 0 does **not** mean “unit test.” Testers **MUST NOT** queue or dest-write. |
 | **Type 1** | Elevated (password `sudo` / already-root) | Host admin | `setup` (create `dns-adm` + F3/F5/F6), `remove-lpu` |
 | **Type 2** | Dedicated LPU | `dns-adm` | Default-vault `vault` + `add` / `update` / `remove` / `status` / `show` |
 
@@ -306,6 +306,7 @@ sudo -n -u dns-adm dns-cli status home
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.17.0 | Type 0 place verb **`self-install`** (alias `install`); copy `$0`; dest 0700/0755 |
 | 2026-09-13 | Active 1.16.0 | ELEV-CF-02 binary is the login-hook-symlink `/usr/local/bin/dns-review-hooks` |
 | 2026-09-03 | Active 1.15.0 | ELEV-CF-02 binary is the login-hook-symlink `/usr/local/bin/dns-cli-hook` |
 | 2026-09-01 | Active 1.14.0 | P-M14 test-mode MUST NOT write live dest inbound (INC-20260821-001) |

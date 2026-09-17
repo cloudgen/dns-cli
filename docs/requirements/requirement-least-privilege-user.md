@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.15.0) — L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`  
+**Status**: Active (Version 1.16.0) — L-M4 place verb `self-install`; L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -52,7 +52,7 @@ Elev **Tables A/B/C**, Type 0/1/2 command map, and F6 dest-write rules live in `
 
 **L-M3.** `--vault-dir` / `CF_VAULT_DIR` specify (owned by `requirement-application-local-vault`) **MAY** be used by the invoking user (Type 0) for QA. Specify does **not** create the LPU.
 
-**L-M4.** `ip`, `help`, `version`, `about`, `install`, `uninstall`, `where-is-me`, `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **MUST NOT** require `dns-adm` to exist. Submit still needs sibling `sudoer-cli` / `sudoer-adm` (not this LPU).
+**L-M4.** `ip`, `help`, `version`, `about`, `self-install` (alias `install`), `uninstall`, `where-is-me`, `print-sudoers`, `generate-sudoer-request`, and `submit-sudoer-request` **MUST NOT** require `dns-adm` to exist. Submit still needs sibling `sudoer-cli` / `sudoer-adm` (not this LPU).
 
 ### 2.2 Identity (F1–F3 · Shell)
 
@@ -266,6 +266,7 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.16.0 | L-M4 place verb **`self-install`** (alias `install`) |
 | 2026-09-13 | Active 1.15.0 | L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`; heal rewrites old product-binary and `dns-cli-hook` |
 | 2026-09-08 | Active 1.14.0 | L-M15 topic-owner is `requirement-login-interactive-hook` (heal of `dns-adm` old hook → `${APP_NAME}-hook`) |
 | 2026-09-03 | Active 1.13.0 | L-M15 setup creates `/usr/local/bin/dns-cli-hook` when missing; heal rewrites old rc path |

@@ -5,7 +5,8 @@
 #
 # TYPE 0 LIFECYCLE + CLOUDFLARE DOMAIN (CIAO / CIAO-Lite Compliant)
 #
-# Bootstrap: A = cli-template (hop 0) → B = this product (hop 1).
+# Bootstrap: A = selfmanaged (hop 0) → B = this product (hop 1).
+# Online/Type O trimmed: local-only self-install (copy $0; dest 0700/0755).
 #
 # Project requirements (docs/requirements/ only — never cite templates here):
 # - requirement-class-software-dev.md
@@ -38,7 +39,7 @@
 # or /usr/local/bin (root/--global, mode 0755). Script $0 copies itself (no download).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.30.0"
+# VERSION: hard-assign VERSION="1.31.0"
 #
 # =============================================================================
 
@@ -58,8 +59,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.30.0"
-: "${VERSION:=1.30.0}"
+VERSION="1.31.0"
+: "${VERSION:=1.31.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -458,7 +459,7 @@ out_double_line() { out_text plain "============================================
 # =============================================================================
 util_app_ident() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.30.0}"
+    : "${VERSION:=1.31.0}"
     : "${TTY:=0}"
     : "${QUIET:=0}"
     : "${JSON:=0}"
@@ -5144,6 +5145,7 @@ inst_resolve_self_script() {
 # =============================================================================
 #
 # ALIGNMENT: requirement-shell-local-self-management.md
+# Origin A (selfmanaged) dest-mode contract: 0755 global / 0700 local.
 #
 # Last updated: 2026-09-17
 # =============================================================================
@@ -5222,12 +5224,13 @@ inst_self_install_copy_from_script() {
 # ALIGNMENT:
 # - requirement-shell-local-self-management.md
 # - requirement-shell-idempotency.md
+# - requirement-bootstrap-chain.md (A = selfmanaged; download/Type O trimmed)
 #
 # Last updated: 2026-09-17
 # =============================================================================
 inst_self_install() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.30.0}"
+    : "${VERSION:=1.31.0}"
     : "${HOME:=/tmp}"
     : "${GLOBAL_BIN:=/usr/local/bin}"
     : "${USER_BIN:=${HOME}/.local/bin}"
@@ -6765,7 +6768,7 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.30.0}"
+    : "${VERSION:=1.31.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"

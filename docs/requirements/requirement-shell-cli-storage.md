@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.4.0 – storage = cache folder **and** persistency folder)  
+**Status**: Active (Version 1.4.1 – storage = cache folder **and** persistency folder)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -94,7 +94,7 @@ Create `/dev/shm/cache` (prefer mode **1777**) so other logins can add sibling `
 | `app_main` | Resolve once early: `EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)`; `PERSISTENT_STORAGE_DIR=$(util_resolve_persistent_storage)`; export both plus `STORAGE_DIR`; **`TMPDIR=${EFFECTIVE_STORAGE_DIR}`** |
 | `app_about` JSON | Include `cache_preferred`, `cache_fallback`, `persistence_storage`, and live chosen cache root `effective_storage`; **MUST NOT** include `CHECKSUM` |
 | `app_about` human | **Cache folder (preferred):** `/dev/shm/cache/cache-dns-cli` · **Cache folder (fallback):** XDG `cache-dns-cli` · **Persistence storage:** `${HOME}/.local/dns-cli`. **MUST NOT** label cache lines Storage (effective)/(fallback) |
-| `install` | Stage the ship-unit copy under the isolated **cache** root when using `mktemp` |
+| `self-install` / `install` | Stage the ship-unit copy under the isolated **cache** root when using `mktemp` |
 
 ### 2.5 Implementation Notes (this project)
 
@@ -271,6 +271,7 @@ util_get_current_shell() {
 | 2026-08-13 | Active 1.1.0 | cli-template: scratch only |
 | 2026-08-18 | Active 1.3.0 | Storage `util_*` examples (§2.5a); AC-5 |
 | 2026-08-16 | Active 1.2.0 | Explicit: not the Cloudflare vault; dns-cli identity |
+| 2026-09-17 | Active 1.4.1 | Stage row names **`self-install`** (alias `install`) |
 | 2026-08-30 | Active 1.4.0 | Storage = **cache folder** **and** **persistency folder** `${HOME}/.local/dns-cli`; about Cache folder + Persistence storage |
 
 ---

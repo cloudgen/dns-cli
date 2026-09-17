@@ -125,6 +125,20 @@ run_test_local_lifecycle() {
     assert_contains "TP-SI-04 pipe local-only" "$_out" "local-only"
     assert_file_missing "TP-SI-04 pipe did not place" "${CI_USER_BIN}/${APP_NAME}"
 
+    # TP-SI-07 no chmod +x on place path (0711 trap; origin A dest-mode contract)
+    if grep -E 'chmod[[:space:]]+\+x' "${SCRIPT}" | grep -vE '^[[:space:]]*#' | grep -q .; then
+        t_fail "TP-SI-07 ship unit must not chmod +x (mints 0711; other users cannot open shebang)"
+    else
+        t_pass "TP-SI-07 no chmod +x command"
+    fi
+    if grep -q '^inst_cli_dest_mode()' "${SCRIPT}"; then
+        t_pass "TP-SI-07 inst_cli_dest_mode present"
+    else
+        t_fail "TP-SI-07 inst_cli_dest_mode missing"
+    fi
+    assert_contains "TP-SI-07 dest helper names 0755" "$(sed -n '/^inst_cli_dest_mode()/,/^}/p' "${SCRIPT}")" "0755"
+    assert_contains "TP-SI-07 dest helper names 0700" "$(sed -n '/^inst_cli_dest_mode()/,/^}/p' "${SCRIPT}")" "0700"
+
     # TP-SI-08 TTY=1 self-install still copies this file (no download)
     _out=$(HOME="${CI_HOME}" USER_BIN="${CI_USER_BIN}" GLOBAL_BIN="${CI_GLOBAL_BIN}" TTY=1 sh "${SCRIPT}" self-install 2>&1)
     _ec=$?

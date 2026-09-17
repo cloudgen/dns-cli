@@ -1,11 +1,11 @@
 # What to review — dns-cli
 
 **Living checklist** (review plan). Product: **dns-cli** Cloudflare DNS CLI (Type 0/1/2 + LPU `dns-adm` in law).  
-**Class:** software-development · **B = hop 1** from **A = cli-template** · **local-only** install channel.  
+**Class:** software-development · **B = hop 1** from **A = selfmanaged** (online trimmed) · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
 **Last plan update:** 2026-09-17  
-**Ship unit VERSION:** 1.30.0  
+**Ship unit VERSION:** 1.31.0  
 **Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24** have)
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.30.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.31.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |

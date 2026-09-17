@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-idempotency.md  
-**Status**: Active (Version 1.5.0)  
+**Status**: Active (Version 1.6.0)  
 **Area**: shell  
 **Key**: `requirement-shell-idempotency`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -103,7 +103,7 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
-1. Make `install` fail when already installed (force off).  
+1. Make `self-install` / `install` fail when already installed (force off).  
 2. Treat idempotency as permission to ignore validation failures.  
 3. Remove atomic install/stage patterns for “speed.”  
 4. Reintroduce archive next-N overwrite rules as if backup were still product law.
@@ -116,7 +116,7 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 
 | ID | Criterion |
 |----|-----------|
-| AC-1 | Second `install` without force is success no-op |
+| AC-1 | Second `self-install` / `install` without force is success no-op |
 | AC-2 | Second `uninstall` when absent is success no-op |
 
 ---
@@ -148,6 +148,7 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.6.0 | AC-1 / protection: **`self-install`** (alias `install`) |
 | 2026-08-03 | Active 1.0.0 | folder-backup lifecycle + archive numbering |
 | 2026-08-13 | Active 1.1.0 | cli-template: lifecycle only |
 | 2026-08-17 | Active 1.5.0 | `account`/`zone` add/modify/remove/list re-run |
@@ -157,6 +158,6 @@ Force policy (`--force` / `FORCE=1`) **MAY** re-apply ensure steps that would ot
 
 ---
 
-**Last Updated**: 2026-08-17  
+**Last Updated**: 2026-09-17  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
