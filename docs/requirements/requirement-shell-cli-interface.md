@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.13.2) — `self-install` place verb; Version SSOT `1.31.0`; `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.3) — `self-install` place verb; Version SSOT `1.35.0`; about cache lines follow storage 1.6.0; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -114,7 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
-| **Version SSOT** | `VERSION="1.31.0"` hard-assign in `src/dns-cli` |
+| **Version SSOT** | `VERSION="1.35.0"` hard-assign in `src/dns-cli` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
@@ -134,7 +134,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `uninstall` | Type 0 | `inst_local_uninstall` | Remove managed binary; confirm unless `--force` |
 | `where-is-me` | Type 0 | `app_where_is_me` | Running + install paths + installed flag |
 | `version` | Type 0 | `app_version` | Local `VERSION` only; no network |
-| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY, storage; **no** channel one-liner; **no** backup/sudoers fields |
+| `about` | Type 0 | `app_about` | Diagnostics: install presence, paths, user, shell, TTY; **Cache folder used**, **Cache folder (preferred)**, **Cache folder (1st fallback)**, **Cache folder (2nd fallback)** when that host has one (`requirement-shell-cli-storage`); **Persistence storage** `${HOME}/.local/${APP_NAME}`; **no** channel one-liner; **no** backup/sudoers fields |
 | `help` | Type 0 | `app_help` | Full usage in human mode; short JSON note in JSON mode |
 | `menu` / `main` | Type 0 | `app_default` | **Case 3** numbered main menu on TTY (family `DNS Features` + family `sudoers` + family `self-management` submenus); off-TTY help. Topic-owner: `requirement-shell-cli-default-interaction` — **Implemented**. Family tokens are **not** commands |
 | `setup` | Type 1 | `lpu_setup` | Create `dns-adm` + vault dir + F6 dest; ensure `/usr/local/bin/dns-review-hooks` when global binary exists; auto-queue `login-hook-elev` when sibling exists — **Implemented** |
@@ -277,6 +277,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-27 | Active 3.13.3 | `about` cache lines follow `requirement-shell-cli-storage` 1.6.0 (used / preferred / 1st / 2nd). Version SSOT `1.35.0` |
 | 2026-09-17 | Active 3.13.2 | Implementation Notes Version SSOT `1.31.0` (re-specialize from selfmanaged) |
 | 2026-09-17 | Active 3.13.1 | Implementation Notes Version SSOT `1.30.0` (was stale `1.0.0`) |
 | 2026-09-17 | Active 3.13.0 | Place verb **`self-install`** (alias `install`); copy `$0`; dest 0700/0755 |
@@ -299,6 +300,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-17  
+**Last Updated**: 2026-09-27 (3.13.3 — about cache lines)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

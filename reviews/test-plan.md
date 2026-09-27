@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.31.0  
+**Product VERSION:** 1.34.0  
 **Last plan update:** 2026-09-17  
-**Last suite run:** PASS=934 FAIL=0 SKIP=2 (2026-09-17; origin A = selfmanaged; **TP-LC-09..12** dest 0700/0755; **TP-SI-01/04/07/08** self-install copy + dest-mode; **TP-FENCE-07** skip live sibling dest `kind`)
+**Last suite run:** PASS=945 FAIL=0 SKIP=2 (2026-09-17; **TP-CLI-25** prompt capture · **TP-CLI-26** persistency fail-close; **TP-FENCE-07** skip live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -49,18 +49,18 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-03 | version JSON | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-04 | help local verbs; no online; no backup/restore/sudoers | test_cli | requirement-shell-cli-interface · bootstrap-chain | **have** |
 | TP-CLI-05 | help JSON short | test_cli | requirement-shell-output-requirements | **have** |
-| TP-CLI-06 | about JSON storage (cache + persistency keys); no domain fields | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-06 | about JSON `cache_used` / `cache_preferred` / `cache_fallback` / `cache_fallback_2` / persistency; no domain deposit fields | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-07 | off-TTY empty argv Type N help | test_cli | requirement-shell-cli-zero-arguments | **have** |
 | TP-CLI-08 | unknown fail-closed | test_cli | requirement-shell-cli-interface | **have** |
 | TP-CLI-09 | quiet suppresses version | test_cli | requirement-shell-output-requirements | **have** |
 | TP-CLI-10 | online verbs rejected | test_cli | requirement-bootstrap-chain | **have** |
 | TP-CLI-11 | env -u HOME version | test_cli | class / defensive | **have** |
-| TP-CLI-12 | storage isolation (cache leaf) | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-12 | Linux preferred `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`; Git Bash and Mac chains and about lines; silent skip of preferred; leaf mode 0700; not `/dev/shm/${APP_NAME}-${login}` | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-13 | backup/restore/sudoers verbs unknown | test_cli | requirement-bootstrap-chain · interface | **have** |
 | TP-CLI-14 | Dual mention: each routed verb in ≥2 REQs (CLI + topic-owner) | test_cli | requirement-shell-cli-interface CI-M1 | **have** |
 | TP-CLI-15 | Topic-owner has a complete `dns-cli …` sample per verb / vault store subcommand | test_cli | requirement-shell-cli-interface CI-M1a | **have** |
 | TP-CLI-16 | Every `requirement-*.md` has §1.1 Human-facing + one-sentence lead | test_cli | project-requirements human-intro standard | **have** |
-| TP-CLI-17 | about cache folder + persistency folder `${HOME}/.local/dns-cli` | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-17 | about Cache folder used / preferred / 1st / 2nd + persistency folder `${HOME}/.local/dns-cli` (no `$$`) | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + SGR 3;37 explain; family DNS Features **1** + family sudoers **7** + family self-management **8**; Exit **9**; TTY `--json menu` ignores json; TTY `main`; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-19 | TTY empty argv draws the same numbered main menu | test_cli | requirement-shell-cli-zero-arguments · default-interaction | **have** |
 | TP-CLI-20 | sudoers submenu Back 8 / Exit 9; `sudoers` is not a live command; all four grant/draft/LPU verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
@@ -68,6 +68,9 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-22 | DNS Features submenu Back 98 / Exit 99; `dns` is not a live command; all ten daily DNS verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-23 | Finished listed command returns to the top list (DNS `ip`, sudoers `print-sudoers`, top-list shortcut) | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-24 | Self-management submenu Back 8 / Exit 9; `self-management` is not a live command; local five verbs; no online verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-25 | `prompt_ask` / `prompt_secret` assign `PROMPT_ASK_VALUE`; vault copies it; persistency ensure not captured | test_cli | requirement-shell-prompt | **have** |
+| TP-CLI-26 | persistency mkdir fail exits the parent (no version INFO after ERROR) | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-27 | No `$()` or backticks of `prompt_*` on non-comment lines | test_cli | requirement-shell-prompt · requirement-shell-script-coding | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |
 | TP-FENCE-10 | `fence-test --file` not-a-JSON-object → fail closed | test_cli | requirement-approval-fencing-condition | **have** |
@@ -189,6 +192,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-LPU-06 | `remove-lpu` JSON without `--force` → `confirm_required` | test_cf_lpu | requirement-least-privilege-user | **have** |
 | TP-LPU-07 | dest inbound fence is incorrect JSON format (L-M13 table) | test_cf_lpu | requirement-least-privilege-user L-M13 | **have** |
 | TP-LPU-08 | setup hook alias helper; test-mode skips live `/usr/local/bin/dns-review-hooks` | test_cf_lpu | requirement-least-privilege-user L-M15 | **have** |
+| TP-LPU-09 | setup `chown`s `${home}/.local` after vaults mkdir (no `-R`) | test_cf_lpu | requirement-least-privilege-user L-M6 | **have** |
 
 ### TP-PRIV (Type map / fragment)
 

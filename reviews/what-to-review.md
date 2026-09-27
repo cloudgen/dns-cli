@@ -4,8 +4,8 @@
 **Class:** software-development · **B = hop 1** from **A = selfmanaged** (online trimmed) · **local-only** install channel.  
 **Always load first:** `reviews/lessons.md`
 
-**Last plan update:** 2026-09-17  
-**Ship unit VERSION:** 1.31.0  
+**Last plan update:** 2026-09-23  
+**Ship unit VERSION:** 1.34.0  
 **Suite baseline:** see `reviews/test-plan.md` (full `./tests/run.sh`; **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24** have)
 
 ---
@@ -15,7 +15,7 @@
 | # | Check | Notes |
 |---|--------|--------|
 | P1 | Read `docs/requirements/index.md` | Class + architecture + shell + vault + domain DNS + LPU/three-layer |
-| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.31.0**) |
+| P2 | Confirm ship unit `src/dns-cli` | `APP_NAME` / `VERSION` hard-assign (**1.34.0**) |
 | P3 | Load `reviews/lessons.md` and re-check open L-* that still apply | Skip L-SUDOERS / restore lessons as parent-only |
 | P4 | Run `./tests/run.sh` | Record PASS/FAIL/SKIP in report |
 | P5 | Confirm install **channel** still local-only | No SCRIPT_URL product UX |
@@ -32,9 +32,13 @@
 | P16 | F5 trio directory owner (INC-20260823-001) | `/var/dns-cli/dns-request` · `dns-accepted` · `dns-declined` are **`dns-adm:dns-adm`** (inbound `3773`, archives `0700`). F4 symlink present ≠ listable. Do not `chown -R` inbound files. Do not cite **003** to skip directory `chown`. |
 | P17 | Keep-latest duplicate inbound | Dest `interactive` (login hook included) keeps the latest inbound file per dest (`domain_id`+`subdomain`); older duplicates superseded → declined (no dest-write, no extra yes/no). Not a dest Fence. **TP-CF-REQ-19**. |
 | P18 | YAML review display | Dest `interactive` (login hook included) and human `approve` / `reject` show a clear waiting body as YAML, not a JSON object dump. Inbound file stays JSON. `--json` stays JSON. **TP-CF-REQ-20** · **TP-CF-REQ-21**. |
-| P19 | Type 2 sudo F3 `.local` owner (INC-20260909-001) | `${SYSTEM_USER_HOME}/.local` and persistency `${HOME}/.local/dns-cli` are **`dns-adm:dns-adm`**. Type 2 sudo **MUST** `chown` created F3 paths to `dns-adm`. Do not leave them `root:root`. Do not cite **003** to skip. Do not `chown` inbound JSON. Do not treat persistency ERROR + menu as fail-closed. |
+| P19 | Type 2 sudo F3 `.local` owner (INC-20260909-001) | `${SYSTEM_USER_HOME}/.local` and persistency `${HOME}/.local/dns-cli` are **`dns-adm:dns-adm`**. Type 2 sudo **MUST** `chown` created F3 paths to `dns-adm`. Do not leave them `root:root`. Do not cite **003** to skip. Do not `chown` inbound JSON. Do not treat persistency ERROR + menu as fail-closed. Rechecked **1.31.0** (2026-09-17): still Open; login-hook skip is not this mkdir. |
+| P22 | Login-hook dest Cmnd (INC-20260917-001) | After dest `y` of `login-hook-elev`, `/etc/sudoers.d/dns-cli-dns-adm` grants **`/usr/local/bin/dns-review-hooks interactive`**, not dest doorbell `sudoer-review-hook`. Skip-before-`y` is designed. This product **MUST NOT** visudo. **MUST NOT** plant dest’s doorbell in `dns-adm` rc. |
 | P20 | Invalid menu pick reprints the same layer | Every numbered main-menu layer (main + DNS Features + sudoers) warns, reprints **that same** list, and reads again. Unused numbers / blank / garbage are not Exit. **TP-CLI-21**. |
 | P21 | Finished menu command returns to the top list | After a listed DNS Features, sudoers, self-management, or top-list shortcut command finishes, the operator sees **1 DNS Features** / **7 sudoers** / **8 self-management** / **9 Exit** again. Exit / Back / EOF still leave or go back as before. **TP-CLI-23** · **TP-CLI-24**. |
+| P23 | Prompt `$()` capture (INC-20260917-002) | `prompt_ask` / `prompt_secret` assign `PROMPT_ASK_VALUE` in this shell. Stderr or `/dev/tty` does not allow `$()`. Persistency `out_die` in this shell (no ERROR then menu). **TP-CLI-25** · **TP-CLI-26** · **TP-CLI-27**. |
+| P25 | Cache folder per login and per process | Linux: `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`, then `/tmp/cache/...`, then `${HOME}/.cache/cache-${APP_NAME}-$$`. Git Bash: `/tmp/cache/...`, then `${HOME}/AppData/Local/Temp/cache-${APP_NAME}-$$` (no 2nd fallback). Mac: `/tmp/cache/...`, then `${HOME}/Library/Caches/...`, then `${HOME}/cache/cache-${APP_NAME}-$$`. Home leaves omit the login. Skipped tier is silent. Leaf mode `0700`. **TP-CLI-06** · **TP-CLI-12** · **TP-CLI-17**. |
+| P24 | Setup `.local` owner (INC-20260917-003) | After `mkdir -p` F5 vaults, `${SYSTEM_USER_HOME}/.local` is **`dns-adm:dns-adm`**. No `-R`. Do not cite **003**. Re-setup heals. **TP-LPU-09**. |
 
 ---
 
@@ -67,6 +71,6 @@
 | Dest fence catalog | `requirement-approval-fencing-condition.md` | Closed dest refuse list; dest tables still print |
 | Dest fence | `requirement-incorrect-json-format.md` | Independent dest Fence; dest-owned allowlist; sudoer `kind` known |
 | Idempotency | `requirement-shell-idempotency.md` | Re-install |
-| Storage | `requirement-shell-cli-storage.md` | Cache folder + persistency folder; isolation |
+| Storage | `requirement-shell-cli-storage.md` | Cache folder (per login and per process; host chain) + persistency folder; isolation |
 
 **Do not review as this product’s law:** folder-archive backup, restore dest whitelist, `print-sudoers-install-script` / `remove-project-sudoers` (those remain on sibling **folder-backup**). **Do** review JSON sudoer generate/submit — this product **is** a sudoer-approval-submitter.

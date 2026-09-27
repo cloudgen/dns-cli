@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-interactive-vs-noninteractive.md  
-**Status**: Active (Version 1.5.0)  
+**Status**: Active (Version 1.5.1)  
 **Area**: shell  
 **Key**: `requirement-shell-interactive-vs-noninteractive`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -60,6 +60,7 @@ Rules:
 3. Do **not** invent a second parallel mode system per command.  
 4. Interactive capability **MUST** be measured in the **main process, outside functions**: after flags, `TTY=0` then `[ -t 0 ] && [ -t 1 ] && TTY=1` (or a direct setter that assigns `TTY`).  
 5. `prompt_ask` / `prompt_yes_no` / `prompt_secret` and vault confirm gates **MUST consume `TTY`**. Live `[ -t 0 ]` / `[ -t 1 ]` as a **policy gate inside those helpers** is forbidden. Helper **bodies** live on `requirement-shell-prompt`.  
+5a. Callers **MUST** invoke `prompt_ask` and `prompt_secret` in the **current shell** and copy **`PROMPT_ASK_VALUE`**. **MUST NOT** capture those helpers. `prompt_yes_no` stays an exit status.  
 6. A login-hook snippet that runs in the **user’s shell** (not the CLI process) **MAY** probe `[ -t` there — that is hook identity, not CLI `TTY` SSOT.  
 7. `about` **MUST** report `TTY`, not a live `[ -t` retest.
 
@@ -144,6 +145,7 @@ Rules:
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-23 | Active 1.5.1 | Callers copy `PROMPT_ASK_VALUE`; no capture of `prompt_ask` / `prompt_secret` |
 | 2026-09-17 | Active 1.5.0 | Place row is **`self-install`** / `install` |
 | 2026-08-18 | Active 1.3.1 | `TTY` measured in `app_main`; `prompt_*` consume `TTY` |
 | 2026-08-03 | Active | Interactive vs non-interactive for folder-backup |

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-temp-file-system.md
-**Status**: Active (Version 1.0.0)
+**Status**: Active (Version 1.1.0)
 **Area**: shell
 **Key**: `requirement-shell-temp-file-system`
 **id**: RQ-SHELL-TEMP-FILE-SYSTEM
@@ -13,7 +13,7 @@ This requirement is the **project Single Source of Truth** for **scratch file le
 
 ### 1.1 Human-facing
 
-**In one sentence:** Scratch files are created with mktemp. Predictable `$$` names are forbidden. Cleanup is required.
+**In one sentence:** Scratch files are created with mktemp. The cache directory may end in `$$`. A scratch file name must not. Cleanup is required.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -23,7 +23,7 @@ This requirement is the **project Single Source of Truth** for **scratch file le
 
 | Includes | Excludes |
 |----------|----------|
-| `mktemp`; cleanup; no `$$` paths | Predictable names; leaving vault curl copies behind |
+| `mktemp`; cleanup; cache directory may end in `$$` | Predictable `$$` file names; leaving vault curl copies behind |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
@@ -39,7 +39,7 @@ This requirement is the **project Single Source of Truth** for **scratch file le
 
 | Gate | Artifact | Phase |
 |------|----------|-------|
-| No `$$` scratch paths; `mktemp` under storage `TMPDIR` | **TP-TEMP-01** `tests/test_cli.sh` | Proof |
+| No `$$` scratch **file** names; cache directory may end in `$$`; `mktemp` under storage `TMPDIR` | **TP-CLI-12** `tests/test_cli.sh` (`util_mktemp` refuses `$$`) · **TP-TEMP-01** still **todo** for a dedicated leaf sweep | Proof |
 
 ---
 
@@ -50,14 +50,14 @@ This requirement is the **project Single Source of Truth** for **scratch file le
 | Layer | Owner | Owns |
 |-------|-------|------|
 | Root | `requirement-shell-cli-storage` | Isolation, priority, create-before-return, `TMPDIR` |
-| Leaf | **this requirement** | `mktemp` names, no predictable `$$` paths, cleanup |
+| Leaf | **this requirement** | `mktemp` names. The cache **directory** may end in `$$`. Scratch **files** must not. Cleanup |
 
 ### 2.2 Unique leaves (mandatory)
 
 1. Scratch files **MUST** be created with `mktemp` (or `mktemp -d`) under `${TMPDIR}` after storage resolve (`${TMPDIR}/${APP_NAME}.XXXXXX` shape **or** a subdirectory of that root with `XXXXXX`).  
-2. **MUST NOT** use predictable names as the only entropy: `/tmp/dns-cli.tmp`, `/tmp/.cache-$$`, fixed names under `/tmp`.  
+2. **MUST NOT** use predictable names as the only entropy: `/tmp/dns-cli.tmp`, `/tmp/.cache-$$`, `${TMPDIR}/${APP_NAME}.$$`, fixed names under `/tmp`. The cache **directory** from `requirement-shell-cli-storage` **MAY** end in `-$$`. That is the directory, not the file.  
 3. `$$` in `ps -p $$` (current PID query) is **not** a temp path and is allowed.  
-4. One helper **SHOULD** own creation: `util_mktemp` (stdout path; class-B). Callers **MUST NOT** invent a second leaf policy once that helper is shipped.  
+4. One helper owns creation: `util_mktemp` (stdout path; class-B). It **MUST** refuse a `$$` name template. Callers **MUST NOT** invent a second leaf policy. Inline `mktemp …XXXXXX` under the resolved cache root remains valid until each call site moves to the helper.  
 5. If `mktemp` fails → **fail closed** via `out_*` / `out_die_code`.
 
 ### 2.3 Cleanup
@@ -118,7 +118,7 @@ printf '%s' "${_body}" >"${TMPDIR:-/tmp}/dns-enc.$$"
 | Item | Value |
 |------|--------|
 | **Product** | `dns-cli` |
-| **Helper** | Inline `mktemp …XXXXXX` under `${EFFECTIVE_STORAGE_DIR}` / vault dir — **Implemented**. `util_mktemp` / `util_scratch_cleanup` — **Gap** (not yet the only helper) |
+| **Helper** | `util_mktemp` **Implemented** (refuses a `$$` template; `XXXXXX` leaf). Inline `mktemp …XXXXXX` under the cache root and the vault dir remains. `util_scratch_cleanup` — **Gap** |
 | **Root** | `TMPDIR=${EFFECTIVE_STORAGE_DIR}` set in `app_main` |
 | **Trap** | Per-caller `rm`; process `SCRATCH_FILES` trap **Gap** |
 
@@ -143,7 +143,7 @@ printf '%s' "${_body}" >"${TMPDIR:-/tmp}/dns-enc.$$"
 
 **Future AI assistants or maintainers MUST NOT**:
 
-1. Use `/tmp/${APP_NAME}.tmp` or `$$` as the only entropy for scratch.  
+1. Use `/tmp/${APP_NAME}.tmp` or `$$` as the only entropy for a scratch **file**. The cache **directory** may end in `-$$`.  
 2. Redefine storage root here.  
 3. Leave vault curl temps behind on the success path.  
 4. Treat `$$` in `ps -p $$` as a forbidden temp path.
@@ -161,6 +161,6 @@ printf '%s' "${_body}" >"${TMPDIR:-/tmp}/dns-enc.$$"
 | `docs/requirements/requirement-shell-script-coding.md` | Points here |
 | `./src/dns-cli` | Ship unit |
 
-**Last Updated**: 2026-08-20  
+**Last Updated**: 2026-09-27  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-modular-function-design.md  
-**Status**: Active (Version 2.7.0)  
+**Status**: Active (Version 2.7.1)  
 **Area**: shell  
 **Key**: `requirement-shell-modular-function-design`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -81,9 +81,17 @@ A name in §2.2 is **not** the example. Every **shipped** `util_*` **MUST** have
 | `util_resolve_running_path` | `requirement-shell-local-self-management` §2.7a | yes |
 | `util_get_install_bin_path` | `requirement-shell-local-self-management` §2.7a | yes |
 | `util_resolve_storage` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_cache_host_kind` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_cache_login` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_cache_volatile_leaf` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_cache_home_leaf` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_preferred_cache_dir` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_fallback_cache_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_fallback2_cache_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_cache_try_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_mktemp` | `requirement-shell-cli-storage` §2.5a · `requirement-shell-temp-file-system` | yes |
 | `util_persistent_storage_dir` | `requirement-shell-cli-storage` §2.5a | yes |
+| `util_ensure_persistent_storage` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_resolve_persistent_storage` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_get_current_shell` | `requirement-shell-cli-storage` §2.5a | yes |
 | `util_backup` | **this file** §2.2b (no `requirement-*-backup-strategy` on this product) | yes |
@@ -224,6 +232,7 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup prefixes including `fb_*` |
 | 2026-08-13 | Active 2.0.0 | cli-template: no domain prefix |
+| 2026-09-27 | Active 2.7.1 | Cache host/leaf helpers + `util_mktemp` on the storage REQ |
 | 2026-09-16 | Active 2.7.0 | `app_default_*` self-management submenu helpers |
 | 2026-09-16 | Active 2.6.0 | `app_default_*` DNS Features submenu helpers |
 | 2026-09-03 | Active 2.5.0 | `app_default_*` sudoers submenu helpers |
@@ -233,6 +242,6 @@ Critical sections (output SSOT, install place/remove, storage resolve) **MUST** 
 
 ---
 
-**Last Updated**: 2026-09-16  
+**Last Updated**: 2026-09-27  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

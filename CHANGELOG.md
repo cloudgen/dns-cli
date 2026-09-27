@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.35.0] - 2026-09-27
+
+### Changed
+
+- **Cache folder.** Each login and each process gets its own leaf. Linux: `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`, then `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/.cache/cache-${APP_NAME}-$$`. Git Bash: `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/AppData/Local/Temp/cache-${APP_NAME}-$$`. Mac: `/tmp/cache/cache-${APP_NAME}-${login}-$$`, then `${HOME}/Library/Caches/cache-${APP_NAME}-$$`, then `${HOME}/cache/cache-${APP_NAME}-$$`. Skipping a tier prints no warning and no error. `about` prints **Cache folder used**, **preferred**, **1st fallback**, and **2nd fallback** when that host has one. Scratch files stay `mktemp` names. Persistency stays `${HOME}/.local/dns-cli` with no login suffix and no `$$`, and `util_ensure_persistent_storage` still runs in this shell. Law `requirement-shell-cli-storage` **1.6.0**. Suite **TP-CLI-06** · **TP-CLI-12** · **TP-CLI-17**. Ship unit **`VERSION="1.35.0"`**.
+
+## [1.34.0] - 2026-09-23
+
+### Changed
+
+- Cache leaves on `/dev/shm` and `/tmp` are `cache-${APP_NAME}-${USERNAME}`. Tier 3 stays `${XDG_CACHE_HOME:-${HOME}/.cache}/cache-${APP_NAME}` (this login’s home; the login is not repeated). The shared `cache` bucket is mode `1777` only when this login creates it. A skipped tier is silent. Persistency stays `${HOME}/.local/dns-cli` and `util_ensure_persistent_storage` still runs in this shell. Law `requirement-shell-cli-storage` **1.5.0**. **TP-CLI-17**.
+- `prompt_ask` and `prompt_secret` run in the current shell and assign `PROMPT_ASK_VALUE`. Vault collect copies that global. Menu choice `read` stays in the current shell. Printing the question on stderr or reading `/dev/tty` does not allow `$()` around a function that `read`s. Law `requirement-shell-prompt` **1.2.0** · `requirement-shell-script-coding` **1.2.0**. **TP-CLI-25** · **TP-CLI-27**. Ship unit **`VERSION="1.34.0"`**.
+
+## [1.33.0] - 2026-09-17
+
+### Fixed
+
+- Type 1 `setup` `chown`s `${SYSTEM_USER_HOME}/.local` to `dns-adm` after `mkdir -p` of F5 vaults (`lpu_chown_tree`, no `-R`). Re-setup heals a leftover `root:root` `.local`. That intermediate was created as root and never claimed, so `dns-adm` could not create persistency `${HOME}/.local/dns-cli`. Law `requirement-least-privilege-user` **1.17.0**. **TP-LPU-09**. Incident **INC-20260917-003**. Ship unit **`VERSION="1.33.0"`**.
+
+## [1.32.0] - 2026-09-17
+
+### Fixed
+
+- `prompt_ask` / `prompt_secret` used as `$(…)` no longer print the question on stdout or `read` from the captured stdin. UI goes to stderr; `read` uses `/dev/tty` when it opens. DNS Features **6** (`status`) no longer looks hung after `Choice: 6` while waiting for vault fields. Persistency `out_die` runs in this shell (`util_ensure_persistent_storage`); mkdir fail exits instead of printing ERROR then the menu. Law `requirement-shell-prompt` **1.1.0** · `requirement-shell-cli-storage` **1.4.2**. Suite **TP-CLI-25** · **TP-CLI-26**. Ship unit **`VERSION="1.32.0"`**.
+
 ## [1.31.0] - 2026-09-17
 
 ### Changed

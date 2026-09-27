@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-script-coding.md
-**Status**: Active (Version 1.1.0 — aligned to POSIX shell coding mold; own-or-point)
+**Status**: Active (Version 1.2.0 — do-not-capture-read; own-or-point)
 **Area**: shell
 **Key**: `requirement-shell-script-coding`
 **id**: RQ-SHELL-SCRIPT-CODING
@@ -159,6 +159,7 @@ function_name() {
 TTY **measure** stays on `requirement-shell-interactive-vs-noninteractive`. Sudo **wrappers** stay on `requirement-shell-sudo-command`. This section owns **how agents write** elev examples.
 
 37. Interactive capability **MUST** be measured in the main process, outside functions. Helpers **MUST consume `TTY`**. **MUST NOT** bury `[ -t 0 ]` / `[ -t 1 ]` in string-returning helpers that are only called via `$(…)`.  
+37a. A function that asks a person (`prompt_ask`, `prompt_secret`, `prompt_yes_no`, numbered-menu choice loops) **MUST** be called in the **current shell**. `prompt_ask` and `prompt_secret` assign **`PROMPT_ASK_VALUE`**. **MUST NOT** wrap a function whose body contains `read` in `$()` or backticks. Printing the question on stderr, or reading `/dev/tty`, does **not** allow that capture. Bodies stay on `requirement-shell-prompt`. Proof **TP-CLI-27**. The comment block of each such function **MUST** carry the do-not-capture-read WARNING before `Last updated:`.  
 38. **MUST NOT** treat `/dev/tty` **existence** as interactive. Require a successful open, e.g. `( : </dev/tty ) 2>/dev/null`, before password-sudo mode.  
 39. **MUST NOT** use `[ -t 0 ]` inside `$(helper)` as the **sole** gate for interactive password sudo.  
 40. Prefer a **direct** setter that assigns a mode variable over `mode=$(detect)` when detect needs live TTY policy.  
@@ -299,9 +300,10 @@ fi
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-23 | Active 1.2.0 | Rule 37a: do-not-capture-read; `PROMPT_ASK_VALUE`; **TP-CLI-27** |
 | 2026-08-20 | Active 1.1.0 | Aligned to POSIX shell coding mold: function structure, SSOT of args, `.`/`command -v`, `set -e` ban, `set -u` adopted, `/dev/tty` open, rc `chown`, elev writing; peers still own printers/prefixes/TTY/prompt/temp/sudo bodies |
 | 2026-08-20 | Active 1.0.0 | Initial specialize-in home (thin own-or-point) |
 
-**Last Updated**: 2026-08-20  
+**Last Updated**: 2026-09-23  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

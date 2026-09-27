@@ -116,6 +116,10 @@ run_test_cf_lpu() {
     _setupfn=$(sed -n '/^lpu_setup()/,/^lpu_remove()/{/^lpu_remove()/d;p;}' "${SCRIPT}")
     assert_contains "TP-LPU-08 setup calls ensure symlink" "${_setupfn}" "lpu_ensure_login_hook_symlink"
     assert_contains "TP-LPU-08 setup heals rc after symlink" "${_setupfn}" "lpu_heal_home_rc"
+    assert_file_exists "TP-LPU-09 setup creates .local" "${_home}/.local"
+    assert_contains "TP-LPU-09 setup chowns .local" "${_setupfn}" 'lpu_chown_tree "${_local}"'
+    assert_contains "TP-LPU-09 setup chowns .local before vaults" "${_setupfn}" 'lpu_chown_tree "${_vaults}"'
+    assert_not_contains "TP-LPU-09 setup does not chown -R .local" "${_setupfn}" 'chown -R'
 
     # TP-LPU-03 — stub LPU exists; invoker is not dns-adm; no specify → lpu_required
     _err=$(GLOBAL_BIN="${GLOBAL_BIN}" CF_TEST_LPU=1 CF_LPU_ROOT="${CF_LPU_ROOT}" \

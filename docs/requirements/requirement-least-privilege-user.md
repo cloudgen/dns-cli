@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-least-privilege-user.md  
-**Status**: Active (Version 1.16.0) — L-M4 place verb `self-install`; L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`  
+**Status**: Active (Version 1.17.0) — F5 intermediate `${SYSTEM_USER_HOME}/.local` is `dns-adm` after setup mkdir  
 **Area**: architecture  
 **Key**: `requirement-least-privilege-user`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -82,6 +82,7 @@ Bare home **MUST NOT** appear here.
 
 | Path | Owner / mode | Role |
 |------|----------------|------|
+| `${SYSTEM_USER_HOME}/.local` | `dns-adm:dns-adm` · `0755` | Intermediate home-tree dir. `mkdir -p` of vaults creates it as the writer. **MUST** `chown` this directory to `dns-adm` (no `-R`). Persistency `${HOME}/.local/dns-cli` is a sibling of `vaults`. Incident **INC-20260917-003** · **INC-20260909-001** |
 | `${SYSTEM_USER_HOME}/.local/vaults/` | `dns-adm:dns-adm` · `0700` | LPU local vaults root (same family as Type 0; LPU home) |
 | `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` | `dns-adm:dns-adm` · `0700` | Multi-account Cloudflare vault (schema in vault law) |
 | `/var/dns-cli/` | `dns-adm:dns-adm` · `0755` | Public DNS approval root |
@@ -89,7 +90,7 @@ Bare home **MUST NOT** appear here.
 | `/var/dns-cli/dns-accepted` | `dns-adm:dns-adm` · `0700` | Accepted archive |
 | `/var/dns-cli/dns-declined` | `dns-adm:dns-adm` · `0700` | Declined archive |
 
-**L-M6.** `setup` **MUST** `mkdir` only listed F5 paths (plus F3 home). **MUST NOT** chown `/`, `/etc`, or foreign homes.
+**L-M6.** `setup` **MUST** `mkdir` only listed F5 paths (plus F3 home). After `mkdir -p` of `${SYSTEM_USER_HOME}/.local/vaults/`, **MUST** `chown` **`${SYSTEM_USER_HOME}/.local`** to `dns-adm:dns-adm` (the directory; **MUST NOT** `chown -R`). Re-`setup` **MUST** heal that owner. **MUST NOT** skip this `chown` because dest inbound JSON **MUST NOT** be `chown`ed (**L-M13** / **INC-20260818-003**). **MUST NOT** chown `/`, `/etc`, or foreign homes.
 
 ### 2.5 Sudoers file (F6)
 
@@ -204,7 +205,8 @@ Absent account → success no-op.
 9. Invent a second approver leaf after this redesign — `dns-adm` **is** the approver.  
 10. Dump glossary/skill paths into this file.  
 11. Add a dest inbound fence that is not **incorrect JSON format** (who submitted, dest Type 0 self-scope, JSON username ≠ dest LPU).  
-12. Overwrite an existing `/usr/local/bin/dns-review-hooks`, plant a second per-app `dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.
+12. Overwrite an existing `/usr/local/bin/dns-review-hooks`, plant a second per-app `dns-cli-hook`, or create that live symlink from `CF_TEST_LPU=1`.  
+13. Leave `${SYSTEM_USER_HOME}/.local` owned by root after `mkdir -p` of F5 vaults, or cite **003** to skip that directory `chown`.
 
 **Violating this rule is a critical least-privilege identity regression.**
 
@@ -214,7 +216,8 @@ Absent account → success no-op.
 
 | ID | Criterion |
 |----|-----------|
-| AC-L1 | `setup` creates `dns-adm`, home, `0700` `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`, and F6 dest `0440` |
+| AC-L1 | `setup` creates `dns-adm`, home, `dns-adm`-owned `${SYSTEM_USER_HOME}/.local`, `0700` `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/`, and F6 dest `0440` |
+| AC-L1a | Re-`setup` `chown`s existing `.local` to `dns-adm` (directory; no `-R`) |
 | AC-L2 | Re-`setup` is success no-op + heal |
 | AC-L2a | `setup` writes `login-hook-elev` inbound when sibling dest exists; skips when missing |
 | AC-L2b | Dest Type 0 self-scope does not apply to `setup` (SJ-M3 / L-M11) |
@@ -256,6 +259,7 @@ Absent account → success no-op.
 | **TP-LPU-06** | `tests/test_cf_lpu.sh` | have | `remove-lpu` without `--force` in JSON → `confirm_required` |
 | **TP-LPU-07** | `tests/test_cf_lpu.sh` | have | L-M13 dest inbound fence is incorrect JSON format only |
 | **TP-LPU-08** | `tests/test_cf_lpu.sh` | have | L-M15 login-hook-symlink helper; test-mode skips live `/usr/local/bin` |
+| **TP-LPU-09** | `tests/test_cf_lpu.sh` | have | L-M6 setup `chown`s `${home}/.local` (no `-R`) after `mkdir -p` vaults |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
@@ -266,6 +270,7 @@ Absent account → success no-op.
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-17 | Active 1.17.0 | F5 lists `.local`; setup **MUST** `chown` it to `dns-adm` (no `-R`). **TP-LPU-09**. **INC-20260917-003** |
 | 2026-09-17 | Active 1.16.0 | L-M4 place verb **`self-install`** (alias `install`) |
 | 2026-09-13 | Active 1.15.0 | L-M15 login-hook-symlink is `/usr/local/bin/dns-review-hooks`; heal rewrites old product-binary and `dns-cli-hook` |
 | 2026-09-08 | Active 1.14.0 | L-M15 topic-owner is `requirement-login-interactive-hook` (heal of `dns-adm` old hook → `${APP_NAME}-hook`) |

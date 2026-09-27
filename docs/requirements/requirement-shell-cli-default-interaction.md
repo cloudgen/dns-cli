@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.8.1) Implemented  
+**Status**: Active (Version 1.8.2) Implemented  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -68,7 +68,7 @@ Labels **MUST** be `command: what it does`. Look **MUST** be default CLI main me
 
 Header **MUST** print **`${APP_NAME}`**(*`${VERSION}`*) - `${SHORT_DESC}` (app-name-version-display): live Config `APP_NAME` immediately followed by parenthesized live Config `VERSION`, no space, then space-hyphen-space and live Config `SHORT_DESC` (alias of `SHORT_DESCRIPTION` / `APP_DESC`). **`APP_NAME` bold**, **`VERSION` italic**. TTY: SGR 1 / SGR 3 via `util_app_ident`. Off-TTY: plain. **MUST NOT** a bare `${APP_NAME}` on that header. **MUST NOT** freeze “numbered list of live commands” as the header suffix. Typical: `[INFO] **dns-cli**(*1.28.0*) - Cloudflare DNS CLI (vault + IPv4 A records)`.
 
-The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). **MUST NOT** capture a `read` helper with `$()` / backticks.
+The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). **MUST NOT** capture a `read` helper with `$()` / backticks. Each menu loop whose body contains `read` **MUST** carry the do-not-capture-read WARNING in its comment block. Value prompts use `PROMPT_ASK_VALUE` (`requirement-shell-prompt`).
 
 1. Print a **numbered list** of three **family** rows, then **Exit**.  
 2. **MUST NOT** list **setup**, **test-purpose** verbs, or **online** self-management (`self-update`, `version-check`, `self-uninstall`) on any numbered list.  
@@ -300,6 +300,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | 2026-09-13 | Active 1.4.0 | Invalid pick on every numbered layer warns, reprints **that same** list, and reads again (**TP-CLI-21**) |
 | 2026-09-16 | Active 1.5.0 | Top list is family **DNS Features** **1** + family **sudoers** **8**; Exit **9**; DNS submenu Back **98** / Exit **99**; sudoers submenu unchanged (**TP-CLI-22**) |
 | 2026-09-16 | Active 1.6.0 | A finished listed command returns to the **top** list (**TP-CLI-23**) |
+| 2026-09-23 | Active 1.8.2 | Menu `read` stays in this shell; WARNING on loops that `read`; value prompts point at `PROMPT_ASK_VALUE` |
 | 2026-09-17 | Active 1.8.1 | Honesty: live origin **A = selfmanaged** (online trimmed); family grouping inherited |
 | 2026-09-17 | Active 1.8.0 | Self-management row **1** is **`self-install`** (copy this file; no download); `install` remains a typed alias (**TP-CLI-24**) |
 | 2026-09-16 | Active 1.7.0 | Family **self-management** is main **8** (local install/uninstall/where-is-me/version/about); family **sudoers** moves to **7**; sibling **selfmanaged** is a read-only architecture reference (**TP-CLI-24**) |
