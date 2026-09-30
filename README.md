@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.37.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.38.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -26,7 +26,7 @@ The Cloudflare API token stays in a **0600 file inside the vault**. It is never 
 
 - **Self-management**: `self-install` (alias `install`), `uninstall`, `where-is-me`, `version`, `about`, `help`
 - **No arguments**: at a keyboard, the numbered main menu; in a script, help (does not install, submit, or mutate DNS)
-- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); top list is **1 DNS Features**, **7 sudoers**, **8 self-management**; a finished command returns to that top list; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
+- **Numbered main menu**: `dns-cli` (keyboard, no args) or `dns-cli menu` (alias `main`); top list is **1 DNS Features**, **7 sudoers**, **8 self-management**; **102** `records` lists live A records by number, then add, update, remove, or test the API; a finished command returns to that top list; header **dns-cli**(*version*) - short description; row explain text is light gray italics; a wrong number reprints **that same list** so you can pick again
 - **Managed binary dest mode**: local **0700** (this login); global **0755** (every user can run the shell ship unit)
 - **Fail-closed**: unknown commands (including trimmed parent verbs) exit non-zero
 - **Public IPv4 QA**: `ip` shows the same ipinfo lookup used by `add` / `update` / `status` (no vault)
@@ -70,10 +70,10 @@ This product is **local-only** for its install channel (no default `SCRIPT_URL` 
 sudo dns-cli setup
 ```
 
-**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `9` leaves). Pick **1** / **DNS Features** for daily DNS work (**11–19** and **101**; `0` back). Pick **7** / **sudoers** for grant and drafts (**71–73** and **76**; `0` back). Pick **8** / **self-management** to place, remove, or locate this program (**82**, **83**, **87–89**; `0` back). Side lists have no Exit row. After a listed command finishes you are back on this top list. A number that is not on the list prints **that same list** again. Off-TTY these commands print help. Family names are not typed CLI commands.
+**Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `9` leaves). Pick **1** / **DNS Features** for daily DNS work (**11–19**, **101**, and **102**; `0` back). **102** `records` lists the live A records by number, then add, update, remove, or test the API. Pick **7** / **sudoers** for grant and drafts (**71–73** and **76**; `0` back). Pick **8** / **self-management** to place, remove, or locate this program (**82**, **83**, **87–89**; `0` back). Side lists have no Exit row. After a listed command finishes you are back on this top list. A number that is not on the list prints **that same list** again. Off-TTY these commands print help. Family names are not typed CLI commands.
 
 ```text
-[INFO] **dns-cli**(*1.37.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.38.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. DNS Features: *Daily DNS work*
 7. sudoers: *Grant and drafts*
 8. self-management: *Self-install, uninstall, where-is-me*
@@ -84,7 +84,7 @@ Choice:
 Pick **1** — DNS Features (all daily DNS verbs):
 
 ```text
-[INFO] **dns-cli**(*1.37.0*) - DNS Features (daily DNS work)
+[INFO] **dns-cli**(*1.38.0*) - DNS Features (daily DNS work)
 11. vault: *Store or inspect Cloudflare vault*
 12. ip: *Show public IPv4 (no vault)*
 13. add: *Ensure one A record*
@@ -95,14 +95,28 @@ Pick **1** — DNS Features (all daily DNS verbs):
 18. approve: *Apply a waiting DNS request*
 19. reject: *Decline a waiting DNS request*
 101. interactive: *Review waiting DNS requests one by one*
+102. records: *List live A records, then add, update, remove, or test the API*
 0. Back
 Choice: 
 ```
 
+Pick **102** — live A records (row numbers are the records; `0` returns to the top list):
+
+```text
+[INFO] **dns-cli**(*1.38.0*) - live A records (example.com)
+1. home.example.com: 203.0.113.10
+2. www.example.com: (no A record)
+test-api  Prove the zone token (create then delete a temporary A record)
+0. Back
+Choice: 
+```
+
+Pick a row, then `add`, `update`, or `remove`. `status` still only reports one name and does not change DNS.
+
 Pick **7** — sudoers (all grant/draft/LPU verbs):
 
 ```text
-[INFO] **dns-cli**(*1.37.0*) - sudoers (grant and drafts)
+[INFO] **dns-cli**(*1.38.0*) - sudoers (grant and drafts)
 71. generate-sudoer-request: *Write a local JSON grant you can review*
 72. submit-sudoer-request: *Queue a type-2-switch grant as this login*
 73. print-sudoers: *Print the sudoer file (does not install dest)*
@@ -114,7 +128,7 @@ Choice:
 Pick **8** — self-management (local lifecycle; no online update channel):
 
 ```text
-[INFO] **dns-cli**(*1.37.0*) - self-management (place, remove, locate)
+[INFO] **dns-cli**(*1.38.0*) - self-management (place, remove, locate)
 82. version: *Show local version*
 83. about: *Show diagnostics (Type 0 + vault fields, no token)*
 87. self-install: *Place this CLI (copy this file; no download)*
@@ -432,6 +446,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-30 — version **1.38.0** (`records` lists live A records by number, then add, update, remove, or test the API; menu **102**).
 2026-09-30 — version **1.37.0** (main-menu children keep the parent number: DNS **11–19** and **101**, sudoers **71–73** and **76**, self-management **82** / **83** / **87–89**; submenu back is **0**).
 2026-09-30 — version **1.36.0** (a missing `mktemp` still writes scratch under the cache folder; a scratch directory is mode `0700`).
 2026-09-27 — version **1.35.0** (cache folder is per login and per process; Linux `/dev/shm/cache/...`, Git Bash and Mac `/tmp/cache/...`; a skipped folder is silent).

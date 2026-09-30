@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.13.6) — residual points at independent login-hook REQ; origin A = selfmanaged; version SSOT `1.37.0`  
+**Status**: Active (Version 1.13.7) — residual points at independent login-hook REQ; origin A = selfmanaged; version SSOT `1.38.0`  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -142,7 +142,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
 | **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
-| **Product version SSOT** | `VERSION="1.37.0"` hard-assign in `src/dns-cli` |
+| **Product version SSOT** | `VERSION="1.38.0"` hard-assign in `src/dns-cli` |
 | **Bootstrap origin** | **A = `selfmanaged`** (hop 0). **This product is B = `dns-cli` (hop 1).** Online/Type O trimmed. |
 
 **Residual ownership table:**
@@ -283,6 +283,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 1.13.7 | Version SSOT `1.38.0`. DNS menu child **102** `records` |
 | 2026-09-30 | Active 1.13.6 | Version SSOT `1.37.0`. TTY menu children use prefix numbers |
 | 2026-09-30 | Active 1.13.5 | Version SSOT `1.36.0`. `mktemp` may be absent |
 | 2026-09-27 | Active 1.13.4 | Version SSOT `1.35.0` |

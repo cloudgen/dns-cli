@@ -39,7 +39,7 @@
 # or /usr/local/bin (root/--global, mode 0755). Script $0 copies itself (no download).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.37.0"
+# VERSION: hard-assign VERSION="1.38.0"
 #
 # =============================================================================
 
@@ -57,10 +57,10 @@ APP_NAME="dns-cli"
 : "${APP_DESC:=Cloudflare DNS CLI (vault + IPv4 A records)}"
 : "${SHORT_DESCRIPTION:=${APP_DESC}}"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
-: "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
+: "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status/records DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.37.0"
-: "${VERSION:=1.37.0}"
+VERSION="1.38.0"
+: "${VERSION:=1.38.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -3625,7 +3625,7 @@ lpu_invoker_is_lpu() {
 
 lpu_type2_command() {
     case "${1:-}" in
-        vault|add|update|remove|status|show)
+        vault|add|update|remove|status|show|records)
             return 0
             ;;
     esac
@@ -5263,6 +5263,373 @@ print(json.dumps([r.get("content","") for r in (data.get("result") or [])], sepa
         fi
         out_info "ttl: ${_ttl} proxied: ${_px} id: ${_rid}"
     fi
+}
+
+# =============================================================================
+# cf_dns_records_drop() - Remove the live-record board file
+# =============================================================================
+cf_dns_records_drop() {
+    if [ -n "${CF_DNS_BOARD:-}" ] && [ -f "${CF_DNS_BOARD}" ]; then
+        rm -f "${CF_DNS_BOARD}"
+    fi
+    CF_DNS_BOARD=""
+}
+
+# =============================================================================
+# cf_dns_records_collect() - One row per live A, plus a row for an empty name
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Write label|fqdn|id|content|ttl|mode lines under the vault directory.
+# A stored name with no A record is one row so the operator can add.
+# status stays read-only; this file is only for the records board.
+#
+# ALIGNMENT:
+# - requirement-domain-cloudflare-dns.md
+#
+# Last updated: 2026-09-30
+# =============================================================================
+cf_dns_records_collect() {
+    cf_dns_ensure_ready
+    cf_zone_check
+    cf_dns_records_drop
+    CF_DNS_BOARD=$(mktemp "${CFV_DIR}/.records.XXXXXX") || out_die_code vault_insecure "Cannot create records board in vault dir"
+    chmod 0600 "${CF_DNS_BOARD}"
+    : >"${CF_DNS_BOARD}"
+    while IFS= read -r _pair || [ -n "${_pair}" ]; do
+        [ -z "${_pair}" ] && continue
+        _lab="${_pair%%|*}"
+        _mode="${_pair#*|}"
+        if [ "${_mode}" = "${_pair}" ]; then
+            _mode="non-round-robin"
+        fi
+        _fqdn=$(cf_derive_fqdn "${_lab}" "${CFV_DOMAIN}")
+        cf_dns_list "${_fqdn}"
+        python3 -c '
+import json, sys
+label, fqdn, mode, src, dst = sys.argv[1:6]
+with open(src, encoding="utf-8") as fh:
+    data = json.load(fh)
+rows = data.get("result") or []
+with open(dst, "a", encoding="utf-8") as out:
+    if not rows:
+        out.write("%s|%s||||%s\n" % (label, fqdn, mode))
+    else:
+        for rec in rows:
+            ttl = rec.get("ttl")
+            if ttl is None:
+                ttl = ""
+            out.write("%s|%s|%s|%s|%s|%s\n" % (
+                label, fqdn, rec.get("id") or "", rec.get("content") or "", ttl, mode))
+' "${_lab}" "${_fqdn}" "${_mode}" "${CF_DNS_JSON}" "${CF_DNS_BOARD}" || {
+            rm -f "${CF_DNS_JSON}"
+            cf_dns_records_drop
+            out_die_code dns_api_failed "Cannot read the live A list"
+        }
+        rm -f "${CF_DNS_JSON}"
+    done <<EOF
+${CFV_SUBPAIRS}
+EOF
+}
+
+# =============================================================================
+# cf_dns_records_load_row() - Copy board row N into CF_ROW_*
+# =============================================================================
+cf_dns_records_load_row() {
+    _want="${1:-}"
+    CF_ROW_LABEL=""
+    CF_ROW_FQDN=""
+    CF_ROW_ID=""
+    CF_ROW_CONTENT=""
+    CF_ROW_TTL=""
+    CF_ROW_MODE=""
+    CF_ROW_SAME=0
+    _i=0
+    while IFS= read -r _line || [ -n "${_line}" ]; do
+        [ -z "${_line}" ] && continue
+        _i=$((_i + 1))
+        if [ "${_i}" = "${_want}" ]; then
+            CF_ROW_LABEL=$(printf '%s' "${_line}" | cut -d'|' -f1)
+            CF_ROW_FQDN=$(printf '%s' "${_line}" | cut -d'|' -f2)
+            CF_ROW_ID=$(printf '%s' "${_line}" | cut -d'|' -f3)
+            CF_ROW_CONTENT=$(printf '%s' "${_line}" | cut -d'|' -f4)
+            CF_ROW_TTL=$(printf '%s' "${_line}" | cut -d'|' -f5)
+            CF_ROW_MODE=$(printf '%s' "${_line}" | cut -d'|' -f6)
+        fi
+    done <"${CF_DNS_BOARD}"
+    if [ -z "${CF_ROW_FQDN}" ]; then
+        return 1
+    fi
+    _same=0
+    while IFS= read -r _line || [ -n "${_line}" ]; do
+        [ -z "${_line}" ] && continue
+        _f=$(printf '%s' "${_line}" | cut -d'|' -f2)
+        if [ "${_f}" = "${CF_ROW_FQDN}" ]; then
+            _same=$((_same + 1))
+        fi
+    done <"${CF_DNS_BOARD}"
+    CF_ROW_SAME="${_same}"
+    return 0
+}
+
+cf_dns_records_label_count() {
+    CF_DNS_LABEL_N=0
+    _seen=""
+    while IFS= read -r _line || [ -n "${_line}" ]; do
+        [ -z "${_line}" ] && continue
+        _lab=$(printf '%s' "${_line}" | cut -d'|' -f1)
+        case "
+${_seen}
+" in
+            *"
+${_lab}
+"*) ;;
+            *)
+                _seen="${_seen}
+${_lab}"
+                CF_DNS_LABEL_N=$((CF_DNS_LABEL_N + 1))
+                CF_DNS_ONLY_LABEL="${_lab}"
+                ;;
+        esac
+    done <"${CF_DNS_BOARD}"
+}
+
+# =============================================================================
+# cf_dns_records_show() - Print the numbered live A list
+# =============================================================================
+cf_dns_records_show() {
+    _tty_board="${1:-0}"
+    out_info "$(util_app_ident) - live A records (${CFV_DOMAIN})"
+    _i=0
+    while IFS= read -r _line || [ -n "${_line}" ]; do
+        [ -z "${_line}" ] && continue
+        _i=$((_i + 1))
+        _fqdn=$(printf '%s' "${_line}" | cut -d'|' -f2)
+        _content=$(printf '%s' "${_line}" | cut -d'|' -f4)
+        if [ -n "${_content}" ]; then
+            out_plain "${_i}. ${_fqdn}: ${_content}"
+        else
+            out_plain "${_i}. ${_fqdn}: (no A record)"
+        fi
+    done <"${CF_DNS_BOARD}"
+    if [ "${_tty_board}" -eq 1 ]; then
+        out_plain "test-api  Prove the zone token (create then delete a temporary A record)"
+        out_plain "0. Back"
+    fi
+}
+
+cf_dns_records_apply() {
+    _verb="${1:-}"
+    if [ "${CF_ROW_MODE}" != "round-robin" ] && [ "${CF_ROW_SAME}" -gt 1 ]; then
+        out_warn "Multiple A records for ${CF_ROW_FQDN}. Next: ${APP_NAME} add --force, or 0 back."
+        return 0
+    fi
+    if [ "${_verb}" = "update" ] || [ "${_verb}" = "remove" ]; then
+        if [ -z "${CF_ROW_ID}" ]; then
+            out_warn "No A record for ${CF_ROW_FQDN}. Next: add, or 0 back."
+            return 0
+        fi
+    fi
+    _saved_sub="${CF_OPT_SUBDOMAIN-}"
+    _saved_from="${CF_OPT_FROM-}"
+    _saved_ip="${CF_OPT_IP-}"
+    _had_sub=0
+    _had_from=0
+    _had_ip=0
+    if [ -n "${CF_OPT_SUBDOMAIN+x}" ]; then
+        _had_sub=1
+    fi
+    if [ -n "${CF_OPT_FROM+x}" ]; then
+        _had_from=1
+    fi
+    if [ -n "${CF_OPT_IP+x}" ]; then
+        _had_ip=1
+    fi
+    CF_OPT_SUBDOMAIN="${CF_ROW_LABEL}"
+    case "${_verb}" in
+        add)
+            unset CF_OPT_FROM
+            cf_dns_add
+            ;;
+        update)
+            CF_OPT_FROM="${CF_ROW_CONTENT}"
+            cf_dns_update
+            ;;
+        remove)
+            CF_OPT_IP="${CF_ROW_CONTENT}"
+            cf_dns_remove
+            ;;
+    esac
+    if [ "${_had_sub}" -eq 1 ]; then
+        CF_OPT_SUBDOMAIN="${_saved_sub}"
+    else
+        unset CF_OPT_SUBDOMAIN
+    fi
+    if [ "${_had_from}" -eq 1 ]; then
+        CF_OPT_FROM="${_saved_from}"
+    else
+        unset CF_OPT_FROM
+    fi
+    if [ "${_had_ip}" -eq 1 ]; then
+        CF_OPT_IP="${_saved_ip}"
+    else
+        unset CF_OPT_IP
+    fi
+}
+
+# =============================================================================
+# cf_dns_records_action() - add / update / remove for one numbered row
+# =============================================================================
+#
+# WARNING — do-not-capture-read (PP-A-22): this body contains read.
+# Call in the current shell. MUST NOT capture this function.
+#
+# Last updated: 2026-09-30
+# =============================================================================
+cf_dns_records_action() {
+    : "${APP_NAME:=dns-cli}"
+    _shown="${CF_ROW_CONTENT:-}"
+    if [ -z "${_shown}" ]; then
+        _shown="(no A record)"
+    fi
+    while true; do
+        out_info "Row ${CF_REC_N}: ${CF_ROW_FQDN} ${_shown}"
+        out_plain "add     Ensure an A record on this name"
+        out_plain "update  Set this A to the public IPv4"
+        out_plain "remove  Delete this A record"
+        out_plain "0. Back"
+        out_msg_n "Choice: "
+        _act=""
+        if ! read -r _act; then
+            return 0
+        fi
+        case "${_act}" in
+            0|back|Back|q|Q)
+                return 0
+                ;;
+            99|exit|quit|Exit|QUIT)
+                cf_dns_records_drop
+                exit 0
+                ;;
+            add|update|remove)
+                cf_dns_records_apply "${_act}"
+                return 0
+                ;;
+            *)
+                out_warn "Not an action. Next: add, update, remove, or 0 back."
+                ;;
+        esac
+    done
+}
+
+# =============================================================================
+# cf_dns_records() - Numbered live A list, then add / update / remove / test-api
+# =============================================================================
+#
+# GENERAL PURPOSE:
+# Off-TTY and --json print the live rows and return. A keyboard session
+# numbers every stored name's A records, then add, update, remove, or
+# test-api. status / show stay read-only. 0 ends this command.
+#
+# ALIGNMENT:
+# - requirement-domain-cloudflare-dns.md
+# - requirement-shell-cli-default-interaction.md
+#
+# WARNING — do-not-capture-read (PP-A-22): the TTY body contains read.
+# Call in the current shell. MUST NOT capture this function.
+#
+# Last updated: 2026-09-30
+# =============================================================================
+cf_dns_records() {
+    : "${TTY:=0}"
+    : "${JSON:=0}"
+    : "${APP_NAME:=dns-cli}"
+    if [ "${JSON}" -eq 1 ]; then
+        cf_dns_records_collect
+        _rows=$(python3 -c '
+import json, sys
+rows = []
+with open(sys.argv[1], encoding="utf-8") as fh:
+    for line in fh:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+        parts = line.split("|")
+        while len(parts) < 6:
+            parts.append("")
+        rows.append({
+            "label": parts[0],
+            "fqdn": parts[1],
+            "id": parts[2],
+            "content": parts[3],
+            "ttl": parts[4],
+            "mode": parts[5],
+        })
+print(json.dumps(rows, separators=(",", ":")))
+' "${CF_DNS_BOARD}") || {
+            cf_dns_records_drop
+            out_die_code dns_api_failed "Cannot encode the live A list"
+        }
+        out_json "success" "Live A records" \
+            "command" "records" "domain" "${CFV_DOMAIN}" "@rows" "${_rows}"
+        cf_dns_records_drop
+        return 0
+    fi
+    if [ "${TTY}" -ne 1 ]; then
+        cf_dns_records_collect
+        cf_dns_records_show 0
+        cf_dns_records_drop
+        return 0
+    fi
+    while true; do
+        cf_dns_records_collect
+        cf_dns_records_show 1
+        out_msg_n "Choice: "
+        _pick=""
+        if ! read -r _pick; then
+            cf_dns_records_drop
+            return 0
+        fi
+        case "${_pick}" in
+            0|back|Back|q|Q)
+                cf_dns_records_drop
+                return 0
+                ;;
+            99|exit|quit|Exit|QUIT)
+                cf_dns_records_drop
+                exit 0
+                ;;
+            test-api|testapi)
+                if cf_vault_token_probe; then
+                    out_success "API token can write DNS (temporary A record created and deleted)"
+                else
+                    out_warn "API token failed probe ${CF_PROBE_LABEL:-_test_*}. Next: check the zone token, or 0 back."
+                fi
+                ;;
+            add)
+                cf_dns_records_label_count
+                if [ "${CF_DNS_LABEL_N}" -eq 1 ]; then
+                    cf_dns_records_load_row 1 || true
+                    if [ -n "${CF_ROW_FQDN}" ]; then
+                        CF_REC_N=1
+                        cf_dns_records_apply add
+                    fi
+                elif [ "${CF_DNS_LABEL_N}" -eq 0 ]; then
+                    out_warn "No stored name. Next: vault subdomain add, or 0 back."
+                else
+                    out_warn "More than one name. Next: enter a row number, then add, or 0 back."
+                fi
+                ;;
+            *)
+                if cf_dns_records_load_row "${_pick}"; then
+                    CF_REC_N="${_pick}"
+                    cf_dns_records_action
+                else
+                    out_warn "Not a record choice. Next: enter a row number, add, test-api, or 0 back."
+                fi
+                ;;
+        esac
+    done
 }
 
 # =============================================================================
@@ -7095,7 +7462,7 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.37.0}"
+    : "${VERSION:=1.38.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
@@ -7164,6 +7531,7 @@ app_default_print_dns_menu() {
     app_default_print_row 18 "approve" "Apply a waiting DNS request"
     app_default_print_row 19 "reject" "Decline a waiting DNS request"
     app_default_print_row 101 "interactive" "Review waiting DNS requests one by one"
+    app_default_print_row 102 "records" "List live A records, then add, update, remove, or test the API"
     app_default_print_row 0 "Back"
 }
 
@@ -7267,6 +7635,9 @@ app_default_run_pick() {
         about)
             app_about
             ;;
+        records)
+            cf_dns_records
+            ;;
         9|99|exit|quit|Exit|QUIT)
             ;;
         *)
@@ -7323,6 +7694,9 @@ app_default_run_dns_pick() {
             ;;
         101|interactive)
             cf_req_interactive
+            ;;
+        102|records)
+            cf_dns_records
             ;;
         *)
             return 1
@@ -7554,7 +7928,7 @@ app_default_dns_loop() {
         if app_default_run_dns_pick "${_pick}"; then
             return 1
         fi
-        out_warn "Not a menu choice. Next: enter 11-19, 101, 0 back, or a listed command name."
+        out_warn "Not a menu choice. Next: enter 11-19, 101-102, 0 back, or a listed command name."
     done
 }
 
@@ -7709,7 +8083,7 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
-    out_plain "  menu                 Numbered list: 1 DNS Features (11-19, 101),"
+    out_plain "  menu                 Numbered list: 1 DNS Features (11-19, 101-102),"
     out_plain "                       7 sudoers (71-73, 76), 8 self-management"
     out_plain "                       (82, 83, 87-89). Submenu back is 0. Alias: main."
     out_plain "                       Family rows are not typed commands."
@@ -7744,6 +8118,8 @@ app_help() {
     out_plain "  update [--ip V4]               Update existing A record"
     out_plain "  remove                         Delete managed A record"
     out_plain "  status | show               Read-only: public IP + real DNS A lookup + Cloudflare API"
+    out_plain "  records                     List live A records. At a keyboard, pick a number"
+    out_plain "                              then add, update, or remove. test-api proves the token."
     out_empty_line
     out_info "DNS inbound (anyone submits; dns-adm approves — operational):"
     out_plain "  submit FILE          Type 0 — queue self-scoped DNS JSON (not submit-sudoer-request)"
@@ -8030,6 +8406,11 @@ app_main() {
                 out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
             fi
             ;;
+        records)
+            if [ "${CF_POSN}" -gt 1 ]; then
+                out_die "Unknown command or flag: ${CF_POS2}. See '${APP_NAME} help'."
+            fi
+            ;;
         submit|approve|reject)
             if [ "${CF_POSN}" -gt 2 ]; then
                 out_die "Unknown command or flag: ${CF_POS3}. See '${APP_NAME} help'."
@@ -8070,6 +8451,7 @@ app_main() {
         update)       cf_dns_update ;;
         remove)       cf_dns_remove ;;
         status|show)  cf_dns_status ;;
+        records)      cf_dns_records ;;
         submit)       cf_req_submit "${CF_POS2:-}" ;;
         approve)      cf_req_approve "${CF_POS2:-}" ;;
         reject)       cf_req_reject "${CF_POS2:-}" ;;

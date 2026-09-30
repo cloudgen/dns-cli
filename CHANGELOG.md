@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.38.0] - 2026-09-30
+
+### Added
+
+- **Numbered live A records.** Menu **102** and the typed command `records` list each stored name's A records as `1.`, `2.`, and so on. A name with no A record is still a row. At a keyboard, pick a row, then `add`, `update`, or `remove`. Round-robin remove deletes that row's address. More than one A on a non-round-robin name warns and stays on the list. `test-api` creates a temporary `_test_<UTC>` A record and deletes it. `0` leaves the list and returns to the top menu. `status` stays read-only. Off-TTY `records` prints the rows and does not wait. Law `requirement-domain-cloudflare-dns` **2.10.0** and `requirement-shell-cli-default-interaction` **1.10.0**. Suite **TP-CF-REC-01..09** and **TP-CLI-22**. Ship unit **`VERSION="1.38.0"`**.
+
 ## [1.37.0] - 2026-09-30
 
 ### Changed

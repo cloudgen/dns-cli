@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-domain-cloudflare-dns.md  
-**Status**: Active (Version 2.9.0) — Type 0 **test-purpose** `fence-test`; help lists testers apart from operational  
+**Status**: Active (Version 2.10.0) — `records` numbered live A board; Type 0 **test-purpose** `fence-test`; help lists testers apart from operational  
 **Area**: domain  
 **Key**: `requirement-domain-cloudflare-dns`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -14,7 +14,7 @@ This is the **only** Active `requirement-domain-*` file. `requirement-cloudflare
 
 ### 1.1 Human-facing
 
-**In one sentence:** This is the **dns-cli verb book** for Cloudflare **A records** (`add` / `update` / `remove` / `status`) on the vault’s selected domain — not the inbound-JSON schema and not who may approve.
+**In one sentence:** This is the **dns-cli verb book** for Cloudflare **A records** (`add` / `update` / `remove` / `status` / `records`) on the vault’s selected domain — not the inbound-JSON schema and not who may approve.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -71,6 +71,7 @@ Submit-when, not-a-submit, and verify-at-submit-and-approve live on the actor ta
 | `remove` | Type 2 / Type 0 specify | `cf_dns_*` | Delete the targeted A; absent → success no-op (round-robin N>1 needs `--ip`) |
 | `status` | Type 2 / Type 0 specify | `cf_dns_*` | **Read-only**: public IPv4 + **real resolver A lookup** + Cloudflare A set + `mode` / `ipv4_count` |
 | `show` | Type 2 / Type 0 specify | `cf_dns_*` | Alias of `status` |
+| `records` | Type 2 / Type 0 specify | `cf_dns_records` | Numbered live A rows, then add / update / remove / test-api (D-M17). **Not** `status` |
 | `submit` | Type 0 **operational** | Implemented | Drop request JSON into inbound (`requirement-dns-actor-table`) |
 | `approve` / `reject` | Type 1 **operational** | Implemented | Re-validate and move inbound → accepted/declined |
 | `interactive` | Type 1 **operational** | Implemented | TTY review loop; login hook target |
@@ -100,6 +101,9 @@ dns-cli status
 dns-cli --json status
 dns-cli show
 dns-cli --json show
+dns-cli records
+dns-cli --json records
+dns-cli records --ip 203.0.113.10
 dns-cli submit
 dns-cli approve
 dns-cli reject
@@ -148,6 +152,8 @@ dns-cli fence-test --file tests/fixtures/fence-test/pass/20260821-alice-add-1.js
 **D-S3 (SHOULD).** Human `status` **SHOULD** show public IP, **resolver A**, Cloudflare API A set, stored `mode`, `ipv4_count`, ttl, proxied, and record id(s) (never token).
 
 **D-M13.** `status` / `show` **MUST** perform a real DNS A lookup of the derived FQDN via the system resolver (`getent ahostsv4`, else `dig`, else `host`, else `nslookup`). Tests **MAY** set `CF_TEST_RESOLVE_IP` instead of public DNS. Missing/NXDOMAIN **MUST** be reported as empty `resolved_ip` (not a crash). `in_sync` is true only when resolver A equals public IP.
+
+**D-M17. Numbered live A board (`records`).** `records` **MUST** list every stored host-label's live A rows as `N. fqdn: content`. A stored name with no A record **MUST** be one row `N. fqdn: (no A record)`. Those numbers are live data. They **MAY** start at **1**. They are not command-menu children (menu child is **102**). Off-TTY and `--json` **MUST** print the rows and **MUST NOT** read a choice. On a TTY the same list **MUST** accept a row number, `test-api`, bare `add` only when the vault has one host-label, and **0** Back. A row number **MUST** then accept `add`, `update`, `remove`, or **0** Back. `add` / `update` / `remove` **MUST** call the existing verbs for that row's label (`update` passes that row's IPv4 as `--from`; `remove` targets that row's IPv4). `test-api` **MUST** create then delete a `_test_<UTC>` A record at the documentation IPv4 and **MUST NOT** keep that name. A failed probe **MUST** warn and reprint the list. **0** on the record list ends the command. **0** on the action list returns to the record list. `status` / `show` **MUST** stay read-only. A non-round-robin name with more than one A **MUST** warn instead of updating or removing a single row from this board.
 
 **Non-goals:** AAAA / IPv6, CNAME, TXT, MX; orange-cloud as default; online install; host `/etc` DNS; Cloudflare Load Balancing. **Multi-account / multi-domain-id is in scope** (vault law). **A-record mode** is in scope (`requirement-cloudflare-dns-mode`). Each domain-id is **one** Cloudflare zone; the product does **not** store two zones under one domain-id.
 
@@ -246,7 +252,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 1. Print API tokens in about, logs, debug, default JSON, help, or tests.  
 2. Put the token on `curl` argv (including `-H "Authorization: Bearer …"`).  
 3. Treat multi-A as “update the first” without `--force` (non-round-robin) or `--from` (round-robin).  
-4. Mutate DNS from `status` / `show`.  
+4. Mutate DNS from `status` / `show`. Mutations belong on `add` / `update` / `remove`, including when `records` calls those verbs.  
 5. Add AAAA/CNAME/TXT as silent extras, or count AAAA as `ipv4_count`.  
 6. Switch mode when `ipv4_count` ≥ 2, or treat `--force` as a mode switch.  
 7. Move the DNS verb catalog into Type 0 interface as a second SSOT.  
@@ -265,7 +271,8 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | ID | Criterion |
 |----|-----------|
-| AC-D1 | When DNS is routed, help lists vault / ip / add / update / remove / status / show and Type 0 lifecycle; `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` only when those routes exist |
+| AC-D1 | When DNS is routed, help lists vault / ip / add / update / remove / status / show / records and Type 0 lifecycle; `setup` / `remove-lpu` / `print-sudoers` / `generate-sudoer-request` / `submit-sudoer-request` only when those routes exist |
+| AC-D13 | `records` prints numbered live A rows; a TTY row can add, update, or remove; `test-api` creates then deletes the probe name; `status` stays read-only |
 | AC-D12 | §2.1a holds a complete `dns-cli …` sample for every domain verb in §2.1 (CI-M1a) |
 | AC-D7 | `ip` prints public IPv4 without vault or Cloudflare; `--ip` override and disallowed IPv4 fail as `ip_lookup_failed` |
 | AC-D2 | `--json add` with fixture of one A + same IP exits 0 with status `already` |
@@ -318,6 +325,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 | **TP-CF-IP-*** | `tests/test_cf_ip.sh` | have | Owned by `requirement-external-ipv4` |
 | **TP-CLI-07** | `tests/test_cli.sh` | have | Type N empty argv (peer) |
 | **TP-CF-DNS-08** | `tests/test_cf_dns.sh` | todo | two domain-ids → `domain_required` without `--domain` |
+| **TP-CF-REC-01..09** | `tests/test_cf_dns.sh` | have | numbered live A rows; TTY update, add, remove, test-api; non-RR multi warns inside the session; invalid reprints; menu **102** returns to the front board |
 | **TP-CF-LIVE-01..05** | `tests/test_cf_live.sh` | skip | Live `crms.hk` as invoking user; off unless `CF_LIVE=1` |
 | **TP-CF-ACTOR-01..06** | `tests/test_cli.sh` | have | Unrouted submit/approve/reject/interactive fail closed |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | Type 0 `fence-test` list tester; testers listed apart |
@@ -331,6 +339,7 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 2.10.0 | `records` numbered live A board (D-M17); menu **102**; `status` stays read-only |
 | 2026-08-21 | Active 2.9.0 | Type 0 **test-purpose** `fence-test` / `test-json-format`; help lists testers apart from operational inbound |
 | 2026-08-19 | Active 2.8.0 | Dest MUST NOT fence on filename subject token; user SSOT is JSON `subject` |
 | 2026-08-18 | Active 2.7.0 | Dest approval fencing conditions closed: incorrect JSON format (ACT-M8 reprint) |
@@ -346,6 +355,6 @@ Help **SHOULD** mention `--ip`, `--domain` / `--domain-id`, `--subdomain`, `--mo
 
 ---
 
-**Last Updated**: 2026-08-21  
+**Last Updated**: 2026-09-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

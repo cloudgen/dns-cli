@@ -10,7 +10,7 @@ Authoritative specialized product law for **dns-cli** lives here.
 |-------|--------|
 | Product / `APP_NAME` (law) | `dns-cli` |
 | Live Config | `APP_NAME="dns-cli"` in `src/dns-cli` — Implemented |
-| Version SSOT | `1.37.0` |
+| Version SSOT | `1.38.0` |
 | Ship unit (live) | `src/dns-cli` |
 | Default install | `~/.local/bin/dns-cli` (mode **0700**) |
 | Install mode | **Local-only** — place verb **`self-install`** (alias `install`); copy `$0`; no download |

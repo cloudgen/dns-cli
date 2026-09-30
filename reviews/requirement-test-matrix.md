@@ -1,7 +1,7 @@
 # Requirement ↔ test matrix — dns-cli
 
-**Updated:** 2026-09-17  
-**Product VERSION:** 1.34.0  
+**Updated:** 2026-09-30  
+**Product VERSION:** 1.38.0  
 **Suite:** `tests/run.sh`
 
 | Requirement key | Area | TP families | Coverage notes |
@@ -25,7 +25,7 @@
 | requirement-shell-idempotency | shell | TP-LC-03,07 | Re-install / uninstall absent |
 | requirement-shell-interactive-vs-noninteractive | shell | TP-LC-05 | Uninstall confirm |
 | requirement-shell-cli-storage | shell | TP-CLI-06, TP-CLI-12, **TP-CLI-17**, **TP-CLI-26**, **TP-CLI-28** | Per-login per-process cache (`cache-${APP_NAME}-${login}-$$` on shm/tmp) + persistency `${HOME}/.local/dns-cli`; silent tier miss; persistency fail-close parent; missing `mktemp` still writes under the cache folder |
-| requirement-domain-cloudflare-dns | domain | TP-CF-DNS-* · TP-CF-ACTOR-* | **have** — stubbed curl; actor verbs fail closed |
+| requirement-domain-cloudflare-dns | domain | TP-CF-DNS-* · **TP-CF-REC-01..09** · TP-CF-ACTOR-* | **have** — stubbed curl; numbered live A board; actor verbs fail closed |
 | requirement-dns-actor-table | architecture | TP-CF-ACTOR-01..09 · **TP-CF-REQ-19** | **have** — routed submit/approve/interactive; dest fence table ACT-M8; keep-latest duplicate inbound |
 | requirement-dns-approver | architecture | TP-CF-APR-01..08 (peer) · **TP-CF-REQ-19** | **have** — identity `dns-adm`; hook plant moved to independent REQ |
 | requirement-login-interactive-hook | architecture | TP-CF-APR-01..09 · **TP-LPU-08** | **have** — `.bashrc` / missing `.profile` heal; `/usr/local/bin/dns-review-hooks`; old `dns-cli` / `dns-cli-hook` / `login-review-hook` rewrite; `interactive` reviews `dns-adm` rc; skip names `login-hook-elev` |
@@ -38,4 +38,4 @@
 
 **Absent by design (no TP Core):** online-install, remote self-management, automatic channel checksum, folder-archive backup/restore, sudoers-manager extras.
 
-**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu · **TP-CLI-25** `PROMPT_ASK_VALUE` · **TP-CLI-27** no captured `prompt_*` · **TP-CLI-26** persistency fail-close · **TP-SI-01/04/07/08** self-install copy + dest-mode), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, TP-CF-APR-01..09, TP-LPU-01..09, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..21**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.37.0** (incl. **TP-CLI-28** missing `mktemp` and prefix menu numbers **TP-CLI-20** · **TP-CLI-22** · **TP-CLI-24**). **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).
+**Honesty:** Type 0 TP-CLI / TP-LC (incl. **TP-CLI-14** dual mention · **TP-CLI-17** persistency folder · **TP-CLI-21** invalid menu pick reprints the same layer · **TP-CLI-22** DNS Features submenu · **TP-CLI-23** finished command returns to the top list · **TP-CLI-24** self-management submenu · **TP-CLI-25** `PROMPT_ASK_VALUE` · **TP-CLI-27** no captured `prompt_*` · **TP-CLI-26** persistency fail-close · **TP-SI-01/04/07/08** self-install copy + dest-mode), v2 vault TP-CF-VAULT-01..33, **TP-AV-01..08**, TP-CF-MODE-01..08, **TP-CF-REC-01..09**, TP-CF-APR-01..09, TP-LPU-01..09, TP-PRIV-01..10, TP-CF-ACTOR-01..09, TP-SUDOER-JSON-* (incl. **21**), **TP-CF-REQ-01..21**, **TP-ARSA-01/02**, **TP-FENCE-01..06**, **TP-FENCE-08**, and **TP-FENCE-09..17** are **have** against `src/dns-cli` **1.38.0** (incl. **TP-CLI-28** missing `mktemp`, prefix menu numbers **TP-CLI-20** · **TP-CLI-22** · **TP-CLI-24**, and live A board **TP-CF-REC-01..09**). **TP-FENCE-07** is **skip** (live sibling dest unknown-key; dest 1.8.1 still refuses `kind`).

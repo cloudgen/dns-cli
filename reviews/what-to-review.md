@@ -54,7 +54,7 @@
 | Three-layer | `requirement-three-layer-privilege-model.md` | Tables A/B/C + **§2.1a role table**; print sudoer file / generate+submit Implemented; Type 2 switch Implemented |
 | JSON sudoer file | `requirement-sudoer-json-file.md` | **§2.0 role table** (printer / submitter / `sudoer-adm`); generate dest + submit; `runas=dns-adm` |
 | Empty argv | `requirement-shell-cli-zero-arguments.md` | Off-TTY empty argv = help; TTY empty argv = main menu |
-| Default interaction | `requirement-shell-cli-default-interaction.md` | Family **DNS Features** **1** (**11–19**, **101**) + family **sudoers** **7** (**71–73**, **76**) + family **self-management** **8** (**82**, **83**, **87–89**); Exit **9**; submenu Back **0**; no submenu Exit row; finished command returns to the top list; family tokens not commands; invalid pick reprints the same layer |
+| Default interaction | `requirement-shell-cli-default-interaction.md` | Family **DNS Features** **1** (**11–19**, **101**, **102** `records`) + family **sudoers** **7** (**71–73**, **76**) + family **self-management** **8** (**82**, **83**, **87–89**); Exit **9**; submenu Back **0**; no submenu Exit row; finished command returns to the top list; family tokens not commands; invalid pick reprints the same layer |
 | Local self-management | `requirement-shell-local-self-management.md` | self-install/uninstall; dest 0700 local / 0755 global |
 | Output SSOT | `requirement-shell-output-requirements.md` | `out_*`; JSON errors |
 | Modular design | `requirement-shell-modular-function-design.md` | `cf_` domain prefix |
@@ -64,7 +64,7 @@
 | A-record mode | `requirement-cloudflare-dns-mode.md` | default non-RR; RR multi-A; switch only at ipv4_count 0/1 |
 | DNS request JSON | `requirement-cloudflare-dns-request.md` | four types + examples; inbound `submit` / `approve` / `reject` / `interactive` Implemented (1.9.0–1.9.7) |
 | External IPv4 | `requirement-external-ipv4.md` | ipinfo lookup + vault-free `ip`; IPv6 MUST NOT |
-| Domain DNS | `requirement-domain-cloudflare-dns.md` | consumes mode; `ip`, add/update/status |
+| Domain DNS | `requirement-domain-cloudflare-dns.md` | consumes mode; `ip`, add/update/status; `records` numbered live A board |
 | Actor table | `requirement-dns-actor-table.md` | DNS inbound only; anyone submits; `dns-adm` approves; dest-writes `submit_by`; **not** sudoer print/submit roles |
 | Approver | `requirement-dns-approver.md` | identity `dns-adm`; dest review loop on actor table |
 | Login-interactive hook | `requirement-login-interactive-hook.md` | `/usr/local/bin/${APP_NAME}-hook` soft link; heal of `dns-adm` rewrites old hook |

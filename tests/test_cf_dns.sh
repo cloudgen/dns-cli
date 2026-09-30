@@ -141,6 +141,80 @@ run_test_cf_dns() {
     assert_eq "TP-CF-MODE-02 non-RR different IP exit 0" "0" "${_ec}"
     assert_contains "TP-CF-MODE-02 updates" "${_out}" '"status":"updated"'
 
+    # TP-CF-REC — numbered live A rows, then add / update / test-api. status stays read-only.
+    _cf_stub_records '[{"id":"11111111111111111111111111111111","type":"A","name":"home.example.test","content":"203.0.113.10","ttl":300,"proxied":false},{"id":"22222222222222222222222222222222","type":"A","name":"home.example.test","content":"203.0.113.11","ttl":300,"proxied":false},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","type":"A","name":"web.example.test","content":"203.0.113.30","ttl":300,"proxied":false}]'
+    _out=$(sh "${SCRIPT}" records 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-01 records exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-01 home first A" "${_out}" "1. home.example.test: 203.0.113.10"
+    assert_contains "TP-CF-REC-01 home second A" "${_out}" "2. home.example.test: 203.0.113.11"
+    assert_contains "TP-CF-REC-01 web A" "${_out}" "3. web.example.test: 203.0.113.30"
+    assert_not_contains "TP-CF-REC-01 off-TTY does not prompt" "${_out}" "Choice:"
+
+    _out=$(sh "${SCRIPT}" --json records 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-02 json exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-02 json command" "${_out}" '"command":"records"'
+    assert_contains "TP-CF-REC-02 json fqdn" "${_out}" '"fqdn":"web.example.test"'
+
+    _cf_stub_records '[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","type":"A","name":"web.example.test","content":"203.0.113.30","ttl":300,"proxied":false}]'
+    _out=$(printf '2\nupdate\n0\n' | TTY=1 sh "${SCRIPT}" records --ip 203.0.113.10 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-03 update exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-03 updated" "${_out}" "Updated web.example.test -> 203.0.113.10"
+
+    _out=$(printf 'test-api\n0\n' | TTY=1 sh "${SCRIPT}" records 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-04 test-api exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-04 probe passed" "${_out}" "API token can write DNS"
+    if python3 -c 'import json,sys; recs=json.load(open(sys.argv[1])); sys.exit(0 if any(str(r.get("name","")).startswith("_test_") for r in recs) else 1)' "${CF_STUB_DIR}/records.json"; then
+        t_fail "TP-CF-REC-04 probe label left behind"
+    else
+        t_pass "TP-CF-REC-04 probe label deleted"
+    fi
+
+    _out=$(printf '9\n0\n' | TTY=1 sh "${SCRIPT}" records 2>&1)
+    _ec=$?
+    assert_eq "TP-CF-REC-05 invalid exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-05 invalid warns" "${_out}" "Not a record choice"
+    _nrec=$(printf '%s\n' "${_out}" | grep -c '1. home.example.test:')
+    assert_eq "TP-CF-REC-05 invalid reprints the list" "2" "${_nrec}"
+
+    _out=$(printf '1\nadd\n0\n' | TTY=1 sh "${SCRIPT}" records --ip 203.0.113.20 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-07 add empty name exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-07 created" "${_out}" "home.example.test -> 203.0.113.20"
+
+    # home is round-robin. Two A rows: remove targets the chosen address only.
+    _cf_stub_records '[{"id":"11111111111111111111111111111111","type":"A","name":"home.example.test","content":"203.0.113.10","ttl":300,"proxied":false},{"id":"22222222222222222222222222222222","type":"A","name":"home.example.test","content":"203.0.113.11","ttl":300,"proxied":false},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","type":"A","name":"web.example.test","content":"203.0.113.30","ttl":300,"proxied":false}]'
+    _out=$(printf '1\nremove\n0\n' | TTY=1 sh "${SCRIPT}" records 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-08 remove exit 0" "0" "${_ec}"
+    assert_contains "TP-CF-REC-08 removed chosen A" "${_out}" "Removed home.example.test 203.0.113.10"
+    if python3 -c 'import json,sys; recs=json.load(open(sys.argv[1])); ids=[r.get("id") for r in recs]; sys.exit(0 if "11111111111111111111111111111111" not in ids and "22222222222222222222222222222222" in ids else 1)' "${CF_STUB_DIR}/records.json"; then
+        t_pass "TP-CF-REC-08 other home A kept"
+    else
+        t_fail "TP-CF-REC-08 expected only the chosen home A to be deleted"
+    fi
+
+    # web is non-round-robin. Two A rows must warn inside the session, not exit.
+    _cf_stub_records '[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","type":"A","name":"web.example.test","content":"203.0.113.30","ttl":300,"proxied":false},{"id":"cccccccccccccccccccccccccccccccc","type":"A","name":"web.example.test","content":"203.0.113.31","ttl":300,"proxied":false}]'
+    _out=$(printf '2\nupdate\n0\n' | TTY=1 sh "${SCRIPT}" records --ip 203.0.113.10 2>&1)
+    _ec=$?
+    assert_eq "TP-CF-REC-09 non-RR multi stays in session" "0" "${_ec}"
+    assert_contains "TP-CF-REC-09 warns" "${_out}" "Multiple A records for web.example.test"
+    assert_contains "TP-CF-REC-09 points at force" "${_out}" "add --force"
+    assert_not_contains "TP-CF-REC-09 does not update" "${_out}" "Updated web.example.test"
+
+    _out=$(printf '1\n102\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ec=$?
+    assert_eq "TP-CF-REC-06 menu records exit 0" "0" "${_ec}"
+    _plain=$(printf '%s' "${_out}" | sed "s/$(printf '\033')\\[[0-9;]*m//g")
+    assert_contains "TP-CF-REC-06 menu row" "${_plain}" "102. records:"
+    assert_contains "TP-CF-REC-06 live row" "${_plain}" "1. home.example.test:"
+    _nfeat=$(printf '%s\n' "${_plain}" | grep -c '1. DNS Features:')
+    assert_eq "TP-CF-REC-06 records returns to the front board" "2" "${_nfeat}"
+
     unset CF_CURL CF_STUB_DIR
     ci_vault_cleanup
 }

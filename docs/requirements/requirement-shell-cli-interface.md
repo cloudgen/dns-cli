@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.13.5) — `self-install` place verb; Version SSOT `1.37.0`; menu children use prefix numbers; about cache lines follow storage 1.7.0; `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.6) — `self-install` place verb; Version SSOT `1.38.0`; menu child **102** `records`; about cache lines follow storage 1.7.0; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -82,7 +82,7 @@ Additional flags **MAY** be added only when documented here **or** in the domain
 | `generate-sudoer-request` / `submit-sudoer-request` | `requirement-sudoer-json-file` **and** `requirement-three-layer-privilege-model` |
 | `vault` + store subcommands (`input` / `set` / `init` / `show` / `clear` / `account`/`zone` / `subdomain`) | `requirement-cloudflare-vault` **and** `requirement-domain-cloudflare-dns` |
 | `ip` | `requirement-external-ipv4` **and** `requirement-domain-cloudflare-dns` |
-| `add` / `update` / `remove` / `status` / `show` | `requirement-domain-cloudflare-dns` (`add`/`update`/`remove` dest also `requirement-cloudflare-dns-request`) |
+| `add` / `update` / `remove` / `status` / `show` / `records` | `requirement-domain-cloudflare-dns` (`add`/`update`/`remove` dest also `requirement-cloudflare-dns-request`; `records` calls those verbs) |
 | `submit` / `approve` / `reject` / `interactive` | `requirement-dns-actor-table` **and** `requirement-domain-cloudflare-dns` (`interactive` also `requirement-login-interactive-hook`) |
 | `test-json-format` | `requirement-incorrect-json-format` |
 | `fence-test` | `requirement-approval-fencing-condition` (domain SSOT also names it) |
@@ -114,7 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
-| **Version SSOT** | `VERSION="1.37.0"` hard-assign in `src/dns-cli` |
+| **Version SSOT** | `VERSION="1.38.0"` hard-assign in `src/dns-cli` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
@@ -142,7 +142,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | `print-sudoers` | Type 0 | `lpu_print_sudoers` | **Print the sudoer file** (Table A `sudoers(5)` text) — **Implemented** (1.5.0) |
 | `generate-sudoer-request` | Type 0 | `lpu_generate_sudoer_request` | Independent JSON dest; `--kind type-2-switch` (default) or `login-hook-elev` — **Implemented** |
 | `submit-sudoer-request` | Type 0 | `lpu_submit_sudoer_request` | Queue **`type-2-switch`** only — **Implemented** |
-| `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here |
+| `vault` / `ip` / `add` / `update` / `remove` / `status`/`show` / `records` | Type 2 default / Type 0 specify (`ip` always Type 0) | `cf_*` | **Owned by** `requirement-domain-cloudflare-dns` — do not duplicate tables here. `records` lists live A rows, then add / update / remove / test-api. `status` stays read-only |
 | `submit` | Type 0 | Implemented | Inbound **DNS** JSON drop — `requirement-dns-actor-table` (not sudoer submit) |
 | `test-json-format` | Type 0 **test-purpose** | Implemented | Per-row dest Fence tester — stdin xor `--file`; no queue; no dest elev — `requirement-incorrect-json-format` |
 | `fence-test` | Type 0 **test-purpose** | Implemented | Closed dest fence **list** tester — stdin xor `--file` xor `--dir`; `--expect-match` only with `--dir`; no queue — `requirement-approval-fencing-condition` |
@@ -264,7 +264,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family DNS Features + sudoers; off-TTY help |
 | **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers **71–73** and **76**; Back **0**; `sudoers` not dispatched |
 | **TP-CLI-21** | `tests/test_cli.sh` | have | invalid menu pick reprints the same numbered layer |
-| **TP-CLI-22** | `tests/test_cli.sh` | have | DNS **11–19** and **101**; Back **0**; `dns` not dispatched |
+| **TP-CLI-22** | `tests/test_cli.sh` | have | DNS **11–19**, **101**, and **102**; Back **0**; `dns` not dispatched |
 | **TP-CLI-23** | `tests/test_cli.sh` | have | finished listed command returns to the top list |
 | **TP-CLI-24** | `tests/test_cli.sh` | have | self-management **82** / **83** / **87–89**; Back **0**; `self-management` not dispatched |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
@@ -277,6 +277,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 3.13.6 | Version SSOT `1.38.0`. DNS menu child **102** `records` (topic-owner default-interaction 1.10.0) |
 | 2026-09-30 | Active 3.13.5 | Version SSOT `1.37.0`. Menu children use prefix numbers (topic-owner default-interaction 1.9.0) |
 | 2026-09-30 | Active 3.13.4 | Version SSOT `1.36.0`. About cache lines still follow `requirement-shell-cli-storage` 1.7.0 |
 | 2026-09-27 | Active 3.13.3 | `about` cache lines follow `requirement-shell-cli-storage` 1.6.0 (used / preferred / 1st / 2nd). Version SSOT `1.35.0` |
@@ -302,6 +303,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-30 (3.13.5 — version SSOT 1.37.0)  
+**Last Updated**: 2026-09-30 (3.13.6 — version SSOT 1.38.0; menu child **102** `records`)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

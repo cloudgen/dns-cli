@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-default-interaction.md  
-**Status**: Active (Version 1.9.0) Implemented  
+**Status**: Active (Version 1.10.0) Implemented  
 **Area**: shell  
 **Key**: `requirement-shell-cli-default-interaction`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -20,7 +20,7 @@ dns-cli **claims** a default function: a **short numbered main menu** of three *
 
 | Includes | Excludes |
 |----------|----------|
-| Top **1** family **DNS Features**; **7** family **sudoers**; **8** family **self-management**; Exit **9**; DNS children **11–19** and **101**; sudoers children **71–73** and **76**; self-management **82** / **83** / **87–89**; submenu **0** Back and no Exit row; a finished listed command returns to the **top** list; header **dns-cli**(*version*) - short description; gray italic explain text; a wrong pick reprints **that same list** | `help`, setup, test-json-format, fence-test, `menu` itself; a language board (**6**); DNS / sudoer / self-management verbs on the **main** list; live `sudoers` / `dns` / `self-management` dispatcher tokens; online **84** / **85** / **86** and row **81**; restarting a submenu at **1**; a submenu Exit row; treating a wrong pick as Exit; leaving the menu because a listed command finished |
+| Top **1** family **DNS Features**; **7** family **sudoers**; **8** family **self-management**; Exit **9**; DNS children **11–19**, **101**, and **102**; sudoers children **71–73** and **76**; self-management **82** / **83** / **87–89**; submenu **0** Back and no Exit row; a finished listed command returns to the **top** list; header **dns-cli**(*version*) - short description; gray italic explain text; a wrong pick reprints **that same list** | `help`, setup, test-json-format, fence-test, `menu` itself; a language board (**6**); DNS / sudoer / self-management verbs on the **main** list; live `sudoers` / `dns` / `self-management` dispatcher tokens; online **84** / **85** / **86** and row **81**; restarting a submenu at **1**; a submenu Exit row; treating a wrong pick as Exit; leaving the menu because a listed command finished |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
@@ -71,9 +71,9 @@ The choice **MUST** be read in the **current shell** (`out_msg_n` then `read`). 
 1. Print a **numbered list** of three **family** rows, then **Exit**.  
 2. **MUST NOT** list **setup**, **test-purpose** verbs, or **online** self-management (`self-update`, `version-check`, `self-uninstall`) on any numbered list.  
 3. Command-row text **MUST** be `command: what it does`.  
-4. **MUST NOT** list `help`, `menu`/`main`, the ten daily DNS verbs, the four sudoers-family verbs, or the five local self-management verbs on the **main** list (those verbs live on their submenus).  
+4. **MUST NOT** list `help`, `menu`/`main`, the eleven daily DNS verbs, the four sudoers-family verbs, or the five local self-management verbs on the **main** list (those verbs live on their submenus).  
 5. Main command rows **N = 3** (three families). Family **sudoers** **MUST** be numbered **7**. Family **self-management** **MUST** be numbered **8**. Exit **MUST** be **9**. Unused integers **2–6** are omitted. **99** / `exit` / `quit` **MAY** also leave. A blank line on the front board is an invalid pick (it does **not** leave).  
-5b. **Prefix numbers.** A command number appears once in the whole tree. A child number **MUST** start with its parent’s digits (**11…** and **101** under **1**, **71…** under **7**, **82…** under **8**). **MUST NOT** restart a submenu at **1**. Every submenu **MUST** print **0** Back. **MUST NOT** print an Exit row on a submenu. **9** on a submenu is an invalid pick. Typed `exit` / `quit` / **99** on a submenu **MAY** still leave the program. `0` / `back` / `q` on a submenu returns to the front board.  
+5b. **Prefix numbers.** A command number appears once in the whole tree. A child number **MUST** start with its parent’s digits (**11…**, **101**, and **102** under **1**, **71…** under **7**, **82…** under **8**). **MUST NOT** restart a submenu at **1**. Every submenu **MUST** print **0** Back. **MUST NOT** print an Exit row on a submenu. **9** on a submenu is an invalid pick. Typed `exit` / `quit` / **99** on a submenu **MAY** still leave the program. `0` / `back` / `q` on a submenu returns to the front board.  
 6. Accept a **number** or a **listed family token**. **9** / `exit` / `quit` on the front board returns 0.  
 7. **`sudoers` is not a live CLI command.** Choosing **7** or typing `sudoers` at the pick prompt **MUST** open the submenu (§2.4). `dns-cli sudoers` **MUST** remain unknown.  
 7b. **`DNS Features` is not a live CLI command.** Choosing **1** or typing `dns` / `DNS Features` / `dns-features` at the pick prompt **MUST** open the DNS submenu (§2.3c). `dns-cli dns` **MUST** remain unknown.  
@@ -99,7 +99,7 @@ Handler: `app_default` / `app_default_print_menu` / `app_default_print_row` / `a
 
 ### 2.3c DNS Features submenu
 
-Choosing main **1** / `dns` / `DNS Features` **MUST** print a second numbered list of the ten daily DNS verbs. Submenu header **MUST** use the same `APP_NAME(VERSION)` nametag, then ` - DNS Features (daily DNS work)`. Explain text **MUST** follow the same default CLI main menu style as the main list (*italic* + light gray SGR **3** + **37** on a TTY via `app_default_print_row`). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
+Choosing main **1** / `dns` / `DNS Features` **MUST** print a second numbered list of the daily DNS verbs. Submenu header **MUST** use the same `APP_NAME(VERSION)` nametag, then ` - DNS Features (daily DNS work)`. Explain text **MUST** follow the same default CLI main menu style as the main list (*italic* + light gray SGR **3** + **37** on a TTY via `app_default_print_row`). **MUST NOT** hang off-TTY (submenu exists only on the interactive menu path).
 
 | # | Command | Label |
 |---|---------|-------|
@@ -113,15 +113,18 @@ Choosing main **1** / `dns` / `DNS Features` **MUST** print a second numbered li
 | **18** | `approve` | `approve: Apply a waiting DNS request` |
 | **19** | `reject` | `reject: Decline a waiting DNS request` |
 | **101** | `interactive` | `interactive: Review waiting DNS requests one by one` |
+| **102** | `records` | `records: List live A records, then add, update, remove, or test the API` |
 | **0** | **Back** | return to the main list (not a command) |
 
-DNS submenu command rows **N = 10**. **Back MUST** be **0**. There is **no** Exit row. **101** is the tenth child: **11–19** hold nine verbs, and **101** still starts with parent **1** without being a child of **11**. **9** on this layer is an invalid pick (it is **not** `reject` and **not** Exit).
+DNS submenu command rows **N = 11**. **Back MUST** be **0**. There is **no** Exit row. **101** and **102** start with parent **1**. **11–19** hold nine verbs, so the tenth and eleventh are **101** and **102** (not children of **11**). **9** on this layer is an invalid pick (it is **not** `reject` and **not** Exit).
+
+`records` (**102**) opens a **data** board owned by `requirement-domain-cloudflare-dns` (D-M17). Live A rows on that board are numbered from **1**. Those row numbers are not command-tree children, so they do not restart this DNS command list at **1**. **0** on the record list ends `records` and returns to the **top** menu. **0** on a row's action list returns to the record list.
 
 - **0** / `back` / `Back` / `q` returns to the main list (does not run a handler).  
 - Typed **99** / `exit` / `quit` returns 0 from `menu` (same as main Exit). They are not rows.  
 - A listed number or verb runs that handler, then **MUST** return to the **top** list (same as Back). **MUST NOT** leave `menu`. **MUST NOT** stay on this DNS list. `show` **MAY** run `status`.  
 - **Invalid pick** on this layer follows §2.3 item 10: an unused number (including **9** and **10**), a blank line, or an unknown token **MUST** warn, reprint **this** DNS list, and read again. **MUST NOT** Back, **MUST NOT** Exit, **MUST NOT** return to the main list.  
-- All ten daily DNS verbs **MUST** appear here. **MUST NOT** put install/version/about/`help`/`setup`/test-purpose or the four sudoers-family verbs on this list.
+- All eleven DNS command rows **MUST** appear here. **MUST NOT** put install/version/about/`help`/`setup`/test-purpose or the four sudoers-family verbs on this list.
 
 ### 2.4 Sudoers submenu
 
@@ -203,7 +206,7 @@ util_app_ident() {
 | Case | **3** — empty argv follows zero-arguments (TTY = this menu; off-TTY = help); verb `menu`/`main` is the same list |
 | Family rows | `DNS Features`, `sudoers`, `self-management` — menu-only; **not** dispatched |
 | Main Exit | **9** (N = 3; sudoers **7**; self-management **8**) |
-| DNS submenu | **11–19** and **101**; Back **0**; no Exit row; N = 10 |
+| DNS submenu | **11–19**, **101**, and **102**; Back **0**; no Exit row; N = 11 |
 | Sudoers submenu | **71–73** and **76**; Back **0**; no Exit row; **74** / **75** unused; N = 4 |
 | Self-management submenu | **82** / **83** / **87–89**; Back **0**; no Exit row; **81** and **84–86** omitted; N = 5 |
 | Invalid pick | Warn + reprint **that same** numbered layer; a later listed pick still runs; EOF returns 0 |
@@ -213,7 +216,7 @@ util_app_ident() {
 | Row explain | TTY SGR 3 + SGR 37 via `app_default_print_row` |
 | Handler | `app_default` (`menu` / `main` / TTY empty argv); submenu printer/loop under the same `app_default_*` family |
 | Finished command | Returns to the **top** list (DNS Features, sudoers, and top-list shortcuts). Exit / EOF still leave. |
-| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 3**; DNS **11–19** and **101**; sudoers **71–73** and **76**; self-management **82** / **83** / **87–89**; front Exit **9**; every submenu Back **0** and no Exit row. A finished listed command returns to the top list. Invalid pick reprints the same layer. A blank line reprints (it does not leave). Live origin **A = selfmanaged** (online trimmed). Numbering reference: sibling **sshd-cli** menu **1.14.0** (shared front **7** / **8** / **9** and prefix children). Language board **6** is not this product. |
+| Honesty | **Implemented.** TTY empty argv draws this menu. Off-TTY empty argv is Type N help. Header `APP_NAME(VERSION)`; main **N = 3**; DNS **11–19**, **101**, and **102**; sudoers **71–73** and **76**; self-management **82** / **83** / **87–89**; front Exit **9**; every submenu Back **0** and no Exit row. A finished listed command returns to the top list. Invalid pick reprints the same layer. A blank line reprints (it does not leave). Live origin **A = selfmanaged** (online trimmed). Numbering reference: sibling **sshd-cli** menu **1.14.0** (shared front **7** / **8** / **9** and prefix children). Language board **6** is not this product. |
 
 Actor / role / subject / approver is already Active (`requirement-actor-role-subject-approver`). This menu is **not** dest yes/no review.
 
@@ -241,7 +244,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 **Future AI assistants, Grok, or maintainers MUST NOT**:
 
 1. Put setup, help, test-json-format, fence-test, or `menu`/`main` on the numbered main list or any submenu.  
-2. Put the ten daily DNS verbs, the four sudoers-family verbs, or the five local self-management verbs on the **main** list.  
+2. Put the eleven daily DNS verbs, the four sudoers-family verbs, or the five local self-management verbs on the **main** list.  
 3. Drop a grouped DNS verb from the DNS Features submenu, a grouped sudoers verb from the sudoers submenu, or a grouped self-management verb from the self-management submenu.  
 4. Number main Exit as **10** instead of **9**. Restart a submenu at **1**. Put an Exit row on a submenu. Number Back as anything other than **0**. Reuse **74** / **75** or **81** / **84** / **85** / **86** for a different verb. Number family **self-management** as anything other than **8**, or family **sudoers** as anything other than **7**.  
 5. Wire `sudoers`, `dns` / `DNS Features`, or `self-management` as a live `app_main` command. Put online `self-update` / `version-check` / `self-uninstall` on this product’s lists. Put `uninstall` on **86**. Do not drop `self-install` from **87**. Add a language board.  
@@ -281,7 +284,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | **TP-CLI-19** | `tests/test_cli.sh` | have (TTY empty argv draws the same numbered list) |
 | **TP-CLI-20** | `tests/test_cli.sh` | have (sudoers **71–73** and **76**; Back **0**; no Exit row; `sudoers` not a live command) |
 | **TP-CLI-21** | `tests/test_cli.sh` | have (invalid pick on main, DNS Features, and sudoers reprints that same layer; a later listed pick still runs) |
-| **TP-CLI-22** | `tests/test_cli.sh` | have (DNS **11–19** and **101**; Back **0**; `dns` not a live command; all ten daily DNS verbs) |
+| **TP-CLI-22** | `tests/test_cli.sh` | have (DNS **11–19**, **101**, and **102**; Back **0**; `dns` not a live command) |
 | **TP-CLI-23** | `tests/test_cli.sh` | have (a finished listed command returns to the top list: DNS `ip`, sudoers `print-sudoers`, top-list shortcut) |
 | **TP-CLI-24** | `tests/test_cli.sh` | have (self-management **82** / **83** / **87–89**; Back **0**; **81** invalid; `self-management` not a live command; no online verbs; finished `version` returns to top) |
 | **TP-CLI-14** | `tests/test_cli.sh` | have (`menu` / `main` dual mention) |
@@ -298,6 +301,7 @@ Actor / role / subject / approver is already Active (`requirement-actor-role-sub
 | 2026-09-13 | Active 1.4.0 | Invalid pick on every numbered layer warns, reprints **that same** list, and reads again (**TP-CLI-21**) |
 | 2026-09-16 | Active 1.5.0 | Top list is family **DNS Features** **1** + family **sudoers** **8**; Exit **9**; DNS submenu Back **98** / Exit **99**; sudoers submenu unchanged (**TP-CLI-22**) |
 | 2026-09-16 | Active 1.6.0 | A finished listed command returns to the **top** list (**TP-CLI-23**) |
+| 2026-09-30 | Active 1.10.0 | DNS child **102** `records`: numbered live A rows, then add / update / remove / test-api. `status` stays read-only. |
 | 2026-09-30 | Active 1.9.0 | Prefix numbers from sibling sshd-cli menu 1.14.0: DNS **11–19** and **101**, sudoers **71–73** and **76**, self-management **82** / **83** / **87–89**, submenu **0** Back, no submenu Exit row. Online **81** / **84–86** stay omitted. No language board. |
 | 2026-09-23 | Active 1.8.2 | Menu `read` stays in this shell; WARNING on loops that `read`; value prompts point at `PROMPT_ASK_VALUE` |
 | 2026-09-17 | Active 1.8.1 | Honesty: live origin **A = selfmanaged** (online trimmed); family grouping inherited |

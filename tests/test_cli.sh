@@ -466,6 +466,7 @@ run_test_cli() {
     assert_contains "TP-CLI-22 approve row" "$_plain" "18. approve: Apply a waiting DNS request"
     assert_contains "TP-CLI-22 reject row" "$_plain" "19. reject: Decline a waiting DNS request"
     assert_contains "TP-CLI-22 interactive row" "$_plain" "101. interactive: Review waiting DNS requests one by one"
+    assert_contains "TP-CLI-22 records row" "$_plain" "102. records: List live A records, then add, update, remove, or test the API"
     assert_contains "TP-CLI-22 submenu Back 0" "$_plain" "0. Back"
     assert_not_contains "TP-CLI-22 submenu has no Exit row" "$_plain" "99. Exit"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
@@ -607,7 +608,7 @@ run_test_cli() {
     _out=$(printf '1\n10\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-21 DNS invalid warns" "$_plain" "Not a menu choice"
-    assert_contains "TP-CLI-21 DNS invalid Next enter" "$_plain" "Next: enter 11-19, 101"
+    assert_contains "TP-CLI-21 DNS invalid Next enter" "$_plain" "Next: enter 11-19, 101-102"
     _out=$(printf '2\n7\n74\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
@@ -775,7 +776,7 @@ run_test_cli() {
         # Routed top-level COMMAND values from app_main, plus CI-M1 Gap verbs law still names.
         for _verb in install self-install uninstall where-is-me version about help menu main setup remove-lpu \
             print-sudoers generate-sudoer-request submit-sudoer-request \
-            vault ip add update remove status show \
+            vault ip add update remove status show records \
             submit approve reject interactive test-json-format fence-test; do
             _hits=$(grep -l -F -- "\`${_verb}\`" "${_reqdir}"/requirement-*.md 2>/dev/null || true)
             _n=$(printf '%s\n' "${_hits}" | sed '/^$/d' | wc -l | tr -d ' ')
@@ -809,7 +810,7 @@ run_test_cli() {
     }
     for _verb in install self-install uninstall where-is-me version about help menu main setup remove-lpu \
         print-sudoers generate-sudoer-request submit-sudoer-request \
-        vault ip add update remove status show \
+        vault ip add update remove status show records \
         submit approve reject interactive test-json-format fence-test; do
         if _req_has_sample "${_verb}"; then
             t_pass "TP-CLI-15 ${_verb} has topic-owner sample"

@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.37.0  
+**Product VERSION:** 1.38.0  
 **Last plan update:** 2026-09-30  
-**Last suite run:** PASS=985 FAIL=0 SKIP=2 (2026-09-30; prefix menu numbers **TP-CLI-20** · **TP-CLI-22** · **TP-CLI-24**, plus **TP-CLI-28** missing `mktemp`. Same-day cache run was PASS=984. Prior 2026-09-17 was PASS=945. **TP-FENCE-07** still skips the live sibling dest `kind`)
+**Last suite run:** PASS=1017 FAIL=0 SKIP=2 (2026-09-30; live A board **TP-CF-REC-01..09** and menu **102** in **TP-CLI-22**. Prior prefix-menu run was PASS=985. **TP-FENCE-07** still skips the live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -33,7 +33,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | A-record mode (stored + switch) | have | TP-CF-MODE-01..08 (09/10 partial) |
 | Online curl / companion checksum | n/a | Local-only product |
 | Cloudflare vault | have | TP-CF-VAULT-* |
-| Cloudflare DNS / ipinfo | have | TP-CF-DNS-* (stubbed curl; no public net) |
+| Cloudflare DNS / ipinfo | have | TP-CF-DNS-* · **TP-CF-REC-01..09** (stubbed curl; no public net) |
 | Live `crms.hk` as invoking user | skip | TP-CF-LIVE-* (`CF_LIVE=1`; not in `run.sh`) |
 
 ---
@@ -65,7 +65,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-19 | TTY empty argv draws the same numbered main menu | test_cli | requirement-shell-cli-zero-arguments · default-interaction | **have** |
 | TP-CLI-20 | sudoers **71–73** and **76**; Back **0**; no Exit row; `sudoers` is not a live command | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-21 | Invalid pick on every numbered menu layer reprints that same list; a later listed pick still runs | test_cli | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-22 | DNS **11–19** and **101**; Back **0**; `dns` is not a live command; all ten daily DNS verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-22 | DNS **11–19**, **101**, and **102** `records`; Back **0**; `dns` is not a live command; eleven DNS verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-23 | Finished listed command returns to the top list (DNS `ip`, sudoers `print-sudoers`, top-list shortcut) | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-24 | Self-management **82** / **83** / **87–89**; Back **0**; **81** is not a row; `self-management` is not a live command; no online verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-25 | `prompt_ask` / `prompt_secret` assign `PROMPT_ASK_VALUE`; vault copies it; persistency ensure not captured | test_cli | requirement-shell-prompt | **have** |
@@ -246,6 +246,15 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CF-DNS-06 | `--ip` override; reject 127/8 | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
 | TP-CF-DNS-07 | status real resolver A + `in_sync` | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
 | TP-CF-DNS-08 | two domain-ids → `domain_required` without `--domain` | test_cf_dns | requirement-domain-cloudflare-dns | **todo** |
+| TP-CF-REC-01 | off-TTY `records` numbers each live A and does not prompt | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-02 | `--json records` returns `command` `records` and row objects | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-03 | TTY row then `update` sets that name to the public IPv4 | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-04 | `test-api` creates then deletes `_test_<UTC>` | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-05 | invalid record pick reprints the same list | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-06 | menu **102** opens the board and returns to the front list | test_cf_dns | requirement-shell-cli-default-interaction · domain | **have** |
+| TP-CF-REC-07 | one empty name: row then `add` creates the A | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-08 | round-robin row then `remove` deletes that address only | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
+| TP-CF-REC-09 | non-round-robin with more than one A warns and stays in the session | test_cf_dns | requirement-domain-cloudflare-dns | **have** |
 
 ### TP-CF-MODE (A-record mode)
 
