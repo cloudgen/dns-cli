@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.37.0] - 2026-09-30
+
+### Changed
+
+- **Main menu numbers.** The top list stays **1 DNS Features**, **7 sudoers**, **8 self-management**, and **9** Exit. Child rows no longer restart at **1**. DNS work is **11–19** and **101**. Sudoers is **71** generate-sudoer-request, **72** submit-sudoer-request, **73** print-sudoers, and **76** remove-lpu. Self-management is **82** version, **83** about, **87** self-install, **88** uninstall, and **89** where-is-me. Every side list uses **0** Back and has no Exit row. **9** on a side list is a wrong pick. Online rows **81** / **84** / **85** / **86** stay off this local-only product. There is no language board. Law `requirement-shell-cli-default-interaction` **1.9.0** (reference: sibling sshd-cli menu **1.14.0**). Suite **TP-CLI-18** · **TP-CLI-20** · **TP-CLI-21** · **TP-CLI-22** · **TP-CLI-23** · **TP-CLI-24**. Ship unit **`VERSION="1.37.0"`**.
+
 ## [1.36.0] - 2026-09-30
 
 ### Changed

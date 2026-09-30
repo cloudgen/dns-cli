@@ -3,9 +3,9 @@
 Maps **TP-*** coverage to `tests/`.  
 **Suite entry:** `./tests/run.sh`  
 **Ship unit (live):** `src/dns-cli`  
-**Product VERSION:** 1.34.0  
-**Last plan update:** 2026-09-17  
-**Last suite run:** PASS=984 FAIL=0 SKIP=2 (2026-09-30; **TP-CLI-28** missing `mktemp`. Prior 2026-09-17 was PASS=945. **TP-FENCE-07** still skips the live sibling dest `kind`)
+**Product VERSION:** 1.37.0  
+**Last plan update:** 2026-09-30  
+**Last suite run:** PASS=985 FAIL=0 SKIP=2 (2026-09-30; prefix menu numbers **TP-CLI-20** · **TP-CLI-22** · **TP-CLI-24**, plus **TP-CLI-28** missing `mktemp`. Same-day cache run was PASS=984. Prior 2026-09-17 was PASS=945. **TP-FENCE-07** still skips the live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -63,11 +63,11 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-17 | about Cache folder used / preferred / 1st / 2nd + persistency folder `${HOME}/.local/dns-cli` (no `$$`) | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-18 | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY bold/italic nametag + SGR 3;37 explain; family DNS Features **1** + family sudoers **7** + family self-management **8**; Exit **9**; TTY `--json menu` ignores json; TTY `main`; off-TTY help | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-19 | TTY empty argv draws the same numbered main menu | test_cli | requirement-shell-cli-zero-arguments · default-interaction | **have** |
-| TP-CLI-20 | sudoers submenu Back 8 / Exit 9; `sudoers` is not a live command; all four grant/draft/LPU verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-20 | sudoers **71–73** and **76**; Back **0**; no Exit row; `sudoers` is not a live command | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-21 | Invalid pick on every numbered menu layer reprints that same list; a later listed pick still runs | test_cli | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-22 | DNS Features submenu Back 98 / Exit 99; `dns` is not a live command; all ten daily DNS verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-22 | DNS **11–19** and **101**; Back **0**; `dns` is not a live command; all ten daily DNS verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-23 | Finished listed command returns to the top list (DNS `ip`, sudoers `print-sudoers`, top-list shortcut) | test_cli | requirement-shell-cli-default-interaction | **have** |
-| TP-CLI-24 | Self-management submenu Back 8 / Exit 9; `self-management` is not a live command; local five verbs; no online verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
+| TP-CLI-24 | Self-management **82** / **83** / **87–89**; Back **0**; **81** is not a row; `self-management` is not a live command; no online verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-25 | `prompt_ask` / `prompt_secret` assign `PROMPT_ASK_VALUE`; vault copies it; persistency ensure not captured | test_cli | requirement-shell-prompt | **have** |
 | TP-CLI-26 | persistency mkdir fail exits the parent (no version INFO after ERROR) | test_cli | requirement-shell-cli-storage | **have** |
 | TP-CLI-28 | `util_mktemp` under the cache leaf; refuses a `$$` file name; absent `mktemp` writes mode `0600` in that leaf; `util_mktemp_dir` under umask `0177` is mode `0700` and searchable | test_cli | requirement-shell-cli-storage · requirement-shell-temp-file-system | **have** |

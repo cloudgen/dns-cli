@@ -39,7 +39,7 @@
 # or /usr/local/bin (root/--global, mode 0755). Script $0 copies itself (no download).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.36.0"
+# VERSION: hard-assign VERSION="1.37.0"
 #
 # =============================================================================
 
@@ -59,8 +59,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.36.0"
-: "${VERSION:=1.36.0}"
+VERSION="1.37.0"
+: "${VERSION:=1.37.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -7085,7 +7085,8 @@ app_default_print_row() {
 #
 # GENERAL PURPOSE:
 # Top layer: family DNS Features, family sudoers, family self-management.
-# Daily DNS, grant/draft, and local lifecycle verbs live on submenus.
+# Child numbers keep the parent prefix. Daily DNS, grant/draft, and
+# local lifecycle verbs live on those submenus. Back on a submenu is 0.
 #
 # ALIGNMENT:
 # - requirement-shell-cli-default-interaction.md
@@ -7094,7 +7095,7 @@ app_default_print_row() {
 # =============================================================================
 app_default_print_menu() {
     : "${APP_NAME:=dns-cli}"
-    : "${VERSION:=1.31.0}"
+    : "${VERSION:=1.37.0}"
     : "${SHORT_DESCRIPTION:=${APP_DESC:-Cloudflare DNS CLI (vault + IPv4 A records)}}"
     : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
     out_info "$(util_app_ident) - ${SHORT_DESC}"
@@ -7126,13 +7127,12 @@ app_default_print_selfmgmt_menu() {
     : "${QUIET:=0}"
 
     out_info "$(util_app_ident) - self-management (place, remove, locate)"
-    app_default_print_row 1 "self-install" "Place this CLI (copy this file; no download)"
-    app_default_print_row 2 "uninstall" "Remove managed binary (confirm or --force)"
-    app_default_print_row 3 "where-is-me" "Show running and install paths"
-    app_default_print_row 4 "version" "Show local version"
-    app_default_print_row 5 "about" "Show diagnostics (Type 0 + vault fields, no token)"
-    app_default_print_row 8 "Back"
-    app_default_print_row 9 "Exit"
+    app_default_print_row 82 "version" "Show local version"
+    app_default_print_row 83 "about" "Show diagnostics (Type 0 + vault fields, no token)"
+    app_default_print_row 87 "self-install" "Place this CLI (copy this file; no download)"
+    app_default_print_row 88 "uninstall" "Remove managed binary (confirm or --force)"
+    app_default_print_row 89 "where-is-me" "Show running and install paths"
+    app_default_print_row 0 "Back"
 }
 
 # =============================================================================
@@ -7154,18 +7154,17 @@ app_default_print_dns_menu() {
     : "${QUIET:=0}"
 
     out_info "$(util_app_ident) - DNS Features (daily DNS work)"
-    app_default_print_row 1 "vault" "Store or inspect Cloudflare vault"
-    app_default_print_row 2 "ip" "Show public IPv4 (no vault)"
-    app_default_print_row 3 "add" "Ensure one A record"
-    app_default_print_row 4 "update" "Update existing A record"
-    app_default_print_row 5 "remove" "Delete managed A record"
-    app_default_print_row 6 "status" "Show public IP and DNS A records"
-    app_default_print_row 7 "submit" "Queue a DNS request JSON file"
-    app_default_print_row 8 "approve" "Apply a waiting DNS request"
-    app_default_print_row 9 "reject" "Decline a waiting DNS request"
-    app_default_print_row 10 "interactive" "Review waiting DNS requests one by one"
-    app_default_print_row 98 "Back"
-    app_default_print_row 99 "Exit"
+    app_default_print_row 11 "vault" "Store or inspect Cloudflare vault"
+    app_default_print_row 12 "ip" "Show public IPv4 (no vault)"
+    app_default_print_row 13 "add" "Ensure one A record"
+    app_default_print_row 14 "update" "Update existing A record"
+    app_default_print_row 15 "remove" "Delete managed A record"
+    app_default_print_row 16 "status" "Show public IP and DNS A records"
+    app_default_print_row 17 "submit" "Queue a DNS request JSON file"
+    app_default_print_row 18 "approve" "Apply a waiting DNS request"
+    app_default_print_row 19 "reject" "Decline a waiting DNS request"
+    app_default_print_row 101 "interactive" "Review waiting DNS requests one by one"
+    app_default_print_row 0 "Back"
 }
 
 # =============================================================================
@@ -7186,12 +7185,11 @@ app_default_print_sudoers_menu() {
     : "${QUIET:=0}"
 
     out_info "$(util_app_ident) - sudoers (grant and drafts)"
-    app_default_print_row 1 "generate-sudoer-request" "Write a local JSON grant you can review"
-    app_default_print_row 2 "submit-sudoer-request" "Queue a type-2-switch grant as this login"
-    app_default_print_row 3 "print-sudoers" "Print the sudoer file (does not install dest)"
-    app_default_print_row 4 "remove-lpu" "Remove Linux user dns-adm"
-    app_default_print_row 8 "Back"
-    app_default_print_row 9 "Exit"
+    app_default_print_row 71 "generate-sudoer-request" "Write a local JSON grant you can review"
+    app_default_print_row 72 "submit-sudoer-request" "Queue a type-2-switch grant as this login"
+    app_default_print_row 73 "print-sudoers" "Print the sudoer file (does not install dest)"
+    app_default_print_row 76 "remove-lpu" "Remove Linux user dns-adm"
+    app_default_print_row 0 "Back"
 }
 
 # =============================================================================
@@ -7295,35 +7293,35 @@ app_default_run_dns_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        1|vault)
+        11|vault)
             : "${CF_VAULT_ACTION:=input}"
             cf_vault_dispatch
             ;;
-        2|ip)
+        12|ip)
             cf_ip_show
             ;;
-        3|add)
+        13|add)
             cf_dns_add
             ;;
-        4|update)
+        14|update)
             cf_dns_update
             ;;
-        5|remove)
+        15|remove)
             cf_dns_remove
             ;;
-        6|status|show)
+        16|status|show)
             cf_dns_status
             ;;
-        7|submit)
+        17|submit)
             cf_req_submit "${CF_POS2:-}"
             ;;
-        8|approve)
+        18|approve)
             cf_req_approve "${CF_POS2:-}"
             ;;
-        9|reject)
+        19|reject)
             cf_req_reject "${CF_POS2:-}"
             ;;
-        10|interactive)
+        101|interactive)
             cf_req_interactive
             ;;
         *)
@@ -7350,16 +7348,16 @@ app_default_run_sudoers_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        1|generate-sudoer-request)
+        71|generate-sudoer-request)
             lpu_generate_sudoer_request "${CF_POS2:-}"
             ;;
-        2|submit-sudoer-request)
+        72|submit-sudoer-request)
             lpu_submit_sudoer_request "${CF_POS2:-}"
             ;;
-        3|print-sudoers)
+        73|print-sudoers)
             lpu_print_sudoers
             ;;
-        4|remove-lpu)
+        76|remove-lpu)
             lpu_remove
             ;;
         *)
@@ -7402,10 +7400,10 @@ app_default_sudoers_loop() {
             return 0
         fi
         case "${_pick}" in
-            8|back|Back)
+            0|back|Back|q|Q)
                 return 1
                 ;;
-            9|99|exit|quit|Exit|QUIT)
+            99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -7415,7 +7413,7 @@ app_default_sudoers_loop() {
         if app_default_run_sudoers_pick "${_pick}"; then
             return 1
         fi
-        out_warn "Not a menu choice. Next: enter 1-4, 8 back, 9 to leave, or a listed command name."
+        out_warn "Not a menu choice. Next: enter 71-73, 76, 0 back, or a listed command name."
     done
 }
 
@@ -7437,19 +7435,19 @@ app_default_run_selfmgmt_pick() {
     _pick="${1:-}"
 
     case "${_pick}" in
-        1|self-install|install)
+        87|self-install|install)
             inst_self_install
             ;;
-        2|uninstall)
+        88|uninstall)
             inst_local_uninstall
             ;;
-        3|where-is-me)
+        89|where-is-me)
             app_where_is_me
             ;;
-        4|version)
+        82|version)
             app_version
             ;;
-        5|about)
+        83|about)
             app_about
             ;;
         *)
@@ -7493,10 +7491,10 @@ app_default_selfmgmt_loop() {
             return 0
         fi
         case "${_pick}" in
-            8|back|Back)
+            0|back|Back|q|Q)
                 return 1
                 ;;
-            9|99|exit|quit|Exit|QUIT)
+            99|exit|quit|Exit|QUIT)
                 return 0
                 ;;
         esac
@@ -7506,7 +7504,7 @@ app_default_selfmgmt_loop() {
         if app_default_run_selfmgmt_pick "${_pick}"; then
             return 1
         fi
-        out_warn "Not a menu choice. Next: enter 1-5, 8 back, 9 to leave, or a listed command name."
+        out_warn "Not a menu choice. Next: enter 82, 83, 87-89, 0 back, or a listed command name."
     done
 }
 
@@ -7543,7 +7541,7 @@ app_default_dns_loop() {
             return 0
         fi
         case "${_pick}" in
-            98|back|Back)
+            0|back|Back|q|Q)
                 return 1
                 ;;
             99|exit|quit|Exit|QUIT)
@@ -7556,7 +7554,7 @@ app_default_dns_loop() {
         if app_default_run_dns_pick "${_pick}"; then
             return 1
         fi
-        out_warn "Not a menu choice. Next: enter 1-10, 98 back, 99 to leave, or a listed command name."
+        out_warn "Not a menu choice. Next: enter 11-19, 101, 0 back, or a listed command name."
     done
 }
 
@@ -7711,8 +7709,9 @@ app_help() {
     out_plain "  version              Show local version"
     out_plain "  about                Show diagnostics (Type 0 + vault fields, no token)"
     out_plain "  help                 Show this help"
-    out_plain "  menu                 Numbered list: 1 DNS Features, 7 family sudoers,"
-    out_plain "                       8 family self-management. Alias: main."
+    out_plain "  menu                 Numbered list: 1 DNS Features (11-19, 101),"
+    out_plain "                       7 sudoers (71-73, 76), 8 self-management"
+    out_plain "                       (82, 83, 87-89). Submenu back is 0. Alias: main."
     out_plain "                       Family rows are not typed commands."
     out_plain "                       At a TTY, no arguments opens this list"
     out_plain "  print-sudoers [PATH] Print sudoer file (Table A text; does not install dest)"

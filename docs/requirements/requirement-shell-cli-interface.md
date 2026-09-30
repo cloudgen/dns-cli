@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.13.4) — `self-install` place verb; Version SSOT `1.36.0`; about cache lines follow storage 1.7.0; `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.5) — `self-install` place verb; Version SSOT `1.37.0`; menu children use prefix numbers; about cache lines follow storage 1.7.0; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -114,7 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
-| **Version SSOT** | `VERSION="1.36.0"` hard-assign in `src/dns-cli` |
+| **Version SSOT** | `VERSION="1.37.0"` hard-assign in `src/dns-cli` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
@@ -262,11 +262,11 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **TP-CLI-14** | `tests/test_cli.sh` | have | CI-M1 dual mention — each routed verb in ≥2 REQs |
 | **TP-CLI-15** | `tests/test_cli.sh` | have | CI-M1a — each verb has a `dns-cli …` sample on a topic-owner REQ |
 | **TP-CLI-18** | `tests/test_cli.sh` | have | `menu`/`main` header `${APP_NAME}(${VERSION}) - ${SHORT_DESC}`; TTY gray-italic explain; family DNS Features + sudoers; off-TTY help |
-| **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers submenu Back/Exit; `sudoers` not dispatched |
+| **TP-CLI-20** | `tests/test_cli.sh` | have | sudoers **71–73** and **76**; Back **0**; `sudoers` not dispatched |
 | **TP-CLI-21** | `tests/test_cli.sh` | have | invalid menu pick reprints the same numbered layer |
-| **TP-CLI-22** | `tests/test_cli.sh` | have | DNS Features submenu Back **98** / Exit **99**; `dns` not dispatched |
+| **TP-CLI-22** | `tests/test_cli.sh` | have | DNS **11–19** and **101**; Back **0**; `dns` not dispatched |
 | **TP-CLI-23** | `tests/test_cli.sh` | have | finished listed command returns to the top list |
-| **TP-CLI-24** | `tests/test_cli.sh` | have | self-management submenu Back **8** / Exit **9**; `self-management` not dispatched |
+| **TP-CLI-24** | `tests/test_cli.sh` | have | self-management **82** / **83** / **87–89**; Back **0**; `self-management` not dispatched |
 | **TP-FENCE-09..15** | `tests/test_cli.sh` | have | `fence-test` routed; testers listed apart from operational |
 | **TP-LC-*** | `tests/test_local_lifecycle.sh` | have | lifecycle |
 
@@ -277,6 +277,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 3.13.5 | Version SSOT `1.37.0`. Menu children use prefix numbers (topic-owner default-interaction 1.9.0) |
 | 2026-09-30 | Active 3.13.4 | Version SSOT `1.36.0`. About cache lines still follow `requirement-shell-cli-storage` 1.7.0 |
 | 2026-09-27 | Active 3.13.3 | `about` cache lines follow `requirement-shell-cli-storage` 1.6.0 (used / preferred / 1st / 2nd). Version SSOT `1.35.0` |
 | 2026-09-17 | Active 3.13.2 | Implementation Notes Version SSOT `1.31.0` (re-specialize from selfmanaged) |
@@ -301,6 +302,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-30 (3.13.4 — version SSOT 1.36.0)  
+**Last Updated**: 2026-09-30 (3.13.5 — version SSOT 1.37.0)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

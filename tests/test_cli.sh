@@ -410,33 +410,36 @@ run_test_cli() {
     assert_contains "TP-CLI-19 light-gray italic SGR 3;37" "$_out" "${_esc}[3;37m"
     assert_not_contains "TP-CLI-19 TTY empty argv is not help dump" "$_plain" "Usage:"
 
-    # TP-CLI-20 sudoers family submenu: Back 8 / Exit 9; sudoers is not dispatched
-    _out=$(printf '7\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    # TP-CLI-20 sudoers family submenu: prefix 71-73, 76; Back 0; no Exit row
+    _out=$(printf '7\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-20 TTY submenu back exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-20 submenu title" "$_plain" "sudoers (grant and drafts)"
-    assert_contains "TP-CLI-20 submenu generate row" "$_plain" "1. generate-sudoer-request:"
-    assert_contains "TP-CLI-20 submenu submit row" "$_plain" "2. submit-sudoer-request:"
-    assert_contains "TP-CLI-20 submenu print row" "$_plain" "3. print-sudoers:"
-    assert_contains "TP-CLI-20 submenu remove-lpu row" "$_plain" "4. remove-lpu:"
-    assert_contains "TP-CLI-20 submenu Back 8" "$_plain" "8. Back"
-    assert_contains "TP-CLI-20 submenu Exit 9" "$_plain" "9. Exit"
+    assert_contains "TP-CLI-20 submenu generate row" "$_plain" "71. generate-sudoer-request:"
+    assert_contains "TP-CLI-20 submenu submit row" "$_plain" "72. submit-sudoer-request:"
+    assert_contains "TP-CLI-20 submenu print row" "$_plain" "73. print-sudoers:"
+    assert_contains "TP-CLI-20 submenu remove-lpu row" "$_plain" "76. remove-lpu:"
+    assert_contains "TP-CLI-20 submenu Back 0" "$_plain" "0. Back"
+    _nexit=$(printf '%s\n' "$_plain" | grep -c '9\. Exit')
+    assert_eq "TP-CLI-20 Exit stays on the front board" 2 "$_nexit"
+    assert_not_contains "TP-CLI-20 no install-script row" "$_plain" "print-sudoers-install-script:"
+    assert_not_contains "TP-CLI-20 no remove-project-sudoers row" "$_plain" "remove-project-sudoers:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '71. generate-sudoer-request:')
     assert_eq "TP-CLI-20 back reprints main DNS Features twice" 2 "$_nfeat"
     assert_eq "TP-CLI-20 back showed submenu once" 1 "$_ngen"
-    _out=$(printf '7\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _out=$(printf '7\nexit\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
-    assert_eq "TP-CLI-20 TTY submenu Exit 9 leaves" 0 "$_ec"
+    assert_eq "TP-CLI-20 TTY submenu exit word leaves" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
-    assert_eq "TP-CLI-20 Exit 9 main once" 1 "$_nfeat"
-    assert_eq "TP-CLI-20 Exit 9 showed submenu" 1 "$_ngen"
-    _out=$(printf 'sudoers\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '71. generate-sudoer-request:')
+    assert_eq "TP-CLI-20 exit word main once" 1 "$_nfeat"
+    assert_eq "TP-CLI-20 exit word showed submenu" 1 "$_ngen"
+    _out=$(printf 'sudoers\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
-    assert_contains "TP-CLI-20 pick sudoers opens submenu" "$_plain" "1. generate-sudoer-request:"
+    assert_contains "TP-CLI-20 pick sudoers opens submenu" "$_plain" "71. generate-sudoer-request:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-20 pick sudoers then back reprints main" 2 "$_nfeat"
     _err=$(sh "${SCRIPT}" sudoers 2>&1 >/dev/null)
@@ -447,39 +450,39 @@ run_test_cli() {
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-20 invalid pick warns" "$_plain" "Not a menu choice"
 
-    # TP-CLI-22 DNS Features submenu: Back 98 / Exit 99; dns is not dispatched
-    _out=$(printf '1\n98\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    # TP-CLI-22 DNS Features submenu: prefix 11-19 and 101; Back 0; dns is not dispatched
+    _out=$(printf '1\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-22 TTY DNS submenu back exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-22 submenu title" "$_plain" "DNS Features (daily DNS work)"
-    assert_contains "TP-CLI-22 vault row" "$_plain" "1. vault: Store or inspect Cloudflare vault"
-    assert_contains "TP-CLI-22 ip row" "$_plain" "2. ip: Show public IPv4 (no vault)"
-    assert_contains "TP-CLI-22 add row" "$_plain" "3. add: Ensure one A record"
-    assert_contains "TP-CLI-22 update row" "$_plain" "4. update: Update existing A record"
-    assert_contains "TP-CLI-22 remove row" "$_plain" "5. remove: Delete managed A record"
-    assert_contains "TP-CLI-22 status row" "$_plain" "6. status: Show public IP and DNS A records"
-    assert_contains "TP-CLI-22 submit row" "$_plain" "7. submit: Queue a DNS request JSON file"
-    assert_contains "TP-CLI-22 approve row" "$_plain" "8. approve: Apply a waiting DNS request"
-    assert_contains "TP-CLI-22 reject row" "$_plain" "9. reject: Decline a waiting DNS request"
-    assert_contains "TP-CLI-22 interactive row" "$_plain" "10. interactive: Review waiting DNS requests one by one"
-    assert_contains "TP-CLI-22 submenu Back 98" "$_plain" "98. Back"
-    assert_contains "TP-CLI-22 submenu Exit 99" "$_plain" "99. Exit"
+    assert_contains "TP-CLI-22 vault row" "$_plain" "11. vault: Store or inspect Cloudflare vault"
+    assert_contains "TP-CLI-22 ip row" "$_plain" "12. ip: Show public IPv4 (no vault)"
+    assert_contains "TP-CLI-22 add row" "$_plain" "13. add: Ensure one A record"
+    assert_contains "TP-CLI-22 update row" "$_plain" "14. update: Update existing A record"
+    assert_contains "TP-CLI-22 remove row" "$_plain" "15. remove: Delete managed A record"
+    assert_contains "TP-CLI-22 status row" "$_plain" "16. status: Show public IP and DNS A records"
+    assert_contains "TP-CLI-22 submit row" "$_plain" "17. submit: Queue a DNS request JSON file"
+    assert_contains "TP-CLI-22 approve row" "$_plain" "18. approve: Apply a waiting DNS request"
+    assert_contains "TP-CLI-22 reject row" "$_plain" "19. reject: Decline a waiting DNS request"
+    assert_contains "TP-CLI-22 interactive row" "$_plain" "101. interactive: Review waiting DNS requests one by one"
+    assert_contains "TP-CLI-22 submenu Back 0" "$_plain" "0. Back"
+    assert_not_contains "TP-CLI-22 submenu has no Exit row" "$_plain" "99. Exit"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '11. vault:')
     assert_eq "TP-CLI-22 back reprints main DNS Features twice" 2 "$_nfeat"
     assert_eq "TP-CLI-22 back showed DNS submenu once" 1 "$_nvault"
     _out=$(printf '1\n99\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
-    assert_eq "TP-CLI-22 TTY DNS submenu Exit 99 leaves" 0 "$_ec"
+    assert_eq "TP-CLI-22 TTY DNS submenu typed 99 leaves" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
-    assert_eq "TP-CLI-22 Exit 99 main once" 1 "$_nfeat"
-    assert_eq "TP-CLI-22 Exit 99 showed DNS submenu" 1 "$_nvault"
-    _out=$(printf 'dns\n98\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '11. vault:')
+    assert_eq "TP-CLI-22 typed 99 main once" 1 "$_nfeat"
+    assert_eq "TP-CLI-22 typed 99 showed DNS submenu" 1 "$_nvault"
+    _out=$(printf 'dns\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
-    assert_contains "TP-CLI-22 pick dns opens submenu" "$_plain" "1. vault:"
+    assert_contains "TP-CLI-22 pick dns opens submenu" "$_plain" "11. vault:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-22 pick dns then back reprints main" 2 "$_nfeat"
     _err=$(sh "${SCRIPT}" dns 2>&1 >/dev/null)
@@ -488,21 +491,21 @@ run_test_cli() {
     assert_contains "TP-CLI-22 dns unknown" "$_err" "Unknown command"
 
     # TP-CLI-23 a finished listed command returns to the top list
-    _out=$(printf '1\n2\n9\n' | TTY=1 sh "${SCRIPT}" menu --ip 203.0.113.10 2>/dev/null)
+    _out=$(printf '1\n12\n9\n' | TTY=1 sh "${SCRIPT}" menu --ip 203.0.113.10 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-23 DNS ip then Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-23 DNS ip ran" "$_plain" "Public IPv4: 203.0.113.10"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '11. vault:')
     assert_eq "TP-CLI-23 DNS ip reprints top twice" 2 "$_nfeat"
     assert_eq "TP-CLI-23 DNS ip showed DNS submenu once" 1 "$_nvault"
-    _out=$(printf '7\n3\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _out=$(printf '7\n73\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-23 sudoers print-sudoers then Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '71. generate-sudoer-request:')
     assert_eq "TP-CLI-23 sudoers print reprints top twice" 2 "$_nfeat"
     assert_eq "TP-CLI-23 sudoers print showed submenu once" 1 "$_ngen"
     _out=$(printf 'print-sudoers\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
@@ -512,56 +515,55 @@ run_test_cli() {
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-23 top shortcut reprints top twice" 2 "$_nfeat"
 
-    # TP-CLI-24 self-management family submenu: Back 8 / Exit 9; not dispatched
-    _out=$(printf '8\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    # TP-CLI-24 self-management family submenu: 82, 83, 87-89; Back 0; not dispatched
+    _out=$(printf '8\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-24 TTY selfmgmt back exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-24 submenu title" "$_plain" "self-management (place, remove, locate)"
-    assert_contains "TP-CLI-24 self-install row" "$_plain" "1. self-install:"
-    assert_contains "TP-CLI-24 uninstall row" "$_plain" "2. uninstall:"
-    assert_contains "TP-CLI-24 where-is-me row" "$_plain" "3. where-is-me:"
-    assert_contains "TP-CLI-24 version row" "$_plain" "4. version:"
-    assert_contains "TP-CLI-24 about row" "$_plain" "5. about:"
-    assert_contains "TP-CLI-24 submenu Back 8" "$_plain" "8. Back"
-    assert_contains "TP-CLI-24 submenu Exit 9" "$_plain" "9. Exit"
+    assert_contains "TP-CLI-24 version row" "$_plain" "82. version:"
+    assert_contains "TP-CLI-24 about row" "$_plain" "83. about:"
+    assert_contains "TP-CLI-24 self-install row" "$_plain" "87. self-install:"
+    assert_contains "TP-CLI-24 uninstall row" "$_plain" "88. uninstall:"
+    assert_contains "TP-CLI-24 where-is-me row" "$_plain" "89. where-is-me:"
+    assert_contains "TP-CLI-24 submenu Back 0" "$_plain" "0. Back"
+    _nexit=$(printf '%s\n' "$_plain" | grep -c '9\. Exit')
+    assert_eq "TP-CLI-24 Exit stays on the front board" 2 "$_nexit"
     assert_not_contains "TP-CLI-24 no self-update" "$_plain" "self-update:"
     assert_not_contains "TP-CLI-24 no version-check" "$_plain" "version-check:"
     assert_not_contains "TP-CLI-24 no self-uninstall" "$_plain" "self-uninstall:"
     assert_not_contains "TP-CLI-24 no setup" "$_plain" "setup:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '87. self-install:')
     assert_eq "TP-CLI-24 back reprints main DNS Features twice" 2 "$_nfeat"
     assert_eq "TP-CLI-24 back showed submenu once" 1 "$_ninst"
-    _out=$(printf '8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _out=$(printf '8\n9\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
-    assert_eq "TP-CLI-24 TTY selfmgmt Exit 9 leaves" 0 "$_ec"
+    assert_eq "TP-CLI-24 submenu 9 is not Exit" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
-    _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
-    assert_eq "TP-CLI-24 Exit 9 main once" 1 "$_nfeat"
-    assert_eq "TP-CLI-24 Exit 9 showed submenu" 1 "$_ninst"
-    _out=$(printf 'self-management\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '87. self-install:')
+    assert_eq "TP-CLI-24 submenu 9 reprints self-install twice" 2 "$_ninst"
+    _out=$(printf 'self-management\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
-    assert_contains "TP-CLI-24 pick self-management opens submenu" "$_plain" "1. self-install:"
+    assert_contains "TP-CLI-24 pick self-management opens submenu" "$_plain" "87. self-install:"
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-24 pick self-management then back reprints main" 2 "$_nfeat"
     _err=$(sh "${SCRIPT}" self-management 2>&1 >/dev/null)
     _ec=$?
     assert_eq "TP-CLI-24 self-management not a live command" 1 "$_ec"
     assert_contains "TP-CLI-24 self-management unknown" "$_err" "Unknown command"
-    _out=$(printf '8\n4\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _out=$(printf '8\n82\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-24 version then Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ninst=$(printf '%s\n' "$_plain" | grep -c '1. self-install:')
+    _ninst=$(printf '%s\n' "$_plain" | grep -c '87. self-install:')
     assert_eq "TP-CLI-24 version reprints top twice" 2 "$_nfeat"
     assert_eq "TP-CLI-24 version showed submenu once" 1 "$_ninst"
-    _out=$(printf '8\n6\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _out=$(printf '8\n81\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-24 invalid pick warns" "$_plain" "Not a menu choice"
-    assert_contains "TP-CLI-24 invalid Next enter" "$_plain" "Next: enter 1-5"
+    assert_contains "TP-CLI-24 invalid Next enter" "$_plain" "Next: enter 82, 83, 87-89"
 
     # TP-CLI-21 invalid pick reprints the same numbered layer; a later listed pick still runs
     _out=$(printf '2\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
@@ -582,34 +584,34 @@ run_test_cli() {
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
     assert_eq "TP-CLI-21 main blank reprints DNS Features twice" 2 "$_nfeat"
-    _out=$(printf '7\n5\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    _out=$(printf '7\n74\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-21 sudoers invalid then back Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '71. generate-sudoer-request:')
     assert_eq "TP-CLI-21 sudoers invalid reprints generate twice" 2 "$_ngen"
     assert_eq "TP-CLI-21 sudoers invalid main twice until back" 2 "$_nfeat"
-    _out=$(printf '7\n5\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _out=$(printf '7\n74\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-21 sudoers invalid warns" "$_plain" "Not a menu choice"
-    assert_contains "TP-CLI-21 sudoers invalid Next enter" "$_plain" "Next: enter 1-4"
-    _out=$(printf '1\n11\n98\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    assert_contains "TP-CLI-21 sudoers invalid Next enter" "$_plain" "Next: enter 71-73, 76"
+    _out=$(printf '1\n10\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _ec=$?
     assert_eq "TP-CLI-21 DNS invalid then back Exit 0" 0 "$_ec"
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _nvault=$(printf '%s\n' "$_plain" | grep -c '1. vault:')
+    _nvault=$(printf '%s\n' "$_plain" | grep -c '11. vault:')
     assert_eq "TP-CLI-21 DNS invalid reprints vault twice" 2 "$_nvault"
     assert_eq "TP-CLI-21 DNS invalid main twice until back" 2 "$_nfeat"
-    _out=$(printf '1\n11\n98\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
+    _out=$(printf '1\n10\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>&1)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     assert_contains "TP-CLI-21 DNS invalid warns" "$_plain" "Not a menu choice"
-    assert_contains "TP-CLI-21 DNS invalid Next enter" "$_plain" "Next: enter 1-10"
-    _out=$(printf '2\n7\n5\n8\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
+    assert_contains "TP-CLI-21 DNS invalid Next enter" "$_plain" "Next: enter 11-19, 101"
+    _out=$(printf '2\n7\n74\n0\n9\n' | TTY=1 sh "${SCRIPT}" menu 2>/dev/null)
     _plain=$(printf '%s' "$_out" | sed "s/${_esc}\\[[0-9;]*m//g")
     _nfeat=$(printf '%s\n' "$_plain" | grep -c '1. DNS Features:')
-    _ngen=$(printf '%s\n' "$_plain" | grep -c '1. generate-sudoer-request:')
+    _ngen=$(printf '%s\n' "$_plain" | grep -c '71. generate-sudoer-request:')
     assert_eq "TP-CLI-21 both layers invalid then back DNS Features thrice" 3 "$_nfeat"
     assert_eq "TP-CLI-21 both layers invalid generate twice" 2 "$_ngen"
 
