@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.36.0] - 2026-09-30
+
+### Changed
+
+- **Cache folder when `mktemp` is missing.** The temp maker is not installed on every OS. `util_mktemp` checks that `mktemp` exists before it calls it. When the maker is absent, or it cannot create a file, the scratch file is still created under this process’s cache folder as `${APP_NAME}.${suffix}.${token}`, mode `0600`. The name is not a `$$` file name, and it is not a bare `/tmp` dump. A scratch directory (`util_mktemp_dir`) is mode `0700` and searchable before any file is written. A directory at `0600` cannot be searched. `self-install` stages through `util_mktemp`. The cache chain is unchanged (Linux `/dev/shm/cache/…`, Git Bash and Mac `/tmp/cache/…`). Law `requirement-shell-cli-storage` **1.7.0** (reference: sibling safe-rm storage **1.1.1**). Suite **TP-CLI-28**. Ship unit **`VERSION="1.36.0"`**.
+
 ## [1.35.0] - 2026-09-27
 
 ### Changed

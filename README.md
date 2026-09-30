@@ -1,6 +1,6 @@
 # dns-cli - Cloudflare DNS CLI (local self-managed)
 
-![Version](https://img.shields.io/badge/Version-1.35.0-blue?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.36.0-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 [![CIAO](https://img.shields.io/badge/Philosophy-CIAO%20(Caution%20%E2%80%A2%20Intentional%20%E2%80%A2%20Anti--fragile%20%E2%80%A2%20Over--engineered)-purple.svg)](https://github.com/cloudgen/ciao)
 [![Stars](https://img.shields.io/github/stars/cloudgen/dns-cli?style=flat-square)](https://github.com/cloudgen/dns-cli)
@@ -73,7 +73,7 @@ sudo dns-cli setup
 **Main menu** (`dns-cli` or `dns-cli menu` at a real terminal; `9` leaves). Pick **1** / **DNS Features** for daily DNS work (`98` back, `99` leaves that list). Pick **7** / **sudoers** for grant and drafts (`8` back, `9` leaves that list). Pick **8** / **self-management** to install, uninstall, or locate this program (`8` back, `9` leaves that list). After a listed command finishes you are back on this top list. A number that is not on the list prints **that same list** again. Off-TTY these commands print help. Family names are not typed CLI commands.
 
 ```text
-[INFO] **dns-cli**(*1.35.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
+[INFO] **dns-cli**(*1.36.0*) - Cloudflare DNS CLI (vault + IPv4 A records)
 1. DNS Features: *Daily DNS work*
 7. sudoers: *Grant and drafts*
 8. self-management: *Self-install, uninstall, where-is-me*
@@ -84,7 +84,7 @@ Choice:
 Pick **1** — DNS Features (all daily DNS verbs):
 
 ```text
-[INFO] **dns-cli**(*1.35.0*) - DNS Features (daily DNS work)
+[INFO] **dns-cli**(*1.36.0*) - DNS Features (daily DNS work)
 1. vault: *Store or inspect Cloudflare vault*
 2. ip: *Show public IPv4 (no vault)*
 3. add: *Ensure one A record*
@@ -103,7 +103,7 @@ Choice:
 Pick **7** — sudoers (all grant/draft/LPU verbs):
 
 ```text
-[INFO] **dns-cli**(*1.35.0*) - sudoers (grant and drafts)
+[INFO] **dns-cli**(*1.36.0*) - sudoers (grant and drafts)
 1. generate-sudoer-request: *Write a local JSON grant you can review*
 2. submit-sudoer-request: *Queue a type-2-switch grant as this login*
 3. print-sudoers: *Print the sudoer file (does not install dest)*
@@ -116,7 +116,7 @@ Choice:
 Pick **8** — self-management (local lifecycle; no online update channel):
 
 ```text
-[INFO] **dns-cli**(*1.35.0*) - self-management (place, remove, locate)
+[INFO] **dns-cli**(*1.36.0*) - self-management (place, remove, locate)
 1. self-install: *Place this CLI (copy this file; no download)*
 2. uninstall: *Remove managed binary (confirm or --force)*
 3. where-is-me: *Show running and install paths*
@@ -435,6 +435,7 @@ MIT License — see [`LICENSE.md`](./LICENSE.md).
 
 ## Last Update
 
+2026-09-30 — version **1.36.0** (a missing `mktemp` still writes scratch under the cache folder; a scratch directory is mode `0700`).
 2026-09-27 — version **1.35.0** (cache folder is per login and per process; Linux `/dev/shm/cache/...`, Git Bash and Mac `/tmp/cache/...`; a skipped folder is silent).
 2026-09-23 — version **1.34.0** (cache leaf on `/dev/shm` and `/tmp` names this login; `prompt_ask` assigns `PROMPT_ASK_VALUE` in this shell).
 2026-09-17 — version **1.33.0** (`setup` `chown`s `${HOME}/.local` to `dns-adm`; no `-R`).

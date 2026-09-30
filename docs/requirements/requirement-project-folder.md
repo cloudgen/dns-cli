@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-project-folder.md  
-**Status**: Active (Version 2.4.1)  
+**Status**: Active (Version 2.4.2)  
 **Area**: architecture  
 **Key**: `requirement-project-folder`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -69,9 +69,9 @@ Rules:
 
 | Purpose | Pattern |
 |---------|---------|
-| Cache folder root | From `util_resolve_storage` (see `requirement-shell-cli-storage` 1.6.0). Linux preferred `/dev/shm/cache/cache-${APP_NAME}-${login}-$$` |
+| Cache folder root | From `util_resolve_storage` (see `requirement-shell-cli-storage` 1.7.0). Linux preferred `/dev/shm/cache/cache-${APP_NAME}-${login}-$$`. A missing `mktemp` still writes under that folder |
 | Persistency folder | `${HOME}/.local/dns-cli` via `util_resolve_persistent_storage` (same REQ) |
-| Install staging | `mktemp` under the cache root |
+| Install staging | `util_mktemp` under the cache root |
 
 Rules:
 
@@ -154,6 +154,7 @@ Rules:
 |------|--------|------|
 | 2026-08-03 | Active 1.0.0 | folder-backup layout + `/var/backup` deposit |
 | 2026-08-13 | Active 2.0.0 | cli-template: retarget; remove deposit |
+| 2026-09-30 | Active 2.4.2 | Cache leaves point at storage 1.7.0 (missing `mktemp` still uses the cache folder) |
 | 2026-09-27 | Active 2.4.1 | Cache leaves point at storage 1.6.0 (per login and per process) |
 | 2026-08-30 | Active 2.4.0 | Persistency folder pointer `${HOME}/.local/dns-cli` (storage REQ owns shapes) |
 | 2026-08-18 | Active 2.3.0 | Default vault pointer `${SYSTEM_USER_HOME}/.local/vaults/dns-cli/` |
@@ -162,6 +163,6 @@ Rules:
 
 ---
 
-**Last Updated**: 2026-09-27  
+**Last Updated**: 2026-09-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

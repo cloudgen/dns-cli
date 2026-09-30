@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-interface.md  
-**Status**: Active (Version 3.13.3) — `self-install` place verb; Version SSOT `1.35.0`; about cache lines follow storage 1.6.0; `interactive` also `requirement-login-interactive-hook`  
+**Status**: Active (Version 3.13.4) — `self-install` place verb; Version SSOT `1.36.0`; about cache lines follow storage 1.7.0; `interactive` also `requirement-login-interactive-hook`  
 **Area**: shell  
 **Key**: `requirement-shell-cli-interface`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -114,7 +114,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 | **Primary executable (live)** | `src/dns-cli` |
 | **Dispatcher** | `app_main` |
 | **Output SSOT** | `out_text` + wrappers including **`out_die_code`** |
-| **Version SSOT** | `VERSION="1.35.0"` hard-assign in `src/dns-cli` |
+| **Version SSOT** | `VERSION="1.36.0"` hard-assign in `src/dns-cli` |
 | **Install paths** | Global: `GLOBAL_BIN` default `/usr/local/bin`; User: `USER_BIN` default `${HOME}/.local/bin` |
 | **Primary install story** | User bin: `~/.local/bin/dns-cli` |
 | **Online channel env** | **Not product UX** (trimmed) |
@@ -277,6 +277,7 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 3.13.4 | Version SSOT `1.36.0`. About cache lines still follow `requirement-shell-cli-storage` 1.7.0 |
 | 2026-09-27 | Active 3.13.3 | `about` cache lines follow `requirement-shell-cli-storage` 1.6.0 (used / preferred / 1st / 2nd). Version SSOT `1.35.0` |
 | 2026-09-17 | Active 3.13.2 | Implementation Notes Version SSOT `1.31.0` (re-specialize from selfmanaged) |
 | 2026-09-17 | Active 3.13.1 | Implementation Notes Version SSOT `1.30.0` (was stale `1.0.0`) |
@@ -300,6 +301,6 @@ In JSON mode, help **MUST NOT** dump long human text; return a short structured 
 
 ---
 
-**Last Updated**: 2026-09-27 (3.13.3 — about cache lines)  
+**Last Updated**: 2026-09-30 (3.13.4 — version SSOT 1.36.0)  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -5,7 +5,7 @@ Maps **TP-*** coverage to `tests/`.
 **Ship unit (live):** `src/dns-cli`  
 **Product VERSION:** 1.34.0  
 **Last plan update:** 2026-09-17  
-**Last suite run:** PASS=945 FAIL=0 SKIP=2 (2026-09-17; **TP-CLI-25** prompt capture · **TP-CLI-26** persistency fail-close; **TP-FENCE-07** skip live sibling dest `kind`)
+**Last suite run:** PASS=984 FAIL=0 SKIP=2 (2026-09-30; **TP-CLI-28** missing `mktemp`. Prior 2026-09-17 was PASS=945. **TP-FENCE-07** still skips the live sibling dest `kind`)
 
 Status: **have** = automated today · **todo** = needed · **optional** · **n/a** · **skip** (environment)
 
@@ -70,6 +70,7 @@ Status: **have** = automated today · **todo** = needed · **optional** · **n/a
 | TP-CLI-24 | Self-management submenu Back 8 / Exit 9; `self-management` is not a live command; local five verbs; no online verbs | test_cli | requirement-shell-cli-default-interaction | **have** |
 | TP-CLI-25 | `prompt_ask` / `prompt_secret` assign `PROMPT_ASK_VALUE`; vault copies it; persistency ensure not captured | test_cli | requirement-shell-prompt | **have** |
 | TP-CLI-26 | persistency mkdir fail exits the parent (no version INFO after ERROR) | test_cli | requirement-shell-cli-storage | **have** |
+| TP-CLI-28 | `util_mktemp` under the cache leaf; refuses a `$$` file name; absent `mktemp` writes mode `0600` in that leaf; `util_mktemp_dir` under umask `0177` is mode `0700` and searchable | test_cli | requirement-shell-cli-storage · requirement-shell-temp-file-system | **have** |
 | TP-CLI-27 | No `$()` or backticks of `prompt_*` on non-comment lines | test_cli | requirement-shell-prompt · requirement-shell-script-coding | **have** |
 | TP-FENCE-08 | Type 0 `test-json-format` dest-legal vs token fail closed | test_cli | requirement-incorrect-json-format IJF-M11 | **have** |
 | TP-FENCE-09 | Type 0 `fence-test --file` dest-legal | test_cli | requirement-approval-fencing-condition AFC-M11 | **have** |

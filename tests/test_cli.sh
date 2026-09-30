@@ -212,6 +212,73 @@ run_test_cli() {
     assert_contains "TP-CLI-12 mac about 2nd path" "${_hum_mac}" "Cache folder (2nd fallback): ${CI_HOME}/cache/cache-${APP_NAME}-"
     assert_contains "TP-CLI-12 util_mktemp refuses dollar-dollar names" "$(cat "${SCRIPT}")" 'util_mktemp: refuse predictable'
 
+    # TP-CLI-28 scratch when mktemp is absent stays under the cache folder.
+    _lib=$(mktemp "${CI_HOME}/dns-cli-lib.XXXXXX") || _lib=""
+    if [ -n "${_lib}" ]; then
+        awk '
+            /^app_main "\$@"$/ { print "# app_main stripped"; next }
+            { print }
+        ' "${SCRIPT}" > "${_lib}"
+        _leaf=$(HOME="${CI_HOME}" sh -c '. "$1"; util_mktemp tmp' sh "${_lib}" 2>/dev/null) || _leaf=""
+        case "${_leaf}" in
+            /dev/shm/cache/cache-${APP_NAME}-*-*/${APP_NAME}.tmp.*)
+                t_pass "TP-CLI-28 scratch file is under the cache leaf"
+                ;;
+            *)
+                t_fail "TP-CLI-28 scratch file unexpected: ${_leaf:-empty}"
+                ;;
+        esac
+        if [ -n "${_leaf}" ] && [ -f "${_leaf}" ]; then
+            rm -f "${_leaf}"
+        fi
+        _dollars=$(printf '%s%s' '$' '$')
+        _bad=$(HOME="${CI_HOME}" sh -c '. "$1"; util_mktemp "$2"' sh "${_lib}" "x${_dollars}y" 2>&1 >/dev/null) || true
+        assert_contains "TP-CLI-28 refuses a dollar file name" "${_bad}" "refuse predictable"
+        _fb=$(HOME="${CI_HOME}" DNS_CLI_MKTEMP_BIN= sh -c '. "$1"; util_mktemp tmp' sh "${_lib}" 2>/dev/null) || _fb=""
+        case "${_fb}" in
+            /dev/shm/cache/cache-${APP_NAME}-*-*/${APP_NAME}.tmp.*)
+                _base=${_fb##*/}
+                case "${_base}" in
+                    *'$$'*)
+                        t_fail "TP-CLI-28 absent mktemp uses a dollar name: ${_base}"
+                        ;;
+                    *)
+                        _mode=$(stat -c '%a' "${_fb}" 2>/dev/null || echo "")
+                        assert_eq "TP-CLI-28 absent mktemp mode 0600" "600" "${_mode}"
+                        ;;
+                esac
+                ;;
+            *)
+                t_fail "TP-CLI-28 absent mktemp unexpected: ${_fb:-empty}"
+                ;;
+        esac
+        if [ -n "${_fb}" ] && [ -f "${_fb}" ]; then
+            rm -f "${_fb}"
+        fi
+        _dir=$(HOME="${CI_HOME}" DNS_CLI_MKTEMP_BIN= sh -c 'umask 0177; . "$1"; util_mktemp_dir' sh "${_lib}" 2>/dev/null) || _dir=""
+        case "${_dir}" in
+            /dev/shm/cache/cache-${APP_NAME}-*-*/${APP_NAME}-work.*)
+                _dmode=$(stat -c '%a' "${_dir}" 2>/dev/null || echo "")
+                assert_eq "TP-CLI-28 scratch directory mode 0700" "700" "${_dmode}"
+                if [ -x "${_dir}" ] && [ -w "${_dir}" ]; then
+                    t_pass "TP-CLI-28 scratch directory is searchable"
+                else
+                    t_fail "TP-CLI-28 scratch directory is not searchable: ${_dir}"
+                fi
+                ;;
+            *)
+                t_fail "TP-CLI-28 scratch directory unexpected: ${_dir:-empty}"
+                ;;
+        esac
+        if [ -n "${_dir}" ] && [ -d "${_dir}" ]; then
+            chmod 0700 "${_dir}" 2>/dev/null || true
+            rmdir "${_dir}" 2>/dev/null || rm -rf "${_dir}" 2>/dev/null || true
+        fi
+        rm -f "${_lib}"
+    else
+        t_fail "TP-CLI-28 could not stage a library copy"
+    fi
+
     # TP-CLI-17 persistency folder + about cache labels
     _persist=$(printf '%s' "$_out" | sed -n 's/.*"persistence_storage":"\([^"]*\)".*/\1/p' | head -n1)
     assert_eq "TP-CLI-17 persistency folder path" "${CI_HOME}/.local/${APP_NAME}" "${_persist}"

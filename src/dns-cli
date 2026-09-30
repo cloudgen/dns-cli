@@ -39,7 +39,7 @@
 # or /usr/local/bin (root/--global, mode 0755). Script $0 copies itself (no download).
 #
 # APP NAME: hard-assign APP_NAME="dns-cli"
-# VERSION: hard-assign VERSION="1.35.0"
+# VERSION: hard-assign VERSION="1.36.0"
 #
 # =============================================================================
 
@@ -59,8 +59,8 @@ APP_NAME="dns-cli"
 : "${SHORT_DESC:=${SHORT_DESCRIPTION}}"
 : "${DESCRIPTION:=POSIX /bin/sh local CLI: self-install, multi-account vault, ip, add/update/remove/status DNS A records, generate-sudoer-request, submit-sudoer-request, test-json-format, fence-test, submit/approve/reject/interactive DNS inbound, menu, version, about, help.}"
 # Product version SSOT (semver). Extractors use: grep '^VERSION="'
-VERSION="1.35.0"
-: "${VERSION:=1.35.0}"
+VERSION="1.36.0"
+: "${VERSION:=1.36.0}"
 # Repository identity SSOT (git host owner/repo for project-repository alignment).
 # Install remains local-only: SCRIPT_URL stays empty (no online curl|sh channel).
 : "${REPO_USER:=cloudgen}"
@@ -992,8 +992,11 @@ util_backup() {
 #          then ${HOME}/Library/Caches/cache-${APP_NAME}-$$
 #          then ${HOME}/cache/cache-${APP_NAME}-$$
 # $$ is this process id. Home tiers omit the login (HOME already isolates).
-# A missed tier is silent. Scratch files inside the directory stay mktemp
-# names. Do not use /dev/shm/${APP_NAME}[-${USERNAME}] as cache.
+# A missed tier is silent. Scratch files inside the directory stay
+# unpredictable names. mktemp is not on every OS. When it is missing, the
+# file is still created under this cache folder (mode 0600). A scratch
+# directory is mode 0700 before any file is written. A directory at 0600
+# cannot be searched. Do not use /dev/shm/${APP_NAME}[-${USERNAME}] as cache.
 # Persistency is ${HOME}/.local/${APP_NAME} (no login suffix, no $$).
 # Test-purpose: DNS_CLI_CACHE_HOST=linux|gitbash|mac
 #               DNS_CLI_CACHE_SKIP=preferred skips tier 1 with no message
@@ -1041,8 +1044,10 @@ util_backup() {
 #             this login creates the cache bucket. Skipped tier stays silent.
 # 2026-09-27: Leaf is cache-${APP_NAME}-${login}-$$. Home tiers omit login.
 #             Git Bash and Mac start at /tmp/cache. Skipped tier stays silent.
+# 2026-09-30: mktemp may be absent. Scratch file falls back under the cache
+#             folder (mode 0600). Scratch directory is mode 0700.
 #
-# Last updated: 2026-09-27
+# Last updated: 2026-09-30
 # SSOT: requirement-shell-cli-storage.md
 # =============================================================================
 util_cache_host_kind() {
@@ -1212,8 +1217,38 @@ util_resolve_storage() {
     return 0
 }
 
+# Path of mktemp, or empty when this OS has no temp maker.
+# DNS_CLI_MKTEMP_BIN set (including empty) is the test stand-in. Operators do not set it.
+# Last updated: 2026-09-30
+util_mktemp_bin() {
+    if [ -n "${DNS_CLI_MKTEMP_BIN+x}" ]; then
+        printf '%s\n' "${DNS_CLI_MKTEMP_BIN}"
+        return 0
+    fi
+    command -v mktemp 2>/dev/null || true
+}
+
+# Short unpredictable token for a cache-folder leaf. Class B.
+# /dev/urandom when it can be read. Otherwise a hex mix. Not a $$ file name.
+# Last updated: 2026-09-30
+util_scratch_token() {
+    _tok=
+    if [ -r /dev/urandom ]; then
+        _tok=$(od -An -N3 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n') || _tok=
+    fi
+    case "$_tok" in
+        *[!0-9A-Fa-f]*|"")
+            _tok=$(printf '%04x%02x' "$$" "${1:-1}" 2>/dev/null) || _tok=
+            ;;
+    esac
+    [ -n "$_tok" ] || _tok="n${1:-1}"
+    printf '%s\n' "$_tok"
+}
+
 # Isolated scratch file under the cache directory. The directory name may
-# include $$. The file name must be mktemp (XXXXXX), not a $$ name.
+# include $$. The file name must not. When mktemp is absent or cannot create
+# the file, write a mode-0600 file under the cache folder.
+# Last updated: 2026-09-30
 util_mktemp() {
     : "${APP_NAME:=dns-cli}"
     : "${EFFECTIVE_STORAGE_DIR:=}"
@@ -1228,9 +1263,89 @@ util_mktemp() {
         EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
         export EFFECTIVE_STORAGE_DIR
     fi
-    mktemp "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null \
-        || mktemp "${TMPDIR:-/tmp}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null \
-        || mktemp
+    _bin=$(util_mktemp_bin)
+    if [ -n "$_bin" ] && [ -x "$_bin" ]; then
+        _made=$("$_bin" "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null) || _made=
+        if [ -n "$_made" ]; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+        _made=$("$_bin" "${TMPDIR:-/tmp}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null) || _made=
+        if [ -n "$_made" ]; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+        _made=$("$_bin" 2>/dev/null) || _made=
+        if [ -n "$_made" ]; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+    fi
+    # The temp maker is absent, or it cannot create a file. The cache
+    # folder is already this process's scratch root.
+    _tok=$(util_scratch_token 1)
+    _path="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.${_tok}"
+    if : > "$_path" 2>/dev/null; then
+        chmod 0600 "$_path" 2>/dev/null || true
+        printf '%s\n' "$_path"
+        return 0
+    fi
+    return 1
+}
+
+# Mode 0700. chmod does not apply umask. mkdir and mktemp -d do, so umask
+# 0177 leaves a directory at 0600. That directory cannot be searched.
+# Last updated: 2026-09-30
+util_dir_mode_0700() {
+    _dmode=${1-}
+    [ -n "$_dmode" ] || return 1
+    chmod 0700 "$_dmode" 2>/dev/null || return 1
+    [ -d "$_dmode" ] && [ -x "$_dmode" ] && [ -w "$_dmode" ]
+}
+
+# Scratch directory under the cache folder. Use mktemp -d only when that
+# program exists and can create a directory. Otherwise mkdir a unique
+# subdirectory. Either way the directory is mode 0700 before return. Class B.
+# Last updated: 2026-09-30
+util_mktemp_dir() {
+    : "${APP_NAME:=dns-cli}"
+    : "${EFFECTIVE_STORAGE_DIR:=}"
+    if [ -z "${EFFECTIVE_STORAGE_DIR}" ]; then
+        EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
+        export EFFECTIVE_STORAGE_DIR
+    fi
+    _base="${EFFECTIVE_STORAGE_DIR}"
+    _bin=$(util_mktemp_bin)
+    _made=
+    if [ -n "$_bin" ] && [ -x "$_bin" ]; then
+        _made=$(umask 077; "$_bin" -d "${_base}/${APP_NAME}-work.XXXXXX" 2>/dev/null) || _made=
+        if [ -n "$_made" ] && util_dir_mode_0700 "$_made"; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+        if [ -n "$_made" ] && [ -d "$_made" ]; then
+            util_dir_mode_0700 "$_made" || true
+            rmdir "$_made" 2>/dev/null || true
+        fi
+    fi
+    _i=0
+    while [ "$_i" -lt 32 ]; do
+        _i=$((_i + 1))
+        _tok=$(util_scratch_token "$_i")
+        [ -n "$_tok" ] || return 1
+        _dir="${_base}/${APP_NAME}-work.${_tok}"
+        if [ -e "$_dir" ]; then
+            continue
+        fi
+        if mkdir "$_dir" 2>/dev/null; then
+            if util_dir_mode_0700 "$_dir"; then
+                printf '%s\n' "$_dir"
+                return 0
+            fi
+            rmdir "$_dir" 2>/dev/null || true
+        fi
+    done
+    return 1
 }
 
 # =============================================================================
@@ -5391,8 +5506,8 @@ inst_self_install_copy_from_script() {
     : "${APP_NAME:=dns-cli}"
     : "${INSTALL_PATH:=}"
 
-    _stage=$(mktemp "${EFFECTIVE_STORAGE_DIR:-/tmp}/${APP_NAME}-XXXXXX" 2>/dev/null || mktemp)
-    if [ -z "${_stage}" ]; then
+    _stage=$(util_mktemp stage)
+    if [ -z "${_stage}" ] || [ ! -f "${_stage}" ]; then
         out_die "Failed to create temporary file"
     fi
     if ! cp "${_src}" "${_stage}"; then

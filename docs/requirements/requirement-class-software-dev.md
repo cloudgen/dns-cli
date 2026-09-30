@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-class-software-dev.md  
-**Status**: Active (Version 1.13.4) — residual points at independent login-hook REQ; origin A = selfmanaged; version SSOT `1.35.0`  
+**Status**: Active (Version 1.13.5) — residual points at independent login-hook REQ; origin A = selfmanaged; version SSOT `1.36.0`  
 **Area**: class  
 **Key**: `requirement-class-software-dev`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -138,11 +138,11 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 | **Lockfile policy** | not used |
 | **Test runner** | POSIX shell suite under `tests/` when present (`tests/run.sh` pattern) |
 | **Linter/formatter** | none as project law (shellcheck optional for maintainers) |
-| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `mktemp` + `date` exist) |
+| **Primary runtime / OS family** | POSIX Linux (and compatible UNIX where `/bin/sh` + `date` exist). `mktemp` may be absent; scratch still uses the cache folder (`requirement-shell-cli-storage`) |
 | **Architectures supported** | any arch with POSIX sh and the external tools the script invokes |
 | **Git surface** | used when product is published; forge target `cloudgen/dns-cli` (repo may be created after identity retarget) |
 | **Ship unit / install** | `src/dns-cli` → `${USER_BIN}/dns-cli` (default `~/.local/bin/dns-cli`); **local-only** |
-| **Product version SSOT** | `VERSION="1.35.0"` hard-assign in `src/dns-cli` |
+| **Product version SSOT** | `VERSION="1.36.0"` hard-assign in `src/dns-cli` |
 | **Bootstrap origin** | **A = `selfmanaged`** (hop 0). **This product is B = `dns-cli` (hop 1).** Online/Type O trimmed. |
 
 **Residual ownership table:**
@@ -283,6 +283,7 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 | Date | Status | Note |
 |------|--------|------|
+| 2026-09-30 | Active 1.13.5 | Version SSOT `1.36.0`. `mktemp` may be absent |
 | 2026-09-27 | Active 1.13.4 | Version SSOT `1.35.0` |
 | 2026-09-23 | Active 1.13.3 | Version SSOT `1.34.0` |
 | 2026-09-17 | Active 1.13.2 | Version SSOT `1.33.0` |
@@ -304,6 +305,6 @@ This file is **class law + residual SSOT**, not a second copy of Type 0 lifecycl
 
 ---
 
-**Last Updated**: 2026-09-27  
+**Last Updated**: 2026-09-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).

@@ -1,5 +1,5 @@
 **file**: docs/requirements/requirement-shell-cli-storage.md  
-**Status**: Active (Version 1.6.0 – per-login per-process cache folder)  
+**Status**: Active (Version 1.7.0 – cache folder; temp maker may be absent)  
 **Area**: shell  
 **Key**: `requirement-shell-cli-storage`  
 **Philosophy**: CIAO **v2.10.2** / CIAO-Lite (Caution • Intentional • Anti-fragile • Over-engineered / Over-protect)
@@ -21,9 +21,11 @@ Used for **install staging** (`mktemp` under the **cache** root). **Not** a dura
 
 The preferred cache is **not** a ram-drive **project** tree (`/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${login}`). On Linux it lives under `/dev/shm/cache/`. On Git Bash and Mac the preferred leaf lives under `/tmp/cache/`.
 
+The cache directory name carries `$$`. Scratch files inside it do not use a `$$` file name. `mktemp` is not installed on every OS. When it is missing, or it cannot create the leaf, the file is still created under this cache folder (mode `0600`). A scratch directory is mode `0700` before any file is written. A directory at `0600` (`drw-------`) exists and cannot be searched.
+
 ### 1.1 Human-facing
 
-**In one sentence:** dns-cli keeps a **cache folder** for throw-away files (one directory per login and per process) and a **persistency folder** at `~/.local/dns-cli` for this login’s durable app data — that is not the folder that holds API tokens.
+**In one sentence:** dns-cli keeps a **cache folder** for throw-away files (one directory per login and per process) and a **persistency folder** at `~/.local/dns-cli` for this login’s durable app data — that is not the folder that holds API tokens. A missing `mktemp` still writes the throw-away file in that cache folder.
 
 | Box | Meaning | Example |
 |-----|---------|---------|
@@ -35,6 +37,7 @@ The preferred cache is **not** a ram-drive **project** tree (`/dev/shm/${APP_NAM
 |----------|----------|
 | Isolated **cache folder** + **persistency folder** | Token files; `/var/dns-cli`; `${HOME}/.local/bin` |
 | About fields for the cache folder in use, preferred, 1st fallback, 2nd fallback when this host has one, and persistency | A warning because a higher cache folder was not used |
+| Scratch when `mktemp` is missing: mode-`0600` file, mode-`0700` directory, both under the cache folder | A bare `/tmp` dump, or a directory left at `0600` |
 
 | Surface | What you open | What for |
 |---------|---------------|----------|
@@ -91,9 +94,10 @@ On Termux the chosen folder is scratch only (it may be `noexec`). Termux uses th
 1. Cache leaves **MUST** include **app identity** (`cache-${APP_NAME}`).  
 2. Volatile leaves (`/dev/shm/cache` and `/tmp/cache`) **MUST** be `cache-${APP_NAME}-${login}-$$`. Home leaves **MUST** be `cache-${APP_NAME}-$$` (no login segment). Isolation is the login segment plus this process id.  
 3. **MUST NOT** use a single shared world-writable directory for all logins or all processes.  
-4. Live product **MUST** export `TMPDIR=${EFFECTIVE_STORAGE_DIR}` so `mktemp` inherits the isolated **cache** root.  
-5. New scratch files **MUST** be created via **`util_mktemp`** (or `mktemp` under a path `util_resolve_storage` returned).  
-6. The **cache directory** name includes `$$`. Scratch **files** inside it **MUST NOT** use a predictable `$$` file name (forbidden: `/tmp/${APP_NAME}.$$`, `${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$`).
+4. Live product **MUST** export `TMPDIR=${EFFECTIVE_STORAGE_DIR}` so a temp maker that is installed inherits the isolated **cache** root.  
+5. New scratch files **MUST** go through **`util_mktemp`**. That helper **MUST** check that `mktemp` exists and is executable before it calls it. `mktemp` is not installed on every OS until a package install.  
+6. When the temp maker is absent, or every `mktemp` attempt fails, the scratch **file** **MUST** be created under the resolved cache folder as `${APP_NAME}.${suffix}.${token}`, then mode `0600`. The token **MUST NOT** be a `$$` name. A scratch **directory** uses **`util_mktemp_dir`**: `mktemp -d` only when it can create a directory; otherwise `mkdir` a unique subdirectory of that cache folder. `mkdir` applies umask. Mode **MUST** be `0700`, and the directory **MUST** be searchable and writable, before any file is written in it. A directory at `0600` (`drw-------`) exists and cannot be searched.  
+7. The **cache directory** name includes `$$`. Scratch **files** inside it **MUST NOT** use a predictable `$$` file name (forbidden: `/tmp/${APP_NAME}.$$`, `${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.$$`). A missing temp maker **MUST NOT** fall back to a bare `/tmp` dump.
 
 ### 2.3.1 Persistency folder (normative)
 
@@ -112,7 +116,7 @@ On Termux the chosen folder is scratch only (it may be `noexec`). Termux uses th
 | `app_main` | Resolve once early: `EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)`; `STORAGE_DIR` is the 1st fallback path; **`util_ensure_persistent_storage`** (not `$(…)` around `out_die`); export both plus `STORAGE_DIR`; **`TMPDIR=${EFFECTIVE_STORAGE_DIR}`** |
 | `app_about` JSON | Include `cache_used`, `cache_preferred`, `cache_fallback` (1st), `cache_fallback_2` (2nd, empty string when this host has none), `persistence_storage`, and the live chosen cache root `effective_storage` (same value as `cache_used`). `storage_dir` is the 1st fallback. **MUST NOT** include `CHECKSUM` |
 | `app_about` human | **MUST** print **Cache folder used**, **Cache folder (preferred)**, **Cache folder (1st fallback)**, and **Cache folder (2nd fallback)** only when this host has a 2nd fallback, then **Persistence storage**. **MUST NOT** label cache lines **Storage (effective)** or **Storage (fallback)**. **MUST NOT** warn or error when the used directory is a fallback |
-| `self-install` / `install` | Stage the ship-unit copy under the isolated **cache** root when using `mktemp` |
+| `self-install` / `install` | Stage the ship-unit copy with **`util_mktemp`** under the isolated **cache** root |
 
 Linux `about` lines (`$$` is this process, not a fixed number). **Cache folder used** is the tier that was created. When the preferred tier is the one used, the used line and the preferred line are the same path. When a fallback is used, the used line is that fallback path and the preferred line still shows the preferred path. Neither case prints a warning.
 
@@ -138,7 +142,7 @@ Git Bash omits the 2nd fallback line. Its 1st fallback is `${HOME}/AppData/Local
 | **Persistency folder** | `${HOME}/.local/dns-cli` |
 | **Call sites** | `app_main`, `app_about`, install staging |
 | **Not used for** | Durable `/var/backup`; **Cloudflare vault** (`…/.local/vaults/dns-cli/`); install bin (`${HOME}/.local/bin`); F5 `/var/dns-cli` |
-| **Test-purpose** | `DNS_CLI_CACHE_HOST=linux\|gitbash\|mac` selects the chain. `DNS_CLI_CACHE_SKIP=preferred` skips tier 1 with no message |
+| **Test-purpose** | `DNS_CLI_CACHE_HOST=linux\|gitbash\|mac` selects the chain. `DNS_CLI_CACHE_SKIP=preferred` skips tier 1 with no message. `DNS_CLI_MKTEMP_BIN` set (including empty) stands in for the temp maker. Operators do not set these |
 
 ### 2.5a Example storage `util_*` (this product)
 
@@ -290,6 +294,28 @@ util_resolve_storage() {
     return 0
 }
 
+util_mktemp_bin() {
+    if [ -n "${DNS_CLI_MKTEMP_BIN+x}" ]; then
+        printf '%s\n' "${DNS_CLI_MKTEMP_BIN}"
+        return 0
+    fi
+    command -v mktemp 2>/dev/null || true
+}
+
+util_scratch_token() {
+    _tok=
+    if [ -r /dev/urandom ]; then
+        _tok=$(od -An -N3 -tx1 /dev/urandom 2>/dev/null | tr -d ' \n') || _tok=
+    fi
+    case "$_tok" in
+        *[!0-9A-Fa-f]*|"")
+            _tok=$(printf '%04x%02x' "$$" "${1:-1}" 2>/dev/null) || _tok=
+            ;;
+    esac
+    [ -n "$_tok" ] || _tok="n${1:-1}"
+    printf '%s\n' "$_tok"
+}
+
 util_mktemp() {
     : "${APP_NAME:=dns-cli}"
     : "${EFFECTIVE_STORAGE_DIR:=}"
@@ -304,8 +330,72 @@ util_mktemp() {
         EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
         export EFFECTIVE_STORAGE_DIR
     fi
-    mktemp "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.XXXXXX" \
-        || mktemp
+    _bin=$(util_mktemp_bin)
+    if [ -n "$_bin" ] && [ -x "$_bin" ]; then
+        _made=$("$_bin" "${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.XXXXXX" 2>/dev/null) || _made=
+        if [ -n "$_made" ]; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+    fi
+    # Temp maker absent or unable to create. Unique file under the cache folder.
+    # Token is not a $$ name. chmod 0600 after create.
+    _tok=$(util_scratch_token 1)
+    _path="${EFFECTIVE_STORAGE_DIR}/${APP_NAME}.${_suffix}.${_tok}"
+    if : > "$_path" 2>/dev/null; then
+        chmod 0600 "$_path" 2>/dev/null || true
+        printf '%s\n' "$_path"
+        return 0
+    fi
+    return 1
+}
+
+util_dir_mode_0700() {
+    _dmode=${1-}
+    [ -n "$_dmode" ] || return 1
+    chmod 0700 "$_dmode" 2>/dev/null || return 1
+    [ -d "$_dmode" ] && [ -x "$_dmode" ] && [ -w "$_dmode" ]
+}
+
+util_mktemp_dir() {
+    : "${APP_NAME:=dns-cli}"
+    : "${EFFECTIVE_STORAGE_DIR:=}"
+    if [ -z "${EFFECTIVE_STORAGE_DIR}" ]; then
+        EFFECTIVE_STORAGE_DIR=$(util_resolve_storage)
+        export EFFECTIVE_STORAGE_DIR
+    fi
+    _base="${EFFECTIVE_STORAGE_DIR}"
+    _bin=$(util_mktemp_bin)
+    _made=
+    if [ -n "$_bin" ] && [ -x "$_bin" ]; then
+        _made=$(umask 077; "$_bin" -d "${_base}/${APP_NAME}-work.XXXXXX" 2>/dev/null) || _made=
+        if [ -n "$_made" ] && util_dir_mode_0700 "$_made"; then
+            printf '%s\n' "$_made"
+            return 0
+        fi
+        if [ -n "$_made" ] && [ -d "$_made" ]; then
+            util_dir_mode_0700 "$_made" || true
+            rmdir "$_made" 2>/dev/null || true
+        fi
+    fi
+    _i=0
+    while [ "$_i" -lt 32 ]; do
+        _i=$((_i + 1))
+        _tok=$(util_scratch_token "$_i")
+        [ -n "$_tok" ] || return 1
+        _dir="${_base}/${APP_NAME}-work.${_tok}"
+        if [ -e "$_dir" ]; then
+            continue
+        fi
+        if mkdir "$_dir" 2>/dev/null; then
+            if util_dir_mode_0700 "$_dir"; then
+                printf '%s\n' "$_dir"
+                return 0
+            fi
+            rmdir "$_dir" 2>/dev/null || true
+        fi
+    done
+    return 1
 }
 ```
 
@@ -314,7 +404,23 @@ util_mktemp() {
 - **Caution:** Two logins must not share one scratch directory. Two processes of one login must not share one scratch directory. Do not mix cache with vault or install bin.  
 - **Intentional:** Storage = **cache folder** **and** **persistency folder**; about says both.  
 - **Anti-fragile:** A missing higher tier still works, and the miss is silent.  
-- **Principle 11 – Temps:** Cleanup, not museum copies of staging. The directory name may include `$$`. The file name stays `mktemp`.
+- **Principle 11 – Temps:** Cleanup, not museum copies of staging. The directory name may include `$$`. The file name stays unpredictable. A missing temp maker still writes under the cache folder.
+
+---
+
+## Under command line for normal user only
+
+When dns-cli runs on Termux, Git Bash, Windows cmd, or the same class (this login only — no root, no dedicated system account):
+
+| MUST | MUST NOT |
+|------|----------|
+| Keep **normal user privilege** only | Enable **admin privilege** (`sudo`, write `/etc`) or a **dedicated system user** to “fix” a missing cache tier |
+| Termux: Linux cache chain; cache may be `noexec` and is scratch only | Exec a binary from the cache folder |
+| Git Bash and Windows cmd: same ceiling | Invoke Termux `pkg` because those hosts were detected |
+
+Detect: Termux — `uname` contains Android, or `PREFIX` / `TERMUX_VERSION` is set. Git Bash — `MSYSTEM` or `uname -s` is MINGW*/MSYS*. Windows cmd — `OS=Windows_NT` after excluding Git Bash, Cygwin, and WSL.
+
+**This requirement:** cache and persistency stay under this login. Do not resolve scratch into `/etc`.
 
 ---
 
@@ -345,8 +451,9 @@ util_mktemp() {
 11. Drop `${login}` or `$$` from a volatile cache leaf, or put the login on a home leaf.  
 12. `chmod` the shared `cache` parent when this login did not create it.  
 13. Print an alert, warning, or error because a higher cache folder was not used. An error is only when every tier for this host failed.  
-14. Use a predictable `$$` scratch **file** name. The cache **directory** itself includes `$$`. Scratch files stay `mktemp` names.  
-15. Hardcode an app name, a login name, or a process id in place of `${APP_NAME}`, `${login}`, or `$$`.
+14. Use a predictable `$$` scratch **file** name. The cache **directory** itself includes `$$`. Scratch file names stay unpredictable (`mktemp` `XXXXXX`, or a token when `mktemp` is absent).  
+15. Hardcode an app name, a login name, or a process id in place of `${APP_NAME}`, `${login}`, or `$$`.  
+16. Call `mktemp` without checking that the program exists. Treat a directory at `0600` as usable. Fall back to a bare `/tmp` name when the temp maker is missing.
 
 **Violating this rule is a critical storage isolation regression.**
 
@@ -360,7 +467,7 @@ util_mktemp() {
 | AC-2 | Linux preferred leaf is `/dev/shm/cache/cache-${APP_NAME}-${login}-$$` when that directory is usable. Git Bash and Mac preferred leaf is `/tmp/cache/cache-${APP_NAME}-${login}-$$` |
 | AC-3 | `app_main` sets `EFFECTIVE_STORAGE_DIR` / `PERSISTENT_STORAGE_DIR` / `TMPDIR` early. Persistency ensure runs in this shell |
 | AC-4 | About human prints Cache folder used, preferred, 1st fallback, 2nd fallback when present, and Persistence storage. JSON has `cache_used` / `cache_preferred` / `cache_fallback` / `cache_fallback_2` / `persistence_storage` / `effective_storage` |
-| AC-5 | Scratch files use `util_mktemp` / `mktemp` `XXXXXX`. The cache directory name may include `$$`. Scratch file names must not |
+| AC-5 | Scratch files use `util_mktemp`. When `mktemp` exists and works, the name is an `XXXXXX` name under the cache leaf. When it does not, the file is `${APP_NAME}.${suffix}.${token}` under that leaf, mode `0600`, and is not a `$$` name. A scratch directory from `util_mktemp_dir` is mode `0700` and searchable before any file is written |
 | AC-6 | Persistency folder is `${HOME}/.local/${APP_NAME}` and is created before about prints it |
 | AC-7 | Storage `util_*` examples on this file (§2.5a) include cache **and** persistency helpers |
 | AC-8 | Live cache path is not `/dev/shm/${APP_NAME}` or `/dev/shm/${APP_NAME}-${login}` |
@@ -390,6 +497,7 @@ util_mktemp() {
 | 2026-08-13 | Active 1.1.0 | cli-template: scratch only |
 | 2026-08-18 | Active 1.3.0 | Storage `util_*` examples (§2.5a); AC-5 |
 | 2026-08-16 | Active 1.2.0 | Explicit: not the Cloudflare vault; dns-cli identity |
+| 2026-09-30 | Active 1.7.0 | `mktemp` is not on every OS. `util_mktemp` checks the maker first. A missing or failing maker writes a mode-`0600` file under the cache folder, not a `$$` name and not a bare `/tmp` dump. `util_mktemp_dir` is mode `0700` before use. Reference: sibling `safe-rm` storage **1.1.1**. **TP-CLI-28** |
 | 2026-09-27 | Active 1.6.0 | Per-login per-process leaves. Linux shm → tmp → `${HOME}/.cache`. Git Bash tmp → AppData Local Temp. Mac tmp → Library/Caches → `${HOME}/cache`. Silent tier miss. `about` prints used / preferred / 1st / 2nd. **TP-CLI-06** · **TP-CLI-12** · **TP-CLI-17** |
 | 2026-09-23 | Active 1.5.0 | Shared-mount leaves `cache-${APP_NAME}-${USERNAME}`; chmod `1777` only when this login creates the bucket; skipped tier is silent. **TP-CLI-17** |
 | 2026-09-17 | Active 1.4.2 | Persistency ensure in this shell; **TP-CLI-26** fail-close parent (no menu after ERROR) |
@@ -406,12 +514,13 @@ util_mktemp() {
 | **TP-CLI-12** | `tests/test_cli.sh` | have — Linux, Git Bash, and Mac chains; silent skip; leaf mode `0700`; live dir exists |
 | **TP-CLI-17** | `tests/test_cli.sh` | have — persistency folder `${HOME}/.local/dns-cli`; about labels used / preferred / 1st / 2nd |
 | **TP-CLI-26** | `tests/test_cli.sh` | have — persistency mkdir fail exits the parent (no version after ERROR) |
+| **TP-CLI-28** | `tests/test_cli.sh` | have — `util_mktemp` writes under the cache leaf, refuses a `$$` file-name template, and when the temp maker is absent writes a mode-`0600` file under that leaf. `util_mktemp_dir` under umask `0177` is mode `0700` and searchable |
 
 **Matrix:** `reviews/requirement-test-matrix.md`  
 **Map:** `reviews/test-plan.md`
 
 ---
 
-**Last Updated**: 2026-09-27  
+**Last Updated**: 2026-09-30  
 **Owner**: project maintainers  
 **Alignment**: Registry `docs/requirements/index.md`; **CIAO** (https://github.com/cloudgen/ciao); CIAO-Lite (https://github.com/cloudgen/ciao-lite).
